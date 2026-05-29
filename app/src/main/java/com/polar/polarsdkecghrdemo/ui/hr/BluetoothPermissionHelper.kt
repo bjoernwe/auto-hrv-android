@@ -1,6 +1,7 @@
 package com.polar.polarsdkecghrdemo.ui.hr
 
 import android.Manifest
+import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Intent
@@ -18,7 +19,7 @@ class BluetoothPermissionHelper(
 ) {
     private val bluetoothOnLauncher =
         activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode != ComponentActivity.RESULT_OK) {
+            if (result.resultCode != Activity.RESULT_OK) {
                 Log.w(TAG, "Bluetooth off")
             }
         }
@@ -35,8 +36,8 @@ class BluetoothPermissionHelper(
         }
 
     fun checkAndRequest() {
-        val btManager = activity.getSystemService(ComponentActivity.BLUETOOTH_SERVICE) as BluetoothManager
-        val adapter = btManager.adapter
+        val btManager = activity.getSystemService(BluetoothManager::class.java)
+        val adapter = btManager?.adapter
         if (adapter == null) {
             Toast.makeText(activity, "Device doesn't support Bluetooth", Toast.LENGTH_LONG).show()
             return
