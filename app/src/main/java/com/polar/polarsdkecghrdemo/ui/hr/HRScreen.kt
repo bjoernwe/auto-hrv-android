@@ -51,6 +51,11 @@ fun HRScreen(viewModel: PolarViewModel) {
                 hr = uiState.hr,
                 rrMs = uiState.rrMs,
             )
+
+            if (uiState.hrHistory.size >= 2) {
+                Spacer(modifier = Modifier.height(24.dp))
+                HrChart(hrHistory = uiState.hrHistory)
+            }
         }
     }
 }
