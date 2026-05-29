@@ -10,6 +10,8 @@ Android app for real-time HRV (Heart Rate Variability) monitoring via Bluetooth 
 - **Min SDK**: 24, **Target/Compile SDK**: 33/36
 - **Build tools**: AGP 8.13.2, Kotlin 2.1.0, Gradle 8.13
 
+The name is currently a left-over from a Polar example project (PolarSdkEcgHtDemo). The name should be replaced to become "Auto HRV" wherever possible and appropriate.
+
 ## Architecture
 
 MVVM with manual dependency injection (no Hilt/Koin). `PolarApplication` holds a lazy singleton `PolarRepository`; `PolarViewModel` exposes `StateFlow` for UI state.
