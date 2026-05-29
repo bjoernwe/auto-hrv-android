@@ -18,10 +18,6 @@ MVVM with manual dependency injection (no Hilt/Koin). `PolarApplication` holds a
 
 Streaming data uses **RxJava3** (from the Polar SDK) bridged to Kotlin Coroutines via `kotlinx-coroutines-rx3`. New code should use the Coroutines/Flow side; only touch RxJava when interfacing directly with the Polar SDK.
 
-## UI direction: full Compose rewrite
-
-The UI is being rewritten to Jetpack Compose (already in progress on this branch). Do not add new XML layouts or Views — implement all new UI in Compose. Compose dependencies are already in `app/build.gradle`.
-
 ## Build & test commands
 
 ```bash
