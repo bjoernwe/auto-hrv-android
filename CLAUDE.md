@@ -30,6 +30,9 @@ Compose dependencies are not yet in `app/build.gradle`; add them before writing 
 ./gradlew assembleRelease     # Build release APK
 ./gradlew test                # Unit tests
 ./gradlew connectedAndroidTest # Instrumented tests (device/emulator required)
+./gradlew ktlintCheck         # Check Kotlin style
+./gradlew ktlintFormat        # Auto-fix style issues
+./gradlew detekt              # Static analysis (config: config/detekt/detekt.yml)
 ```
 
 ## Key gotchas
