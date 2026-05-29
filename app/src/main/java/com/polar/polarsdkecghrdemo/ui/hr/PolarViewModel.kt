@@ -15,6 +15,7 @@ data class HrUiState(
     val connectionState: ConnectionState = ConnectionState.Idle,
     val hr: Int? = null,
     val rrMs: List<Int> = emptyList(),
+    val hrHistory: List<Int> = emptyList(),
     val batteryLevel: Int? = null,
     val firmwareVersion: String? = null,
 )
@@ -49,6 +50,11 @@ class PolarViewModel(private val repository: PolarRepository) : ViewModel() {
                         rrMs = if (sample.rrsMs.isNotEmpty()) sample.rrsMs else current.rrMs,
                     )
                 }
+            }
+        }
+        viewModelScope.launch {
+            repository.hrHistory.collect { history ->
+                _uiState.update { it.copy(hrHistory = history.takeLast(30)) }
             }
         }
     }
