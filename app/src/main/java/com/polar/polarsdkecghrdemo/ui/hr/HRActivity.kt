@@ -17,20 +17,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.androidplot.xy.BoundaryMode
-import com.androidplot.xy.StepMode
-import com.androidplot.xy.XYGraphWidget
-import com.androidplot.xy.XYPlot
 import com.polar.polarsdkecghrdemo.PolarApplication
 import com.polar.polarsdkecghrdemo.R
 import com.polar.polarsdkecghrdemo.data.model.ConnectionState
 
-import com.polar.polarsdkecghrdemo.ui.plot.HrAndRrPlotter
-import com.polar.polarsdkecghrdemo.ui.plot.PlotterListener
 import kotlinx.coroutines.launch
-import java.text.DecimalFormat
 
-class HRActivity : AppCompatActivity(), PlotterListener {
+class HRActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "HRActivity"
         private const val PERMISSION_REQUEST_CODE = 1
@@ -40,13 +33,11 @@ class HRActivity : AppCompatActivity(), PlotterListener {
         PolarViewModel.Factory((application as PolarApplication).repository)
     }
 
-    private lateinit var plotter: HrAndRrPlotter
     private lateinit var textViewHR: TextView
     private lateinit var textViewRR: TextView
     private lateinit var textViewDeviceId: TextView
     private lateinit var textViewBattery: TextView
     private lateinit var textViewFwVersion: TextView
-    private lateinit var plot: XYPlot
 
     private val bluetoothOnActivityResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
         if (result.resultCode != RESULT_OK) {
@@ -63,20 +54,8 @@ class HRActivity : AppCompatActivity(), PlotterListener {
         textViewDeviceId = findViewById(R.id.hr_view_deviceId)
         textViewBattery = findViewById(R.id.hr_view_battery_level)
         textViewFwVersion = findViewById(R.id.hr_view_fw_version)
-        plot = findViewById(R.id.hr_view_plot)
 
         textViewDeviceId.text = "ID: ${viewModel.deviceId}"
-
-        plotter = HrAndRrPlotter()
-        plotter.setListener(this)
-        plot.addSeries(plotter.hrSeries, plotter.hrFormatter)
-        plot.addSeries(plotter.rrSeries, plotter.rrFormatter)
-        plot.setRangeBoundaries(50, 100, BoundaryMode.AUTO)
-        plot.setDomainBoundaries(0, 360000, BoundaryMode.AUTO)
-        plot.setRangeStep(StepMode.INCREMENT_BY_VAL, 10.0)
-        plot.setDomainStep(StepMode.INCREMENT_BY_VAL, 60000.0)
-        plot.graph.getLineLabelStyle(XYGraphWidget.Edge.LEFT).format = DecimalFormat("#")
-        plot.linesPerRangeLabel = 2
 
         observeViewModel()
         checkBT()
@@ -152,7 +131,6 @@ class HRActivity : AppCompatActivity(), PlotterListener {
                             textViewRR.text = "(${sample.rrsMs.joinToString(separator = "ms, ")}ms)"
                         }
                         textViewHR.text = sample.hr.toString()
-                        plotter.addValues(sample)
                     }
                 }
 
@@ -179,9 +157,5 @@ class HRActivity : AppCompatActivity(), PlotterListener {
         super.onDestroy()
         // We could disconnect here if we want to follow the previous behavior
         // viewModel.disconnect(deviceId)
-    }
-
-    override fun update() {
-        runOnUiThread { plot.redraw() }
     }
 }
