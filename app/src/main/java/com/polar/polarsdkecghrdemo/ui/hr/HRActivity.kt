@@ -48,8 +48,6 @@ class HRActivity : AppCompatActivity(), PlotterListener {
     private lateinit var textViewFwVersion: TextView
     private lateinit var plot: XYPlot
 
-    private val deviceId = "E7A9AB27"
-
     private val bluetoothOnActivityResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
         if (result.resultCode != RESULT_OK) {
             Log.w(TAG, "Bluetooth off")
@@ -67,7 +65,7 @@ class HRActivity : AppCompatActivity(), PlotterListener {
         textViewFwVersion = findViewById(R.id.hr_view_fw_version)
         plot = findViewById(R.id.hr_view_plot)
 
-        textViewDeviceId.text = "ID: $deviceId"
+        textViewDeviceId.text = "ID: ${viewModel.deviceId}"
 
         plotter = HrAndRrPlotter()
         plotter.setListener(this)
@@ -106,7 +104,7 @@ class HRActivity : AppCompatActivity(), PlotterListener {
         }
 
         if (permissions.all { checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }) {
-            viewModel.connect(deviceId)
+            viewModel.connect()
         } else {
             requestPermissions(permissions, PERMISSION_REQUEST_CODE)
         }
@@ -123,7 +121,7 @@ class HRActivity : AppCompatActivity(), PlotterListener {
                 }
             }
             Log.d(TAG, "Needed permissions are granted")
-            viewModel.connect(deviceId)
+            viewModel.connect()
         }
     }
 

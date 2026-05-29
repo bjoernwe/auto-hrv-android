@@ -8,17 +8,21 @@ import com.polar.sdk.api.PolarBleApiCallback
 import com.polar.sdk.api.PolarBleApiDefaultImpl
 import com.polar.sdk.api.model.PolarDeviceInfo
 import com.polar.sdk.api.model.PolarHrData
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import java.util.UUID
 
 class PolarRepository(private val context: Context) {
     companion object {
         private const val TAG = "PolarRepository"
+        const val DEVICE_ID = "E7A9AB27"
     }
 
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
@@ -32,6 +36,20 @@ class PolarRepository(private val context: Context) {
 
     private val _readyFeatures = MutableStateFlow<Set<PolarBleApi.PolarBleSdkFeature>>(emptySet())
     val readyFeatures: StateFlow<Set<PolarBleApi.PolarBleSdkFeature>> = _readyFeatures.asStateFlow()
+
+    private val _isStreaming = MutableStateFlow(false)
+    val isStreaming: StateFlow<Boolean> = _isStreaming.asStateFlow()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val hrFlow: Flow<PolarHrData> = readyFeatures.flatMapLatest { features ->
+        if (features.contains(PolarBleApi.PolarBleSdkFeature.FEATURE_POLAR_ONLINE_STREAMING)) {
+            _isStreaming.value = true
+            hrStreaming(DEVICE_ID)
+        } else {
+            _isStreaming.value = false
+            flowOf()
+        }
+    }
 
     private val api: PolarBleApi by lazy {
         PolarBleApiDefaultImpl.defaultImplementation(
@@ -81,20 +99,21 @@ class PolarRepository(private val context: Context) {
         }
     }
 
-    fun connect(deviceId: String) {
+    fun connect() {
         _readyFeatures.value = emptySet()
         try {
-            api.connectToDevice(deviceId)
+            api.connectToDevice(DEVICE_ID)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to connect to device $deviceId", e)
+            Log.e(TAG, "Failed to connect to device $DEVICE_ID", e)
         }
     }
 
-    fun disconnect(deviceId: String) {
+    fun disconnect() {
         try {
-            api.disconnectFromDevice(deviceId)
+            api.disconnectFromDevice(DEVICE_ID)
+            _isStreaming.value = false
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to disconnect from device $deviceId", e)
+            Log.e(TAG, "Failed to disconnect from device $DEVICE_ID", e)
         }
     }
 
