@@ -51,12 +51,6 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ECGActivity"
-            android:exported="false"
-            android:label="@string/ecg_name"
-            android:parentActivityName=".MainActivity"
-            android:screenOrientation="portrait" />
-        <activity
             android:name=".HRActivity"
             android:exported="false"
             android:label="@string/hr_name"
