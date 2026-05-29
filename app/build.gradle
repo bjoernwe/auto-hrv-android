@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace 'com.polar.polarsdkecghrdemo'
-    compileSdk 33
+    compileSdk 36
     defaultConfig {
         applicationId "com.polar.polarsdkdemo"
         minSdk 24
@@ -35,10 +35,14 @@ dependencies {
     implementation 'com.androidplot:androidplot-core:1.5.10'
     implementation 'io.reactivex.rxjava3:rxjava:3.1.6'
     implementation 'io.reactivex.rxjava3:rxandroid:3.0.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-rx3:1.11.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.10.0'
+    implementation 'androidx.activity:activity-ktx:1.13.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation "androidx.core:core-ktx:1.9.0"
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.10"
+
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
