@@ -1,9 +1,17 @@
 package com.polar.polarsdkecghrdemo
 
+import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
@@ -19,6 +27,7 @@ import java.text.DecimalFormat
 class HRActivity : AppCompatActivity(), PlotterListener {
     companion object {
         private const val TAG = "HRActivity"
+        private const val PERMISSION_REQUEST_CODE = 1
     }
 
     private val viewModel: PolarViewModel by viewModels {
@@ -33,13 +42,18 @@ class HRActivity : AppCompatActivity(), PlotterListener {
     private lateinit var textViewFwVersion: TextView
     private lateinit var plot: XYPlot
 
-    private lateinit var deviceId: String
+    private val deviceId = "E7A9AB27"
+
+    private val bluetoothOnActivityResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
+        if (result.resultCode != RESULT_OK) {
+            Log.w(TAG, "Bluetooth off")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_hr)
-        deviceId = intent.getStringExtra("id") ?: throw Exception("HRActivity couldn't be created, no deviceId given")
-        
+
         textViewHR = findViewById(R.id.hr_view_hr)
         textViewRR = findViewById(R.id.hr_view_rr)
         textViewDeviceId = findViewById(R.id.hr_view_deviceId)
@@ -61,8 +75,50 @@ class HRActivity : AppCompatActivity(), PlotterListener {
         plot.linesPerRangeLabel = 2
 
         observeViewModel()
+        checkBT()
+    }
 
-        viewModel.connect(deviceId)
+    private fun checkBT() {
+        val btManager = applicationContext.getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
+        val bluetoothAdapter: BluetoothAdapter? = btManager.adapter
+        if (bluetoothAdapter == null) {
+            Toast.makeText(applicationContext, "Device doesn't support Bluetooth", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        if (!bluetoothAdapter.isEnabled) {
+            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            bluetoothOnActivityResultLauncher.launch(enableBtIntent)
+        }
+
+        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        } else {
+            arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+
+        if (permissions.all { checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }) {
+            viewModel.connect(deviceId)
+        } else {
+            requestPermissions(permissions, PERMISSION_REQUEST_CODE)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            for (index in 0..grantResults.lastIndex) {
+                if (grantResults[index] == PackageManager.PERMISSION_DENIED) {
+                    Log.w(TAG, "Needed permissions are missing")
+                    Toast.makeText(applicationContext, "Needed permissions are missing", Toast.LENGTH_LONG).show()
+                    return
+                }
+            }
+            Log.d(TAG, "Needed permissions are granted")
+            viewModel.connect(deviceId)
+        }
     }
 
     private fun observeViewModel() {
