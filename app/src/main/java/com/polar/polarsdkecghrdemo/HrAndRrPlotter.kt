@@ -13,7 +13,7 @@ import java.util.*
 class HrAndRrPlotter {
     companion object {
         private const val TAG = "TimePlotter"
-        private const val NVALS = 300 // 5 min
+        private const val NVALS = 60 // 5 min
         private const val RR_SCALE = .1
     }
 
