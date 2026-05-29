@@ -45,26 +45,11 @@ class MainActivity : AppCompatActivity() {
         deviceId = sharedPreferences.getString(SHARED_PREFS_KEY, "")
 
         val setIdButton: Button = findViewById(R.id.buttonSetID)
-        val ecgConnectButton: Button = findViewById(R.id.buttonConnectEcg)
         val hrConnectButton: Button = findViewById(R.id.buttonConnectHr)
         checkBT()
 
         setIdButton.setOnClickListener { onClickChangeID(it) }
-        ecgConnectButton.setOnClickListener { onClickConnectEcg(it) }
         hrConnectButton.setOnClickListener { onClickConnectHr(it) }
-    }
-
-    private fun onClickConnectEcg(view: View) {
-        checkBT()
-        if (deviceId == null || deviceId == "") {
-            deviceId = sharedPreferences.getString(SHARED_PREFS_KEY, "")
-            showDialog(view)
-        } else {
-            showToast(getString(R.string.connecting) + " " + deviceId)
-            val intent = Intent(this, ECGActivity::class.java)
-            intent.putExtra("id", deviceId)
-            startActivity(intent)
-        }
     }
 
     private fun onClickConnectHr(view: View) {
