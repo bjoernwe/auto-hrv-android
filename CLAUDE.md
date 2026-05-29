@@ -18,12 +18,6 @@ MVVM with manual dependency injection (no Hilt/Koin). `PolarApplication` holds a
 
 Streaming data uses **RxJava3** (from the Polar SDK) bridged to Kotlin Coroutines via `kotlinx-coroutines-rx3`. New code should use the Coroutines/Flow side; only touch RxJava when interfacing directly with the Polar SDK.
 
-## UI direction: full Compose rewrite
-
-The `feature/compose` branch is a planned **full rewrite** of all Views to Jetpack Compose. Do not add new XML layouts or Views — implement all new UI in Compose.
-
-Compose dependencies are not yet in `app/build.gradle`; add them before writing Compose code.
-
 ## Build & test commands
 
 ```bash
@@ -40,8 +34,6 @@ Compose dependencies are not yet in `app/build.gradle`; add them before writing 
 ## Key gotchas
 
 **Hardcoded device ID**: `DEVICE_ID = "E7A9AB27"` is hardcoded in `PolarRepository`. When adding device-selection UI, this constant is the only place to change.
-
-**Bluetooth permissions split by API level**: Permissions differ between API ≤30 and API 31+. `BLUETOOTH_SCAN`/`BLUETOOTH_CONNECT` are for API 31+; `BLUETOOTH`/`BLUETOOTH_ADMIN`/`ACCESS_FINE_LOCATION` are for API ≤30 (`maxSdkVersion=30`). Both sets must be maintained in the manifest and handled at runtime.
 
 ## Branch conventions
 
