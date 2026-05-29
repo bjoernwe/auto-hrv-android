@@ -146,15 +146,13 @@ class HRActivity : AppCompatActivity(), PlotterListener {
                 }
 
                 launch {
-                    viewModel.hrSharedFlow.collect { hrData ->
-                        for (sample in hrData.samples) {
-                            Log.d(TAG, "HR ${sample.hr} RR ${sample.rrsMs}")
-                            if (sample.rrsMs.isNotEmpty()) {
-                                textViewRR.text = "(${sample.rrsMs.joinToString(separator = "ms, ")}ms)"
-                            }
-                            textViewHR.text = sample.hr.toString()
-                            plotter.addValues(sample)
+                    viewModel.hrSharedFlow.collect { sample ->
+                        Log.d(TAG, "HR ${sample.hr} RR ${sample.rrsMs}")
+                        if (sample.rrsMs.isNotEmpty()) {
+                            textViewRR.text = "(${sample.rrsMs.joinToString(separator = "ms, ")}ms)"
                         }
+                        textViewHR.text = sample.hr.toString()
+                        plotter.addValues(sample)
                     }
                 }
 

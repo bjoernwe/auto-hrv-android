@@ -17,7 +17,7 @@ class PolarViewModel(private val repository: PolarRepository) : ViewModel() {
     val isStreaming = repository.isStreaming
     val deviceId = PolarRepository.DEVICE_ID
 
-    val hrSharedFlow: Flow<PolarHrData> = repository.hrFlow
+    val hrSharedFlow: Flow<PolarHrData.PolarHrSample> = repository.hrFlow
         .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5000), replay = 1)
 
     fun connect() {
