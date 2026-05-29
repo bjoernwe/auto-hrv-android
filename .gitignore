@@ -13,7 +13,11 @@ build/
 .idea/shelf/
 .idea/assetWizardSettings.xml
 .idea/deploymentTargetSelector.xml
+.idea/deviceManager.xml
+.idea/studiobot.xml
 .idea/caches/
+.idea/modules.xml
+.idea/migrations.xml
 *.iml
 *.ipr
 *.iws
@@ -27,3 +31,7 @@ local.properties
 # OS generated files
 .DS_Store
 Thumbs.db
+/.idea/.name
+/.idea/AndroidProjectSystem.xml
+/.idea/appInsightsSettings.xml
+/.idea/git_toolbox_prj.xml
