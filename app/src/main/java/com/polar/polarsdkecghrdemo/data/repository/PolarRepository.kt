@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import java.util.UUID
 
 class PolarRepository(private val context: Context) {
@@ -50,6 +51,8 @@ class PolarRepository(private val context: Context) {
             flowOf()
         }
     }
+
+    val simpleHr: Flow<Int> = hrFlow.map { sample -> sample.hr };
 
     private val api: PolarBleApi by lazy {
         PolarBleApiDefaultImpl.defaultImplementation(
