@@ -1,7 +1,8 @@
-package com.polar.polarsdkecghrdemo
+package com.polar.polarsdkecghrdemo.data.repository
 
 import android.content.Context
 import android.util.Log
+import com.polar.polarsdkecghrdemo.data.model.ConnectionState
 import com.polar.sdk.api.PolarBleApi
 import com.polar.sdk.api.PolarBleApiCallback
 import com.polar.sdk.api.PolarBleApiDefaultImpl
@@ -11,17 +12,9 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import java.util.UUID
-
-sealed class ConnectionState {
-    object Idle : ConnectionState()
-    data class Connecting(val deviceId: String) : ConnectionState()
-    data class Connected(val deviceInfo: PolarDeviceInfo) : ConnectionState()
-    data class Disconnected(val deviceId: String) : ConnectionState()
-}
 
 class PolarRepository(private val context: Context) {
     companion object {

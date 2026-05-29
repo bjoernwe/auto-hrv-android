@@ -1,8 +1,9 @@
-package com.polar.polarsdkecghrdemo
+package com.polar.polarsdkecghrdemo.ui.hr
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.polar.polarsdkecghrdemo.data.repository.PolarRepository
 import com.polar.sdk.api.PolarBleApi
 import com.polar.sdk.api.model.PolarHrData
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,7 +16,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.launch
 
 class PolarViewModel(private val repository: PolarRepository) : ViewModel() {
 
@@ -49,13 +49,6 @@ class PolarViewModel(private val repository: PolarRepository) : ViewModel() {
         repository.disconnect(deviceId)
         _isStreaming.value = false
         _deviceId.value = null
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        // We might not want to shutDown here if we want it shared, 
-        // but for this app's lifecycle it might be okay.
-        // Actually, repository is application scoped, so we shouldn't shutDown here.
     }
 
     class Factory(private val repository: PolarRepository) : ViewModelProvider.Factory {

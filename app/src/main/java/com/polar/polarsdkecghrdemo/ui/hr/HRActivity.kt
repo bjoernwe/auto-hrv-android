@@ -1,4 +1,4 @@
-package com.polar.polarsdkecghrdemo
+package com.polar.polarsdkecghrdemo.ui.hr
 
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
@@ -21,6 +21,12 @@ import com.androidplot.xy.BoundaryMode
 import com.androidplot.xy.StepMode
 import com.androidplot.xy.XYGraphWidget
 import com.androidplot.xy.XYPlot
+import com.polar.polarsdkecghrdemo.PolarApplication
+import com.polar.polarsdkecghrdemo.R
+import com.polar.polarsdkecghrdemo.data.model.ConnectionState
+
+import com.polar.polarsdkecghrdemo.ui.plot.HrAndRrPlotter
+import com.polar.polarsdkecghrdemo.ui.plot.PlotterListener
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 
