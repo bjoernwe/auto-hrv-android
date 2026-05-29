@@ -21,6 +21,18 @@ class PolarRepository(private val context: Context) {
         private const val TAG = "PolarRepository"
     }
 
+    private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
+    val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
+
+    private val _batteryLevel = MutableStateFlow<Int?>(null)
+    val batteryLevel: StateFlow<Int?> = _batteryLevel.asStateFlow()
+
+    private val _firmwareVersion = MutableStateFlow<String?>(null)
+    val firmwareVersion: StateFlow<String?> = _firmwareVersion.asStateFlow()
+
+    private val _readyFeatures = MutableStateFlow<Set<PolarBleApi.PolarBleSdkFeature>>(emptySet())
+    val readyFeatures: StateFlow<Set<PolarBleApi.PolarBleSdkFeature>> = _readyFeatures.asStateFlow()
+
     private val api: PolarBleApi by lazy {
         PolarBleApiDefaultImpl.defaultImplementation(
             context,
@@ -68,18 +80,6 @@ class PolarRepository(private val context: Context) {
             })
         }
     }
-
-    private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
-    val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
-
-    private val _batteryLevel = MutableStateFlow<Int?>(null)
-    val batteryLevel: StateFlow<Int?> = _batteryLevel.asStateFlow()
-
-    private val _firmwareVersion = MutableStateFlow<String?>(null)
-    val firmwareVersion: StateFlow<String?> = _firmwareVersion.asStateFlow()
-
-    private val _readyFeatures = MutableStateFlow<Set<PolarBleApi.PolarBleSdkFeature>>(emptySet())
-    val readyFeatures: StateFlow<Set<PolarBleApi.PolarBleSdkFeature>> = _readyFeatures.asStateFlow()
 
     fun connect(deviceId: String) {
         _readyFeatures.value = emptySet()
