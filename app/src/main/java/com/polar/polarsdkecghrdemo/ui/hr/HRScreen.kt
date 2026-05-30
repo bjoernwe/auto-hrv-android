@@ -4,8 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -24,7 +26,7 @@ import com.polar.polarsdkecghrdemo.data.model.ConnectionState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HRScreen(viewModel: PolarViewModel) {
+fun HRScreen(viewModel: PolarViewModel, onOpenBreathingPacer: () -> Unit) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
@@ -36,25 +38,39 @@ fun HRScreen(viewModel: PolarViewModel) {
                 .padding(innerPadding)
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
-            DeviceInfoSection(
-                deviceId = viewModel.deviceId,
-                connectionState = uiState.connectionState,
-                batteryLevel = uiState.batteryLevel,
-                firmwareVersion = uiState.firmwareVersion,
-            )
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                DeviceInfoSection(
+                    deviceId = viewModel.deviceId,
+                    connectionState = uiState.connectionState,
+                    batteryLevel = uiState.batteryLevel,
+                    firmwareVersion = uiState.firmwareVersion,
+                )
 
-            Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(48.dp))
 
-            HrSection(
-                hr = uiState.hr,
-                rrMs = uiState.rrMs,
-            )
+                HrSection(
+                    hr = uiState.hr,
+                    rrMs = uiState.rrMs,
+                )
 
-            if (uiState.hrHistory.size >= 2) {
-                Spacer(modifier = Modifier.height(24.dp))
-                HrChart(hrHistory = uiState.hrHistory)
+                if (uiState.hrHistory.size >= 2) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    HrChart(hrHistory = uiState.hrHistory)
+                }
+            }
+
+            Button(
+                onClick = onOpenBreathingPacer,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+            ) {
+                Text("Breathing Pacer")
             }
         }
     }
