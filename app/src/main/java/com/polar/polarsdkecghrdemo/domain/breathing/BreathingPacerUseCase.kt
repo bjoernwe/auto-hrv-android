@@ -6,6 +6,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.isActive
@@ -24,23 +25,29 @@ class BreathingPacerUseCase @Inject constructor() {
 
     private fun cycleFlow(params: StateFlow<BreathingParams>): Flow<BreathingState> = flow {
         while (currentCoroutineContext().isActive) {
-            // Snapshot params once per cycle so in-flight cycles are never interrupted
-            val (outToInRatio, cycleLengthSeconds) = params.value
-            val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
-            val inhaleMs = (cycleMs / (1.0 + outToInRatio)).toLong().coerceAtLeast(200L)
-            val exhaleMs = (cycleMs - inhaleMs).coerceAtLeast(200L)
-
-            val cycleStart = System.currentTimeMillis()
-            while (currentCoroutineContext().isActive) {
-                val elapsed = System.currentTimeMillis() - cycleStart
-                if (elapsed >= inhaleMs + exhaleMs) break
-                if (elapsed < inhaleMs) {
-                    emit(BreathingState(BreathingPhase.Inhale, elapsed.toFloat() / inhaleMs))
-                } else {
-                    emit(BreathingState(BreathingPhase.Exhale, (elapsed - inhaleMs).toFloat() / exhaleMs))
-                }
-                delay(16L)
-            }
+            // Re-snapshot at each breath boundary so param changes take effect between breaths
+            emitAll(phaseFlow(BreathingPhase.Inhale, params.value.inhaleMs()))
+            emitAll(phaseFlow(BreathingPhase.Exhale, params.value.exhaleMs()))
         }
+    }
+
+    private fun phaseFlow(phase: BreathingPhase, durationMs: Long): Flow<BreathingState> = flow {
+        val start = System.currentTimeMillis()
+        while (currentCoroutineContext().isActive) {
+            val elapsed = System.currentTimeMillis() - start
+            if (elapsed >= durationMs) break
+            emit(BreathingState(phase, elapsed.toFloat() / durationMs))
+            delay(16L)
+        }
+    }
+
+    private fun BreathingParams.inhaleMs(): Long {
+        val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
+        return (cycleMs / (1.0 + outToInRatio)).toLong().coerceAtLeast(200L)
+    }
+
+    private fun BreathingParams.exhaleMs(): Long {
+        val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
+        return (cycleMs - inhaleMs()).coerceAtLeast(200L)
     }
 }
