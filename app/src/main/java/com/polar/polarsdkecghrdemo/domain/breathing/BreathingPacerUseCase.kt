@@ -27,8 +27,8 @@ class BreathingPacerUseCase @Inject constructor() {
             // Snapshot params once per cycle so in-flight cycles are never interrupted
             val (outToInRatio, cycleLengthSeconds) = params.value
             val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
-            val inhaleMs = (cycleMs / (1.0 + outToInRatio)).toLong().coerceAtLeast(100L)
-            val exhaleMs = (cycleMs - inhaleMs).coerceAtLeast(100L)
+            val inhaleMs = (cycleMs / (1.0 + outToInRatio)).toLong().coerceAtLeast(200L)
+            val exhaleMs = (cycleMs - inhaleMs).coerceAtLeast(200L)
 
             val cycleStart = System.currentTimeMillis()
             while (currentCoroutineContext().isActive) {
