@@ -32,11 +32,11 @@ class ExperimentCoordinator @Inject constructor(
     val hrHistory: SharedFlow<List<Int>> = polarRepository.getHrHistory(30)
         .shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
-    private val paramsFlow: SharedFlow<BreathingParams> =
+    private val experimentParamsFlow: SharedFlow<BreathingParams> =
         generateBreathingExperimentsUseCase(ExperimentConfig.DEFAULT)
             .shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
-    val currentParams: StateFlow<BreathingParams> = paramsFlow.stateIn(
+    val currentBreathingPattern: StateFlow<BreathingParams> = experimentParamsFlow.stateIn(
         scope,
         SharingStarted.Eagerly,
         BreathingParams(ExperimentConfig.DEFAULT.outToInRatioMean, ExperimentConfig.DEFAULT.cycleLengthMean),
@@ -44,8 +44,8 @@ class ExperimentCoordinator @Inject constructor(
 
     val periodicity: Flow<Float?> = calcHrStatsUseCase.periodicity(hrHistory)
 
-    private val _history = MutableStateFlow<List<ExperimentRecord>>(emptyList())
-    val history: StateFlow<List<ExperimentRecord>> = _history.asStateFlow()
+    private val _experimentRecords = MutableStateFlow<List<ExperimentRecord>>(emptyList())
+    val experimentRecords: StateFlow<List<ExperimentRecord>> = _experimentRecords.asStateFlow()
 
     init {
         scope.launch {
@@ -53,9 +53,9 @@ class ExperimentCoordinator @Inject constructor(
             launch { periodicity.filterNotNull().collect { latestPeriodicity.value = it } }
 
             var prev: BreathingParams? = null
-            paramsFlow.collect { current ->
+            experimentParamsFlow.collect { current ->
                 latestPeriodicity.value?.let { p ->
-                    prev?.let { _history.update { h -> h + ExperimentRecord(it, p) } }
+                    prev?.let { _experimentRecords.update { h -> h + ExperimentRecord(it, p) } }
                 }
                 prev = current
             }

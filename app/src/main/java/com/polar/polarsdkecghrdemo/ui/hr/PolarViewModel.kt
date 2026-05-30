@@ -76,7 +76,7 @@ class PolarViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            coordinator.history.collect { history ->
+            coordinator.experimentRecords.collect { history ->
                 _uiState.update { it.copy(experimentHistory = history) }
             }
         }
