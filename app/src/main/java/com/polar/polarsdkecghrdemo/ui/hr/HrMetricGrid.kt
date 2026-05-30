@@ -26,7 +26,7 @@ fun HrMetricGrid(metrics: List<HrMetric>, modifier: Modifier = Modifier) {
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        metrics.chunked(2).forEach { row ->
+        metrics.chunked(3).forEach { row ->
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth(),
@@ -34,7 +34,7 @@ fun HrMetricGrid(metrics: List<HrMetric>, modifier: Modifier = Modifier) {
                 row.forEach { metric ->
                     HrMetricTile(metric = metric, modifier = Modifier.weight(1f))
                 }
-                if (row.size < 2) {
+                repeat(3 - row.size) {
                     Spacer(Modifier.weight(1f))
                 }
             }
@@ -56,7 +56,7 @@ private fun HrMetricTile(metric: HrMetric, modifier: Modifier = Modifier) {
         ) {
             Text(
                 text = metric.value,
-                style = MaterialTheme.typography.headlineLarge,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
             )
             Spacer(Modifier.height(4.dp))
