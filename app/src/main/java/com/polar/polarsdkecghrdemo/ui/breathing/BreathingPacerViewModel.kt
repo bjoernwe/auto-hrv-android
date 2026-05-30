@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingParams
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPacerUseCase
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingState
+import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
 import com.polar.polarsdkecghrdemo.domain.breathing.GenerateBreathingParamsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -21,13 +22,8 @@ class BreathingPacerViewModel @Inject constructor(
     generateBreathingParamsUseCase: GenerateBreathingParamsUseCase,
 ) : ViewModel() {
 
-    val currentParams: StateFlow<BreathingParams> = generateBreathingParamsUseCase(
-        intervalSeconds = 30f,
-        outToInRatioMean = 1.5f,
-        outToInRatioStd = 0.5f,
-        cycleLengthMean = 9f,
-        cycleLengthStd = 4f,
-    ).stateIn(viewModelScope, SharingStarted.Eagerly, DEFAULT_PARAMS)
+    val currentParams: StateFlow<BreathingParams> = generateBreathingParamsUseCase(ExperimentConfig.DEFAULT)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, DEFAULT_PARAMS)
 
     val breathingState: Flow<BreathingState> = breathingPacerUseCase(viewModelScope, currentParams)
 }
