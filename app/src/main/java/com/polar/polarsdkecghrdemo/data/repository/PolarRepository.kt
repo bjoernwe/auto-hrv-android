@@ -55,10 +55,6 @@ class PolarRepository(private val context: Context) {
 
     val simpleHr: Flow<Int> = hrFlow.map { it.hr }
 
-    val hrHistory: Flow<List<Int>> = hrFlow.scan(emptyList()) { acc, sample ->
-        acc + sample.hr
-    }
-
     private val api: PolarBleApi by lazy {
         PolarBleApiDefaultImpl.defaultImplementation(
             context,
@@ -122,6 +118,14 @@ class PolarRepository(private val context: Context) {
             _isStreaming.value = false
         } catch (e: Exception) {
             Log.e(TAG, "Failed to disconnect from device $DEVICE_ID", e)
+        }
+    }
+
+    fun getHrHistory(length: Int): Flow<List<Int>> {
+        return hrFlow.scan<PolarHrData.PolarHrSample, List<Int>>(emptyList()) { acc, sample ->
+            acc + sample.hr
+        }.map { samples ->
+            samples.takeLast(length)
         }
     }
 
