@@ -1,10 +1,14 @@
 package com.polar.polarsdkecghrdemo.domain.breathing
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import javax.inject.Inject
 
@@ -18,6 +22,15 @@ data class BreathingState(
 data class BreathingParams(val outToInRatio: Float, val cycleLengthSeconds: Float)
 
 class BreathingPacerUseCase @Inject constructor() {
+
+    // Eagerly shared so .value is always current when the pacer reads it at cycle start.
+    fun params(
+        scope: CoroutineScope,
+        outToInRatio: StateFlow<Float>,
+        cycleLengthSeconds: StateFlow<Float>,
+    ): StateFlow<BreathingParams> =
+        combine(outToInRatio, cycleLengthSeconds, ::BreathingParams)
+            .stateIn(scope, SharingStarted.Eagerly, BreathingParams(outToInRatio.value, cycleLengthSeconds.value))
 
     operator fun invoke(params: StateFlow<BreathingParams>): Flow<BreathingState> = flow {
 

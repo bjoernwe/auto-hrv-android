@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
@@ -26,16 +25,7 @@ class BreathingPacerViewModel @Inject constructor(
     private val _cycleLengthSeconds = MutableStateFlow(8f)
     val cycleLengthSeconds: StateFlow<Float> = _cycleLengthSeconds.asStateFlow()
 
-    // Params StateFlow is passed into the use case so it can sample .value at each cycle
-    // boundary — changes take effect at the start of the next cycle, never mid-cycle.
-    private val params: StateFlow<BreathingParams> =
-        combine(_outToInRatio, _cycleLengthSeconds) { ratio, length ->
-            BreathingParams(ratio, length)
-        }.stateIn(
-            viewModelScope,
-            SharingStarted.Eagerly,
-            BreathingParams(_outToInRatio.value, _cycleLengthSeconds.value),
-        )
+    private val params = breathingPacerUseCase.params(viewModelScope, _outToInRatio, _cycleLengthSeconds)
 
     val breathingState: StateFlow<BreathingState?> =
         breathingPacerUseCase(params)
