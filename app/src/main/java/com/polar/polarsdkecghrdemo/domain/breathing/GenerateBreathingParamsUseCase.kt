@@ -8,7 +8,7 @@ import kotlinx.coroutines.isActive
 import org.apache.commons.math3.distribution.NormalDistribution
 import javax.inject.Inject
 
-class ExperimentParamsUseCase @Inject constructor() {
+class GenerateBreathingParamsUseCase @Inject constructor() {
 
     operator fun invoke(
         intervalSeconds: Float,

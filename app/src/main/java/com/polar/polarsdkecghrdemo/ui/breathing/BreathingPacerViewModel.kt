@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingParams
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPacerUseCase
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingState
-import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentParamsUseCase
+import com.polar.polarsdkecghrdemo.domain.breathing.GenerateBreathingParamsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,10 +18,10 @@ private val DEFAULT_PARAMS = BreathingParams(outToInRatio = 2f, cycleLengthSecon
 @HiltViewModel
 class BreathingPacerViewModel @Inject constructor(
     breathingPacerUseCase: BreathingPacerUseCase,
-    experimentParamsUseCase: ExperimentParamsUseCase,
+    generateBreathingParamsUseCase: GenerateBreathingParamsUseCase,
 ) : ViewModel() {
 
-    val currentParams: StateFlow<BreathingParams> = experimentParamsUseCase(
+    val currentParams: StateFlow<BreathingParams> = generateBreathingParamsUseCase(
         intervalSeconds = 30f,
         outToInRatioMean = 1.5f,
         outToInRatioStd = 0.5f,
