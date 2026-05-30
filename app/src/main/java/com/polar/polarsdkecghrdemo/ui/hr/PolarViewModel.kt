@@ -21,6 +21,7 @@ data class HrUiState(
     val hrHistory: List<Int> = emptyList(),
     val batteryLevel: Int? = null,
     val smoothness: Float? = null,
+    val powerSpectrum: List<Float>? = null,
 )
 
 @HiltViewModel
@@ -58,8 +59,13 @@ class PolarViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            heartRateStatsUseCase(hrHistory).collect { smoothness ->
+            heartRateStatsUseCase.smoothness(hrHistory).collect { smoothness ->
                 _uiState.update { it.copy(smoothness = smoothness) }
+            }
+        }
+        viewModelScope.launch {
+            heartRateStatsUseCase.powerSpectrum(hrHistory).collect { spectrum ->
+                _uiState.update { it.copy(powerSpectrum = spectrum) }
             }
         }
     }

@@ -63,6 +63,21 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                 )
             }
 
+            val powerSpectrum = uiState.powerSpectrum
+            if (powerSpectrum != null) {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "Power Spectrum",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                PowerSpectrumChart(
+                    spectrum = powerSpectrum,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
             HorizontalDivider(Modifier.padding(vertical = 28.dp))
 
             Text(
