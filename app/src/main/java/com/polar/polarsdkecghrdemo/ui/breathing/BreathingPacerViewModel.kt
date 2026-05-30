@@ -2,7 +2,6 @@ package com.polar.polarsdkecghrdemo.ui.breathing
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.polar.polarsdkecghrdemo.domain.breathing.BreathingParams
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPacerUseCase
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,9 +23,8 @@ class BreathingPacerViewModel @Inject constructor(
     private val _cycleLengthSeconds = MutableStateFlow(8f)
     val cycleLengthSeconds: StateFlow<Float> = _cycleLengthSeconds.asStateFlow()
 
-    private val params = breathingPacerUseCase.params(viewModelScope, _outToInRatio, _cycleLengthSeconds)
-
-    val breathingState: Flow<BreathingState> = breathingPacerUseCase.breathingState(viewModelScope, params)
+    val breathingState: Flow<BreathingState> =
+        breathingPacerUseCase(viewModelScope, _outToInRatio, _cycleLengthSeconds)
 
     fun setOutToInRatio(ratio: Float) {
         _outToInRatio.update { ratio }

@@ -20,26 +20,22 @@ data class BreathingState(
     val progress: Float,
 )
 
-data class BreathingParams(val outToInRatio: Float, val cycleLengthSeconds: Float)
+private data class BreathingParams(val outToInRatio: Float, val cycleLengthSeconds: Float)
 
 class BreathingPacerUseCase @Inject constructor() {
 
-    // Eagerly shared so .value is always current when the pacer reads it at cycle start.
-    fun params(
+    operator fun invoke(
         scope: CoroutineScope,
         outToInRatio: StateFlow<Float>,
         cycleLengthSeconds: StateFlow<Float>,
-    ): StateFlow<BreathingParams> =
-        combine(outToInRatio, cycleLengthSeconds, ::BreathingParams)
+    ): Flow<BreathingState> {
+        // Eagerly shared so .value is always current when cycleFlow reads it at cycle start.
+        val params = combine(outToInRatio, cycleLengthSeconds, ::BreathingParams)
             .stateIn(scope, SharingStarted.Eagerly, BreathingParams(outToInRatio.value, cycleLengthSeconds.value))
+        return cycleFlow(params).shareIn(scope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+    }
 
-    fun breathingState(
-        scope: CoroutineScope,
-        params: StateFlow<BreathingParams>,
-    ): Flow<BreathingState> =
-        invoke(params).shareIn(scope, SharingStarted.WhileSubscribed(5_000), replay = 1)
-
-    private operator fun invoke(params: StateFlow<BreathingParams>): Flow<BreathingState> = flow {
+    private fun cycleFlow(params: StateFlow<BreathingParams>): Flow<BreathingState> = flow {
 
         while (currentCoroutineContext().isActive) {
             // Snapshot params once per cycle so in-flight cycles are never interrupted
