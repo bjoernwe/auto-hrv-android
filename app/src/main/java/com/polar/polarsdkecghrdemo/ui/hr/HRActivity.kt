@@ -6,7 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import com.polar.polarsdkecghrdemo.PolarApplication
-import com.polar.polarsdkecghrdemo.domain.bluetooth.BluetoothPermissionHelper
+import com.polar.polarsdkecghrdemo.domain.bluetooth.GetBluetoothPermissionUseCase
 import com.polar.polarsdkecghrdemo.ui.theme.AutoHrvTheme
 
 class HRActivity : ComponentActivity() {
@@ -15,7 +15,7 @@ class HRActivity : ComponentActivity() {
         PolarViewModel.Factory((application as PolarApplication).repository)
     }
 
-    private val bluetoothPermissionHelper = BluetoothPermissionHelper(
+    private val bluetoothPermissionHelper = GetBluetoothPermissionUseCase(
         activity = this,
         onGranted = { viewModel.connect() },
         onDenied = {

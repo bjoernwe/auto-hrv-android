@@ -12,7 +12,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 
-class BluetoothPermissionHelper(
+class GetBluetoothPermissionUseCase(
     private val activity: ComponentActivity,
     private val onGranted: () -> Unit,
     private val onDenied: () -> Unit,
