@@ -1,21 +1,16 @@
 package com.polar.polarsdkecghrdemo.ui.breathing
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.polar.polarsdkecghrdemo.domain.breathing.BreathingParams
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPhase
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingState
 
@@ -34,8 +30,7 @@ private val PacerBlueDark = Color(0xFF00838F)
 @Composable
 fun BreathingSection(viewModel: BreathingPacerViewModel) {
     val breathingState by viewModel.breathingState.collectAsStateWithLifecycle(initialValue = null)
-    val outToInRatio by viewModel.outToInRatio.collectAsStateWithLifecycle()
-    val cycleLengthSeconds by viewModel.cycleLengthSeconds.collectAsStateWithLifecycle()
+    val params by viewModel.currentParams.collectAsStateWithLifecycle()
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         PacerCircle(state = breathingState)
@@ -53,25 +48,26 @@ fun BreathingSection(viewModel: BreathingPacerViewModel) {
             color = PacerBlueDark,
         )
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(12.dp))
 
-        ParameterSlider(
-            label = "Cycle",
-            value = cycleLengthSeconds,
-            displayValue = "%.1f s".format(cycleLengthSeconds),
-            valueRange = 4f..16f,
-            onValueChangeFinished = { viewModel.setCycleLengthSeconds(it) },
-        )
+        ParamReadout(params)
+    }
+}
 
-        Spacer(Modifier.height(4.dp))
+@Composable
+private fun ParamReadout(params: BreathingParams) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        ParamLabel(label = "Cycle", value = "%.1f s".format(params.cycleLengthSeconds))
+        Spacer(Modifier.width(24.dp))
+        ParamLabel(label = "Out:In", value = "%.1f".format(params.outToInRatio))
+    }
+}
 
-        ParameterSlider(
-            label = "Out:In",
-            value = outToInRatio,
-            displayValue = "%.1f".format(outToInRatio),
-            valueRange = 0.5f..4f,
-            onValueChangeFinished = { viewModel.setOutToInRatio(it) },
-        )
+@Composable
+private fun ParamLabel(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -90,41 +86,6 @@ private fun PacerCircle(state: BreathingState?, modifier: Modifier = Modifier) {
 
         drawCircle(color = PacerBlue.copy(alpha = 0.25f), radius = maxRadius)
         drawCircle(color = PacerBlue.copy(alpha = 0.7f), radius = radius)
-        drawCircle(
-            color = PacerBlueDark,
-            radius = radius,
-            style = Stroke(width = 2.dp.toPx()),
-        )
-    }
-}
-
-@Composable
-private fun ParameterSlider(
-    label: String,
-    value: Float,
-    displayValue: String,
-    valueRange: ClosedFloatingPointRange<Float>,
-    onValueChangeFinished: (Float) -> Unit,
-) {
-    var sliderPosition by remember(value) { mutableFloatStateOf(value) }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.25f))
-        Slider(
-            value = sliderPosition,
-            onValueChange = { sliderPosition = it },
-            onValueChangeFinished = { onValueChangeFinished(sliderPosition) },
-            valueRange = valueRange,
-            modifier = Modifier.weight(0.55f),
-        )
-        Text(
-            displayValue,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(0.2f),
-        )
+        drawCircle(color = PacerBlueDark, radius = radius, style = Stroke(width = 2.dp.toPx()))
     }
 }
