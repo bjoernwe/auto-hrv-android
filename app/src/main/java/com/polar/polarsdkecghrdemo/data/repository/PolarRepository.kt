@@ -46,7 +46,7 @@ class PolarRepository(private val context: Context) {
     val hrFlow: Flow<PolarHrData.PolarHrSample> = readyFeatures.flatMapLatest { features ->
         if (features.contains(PolarBleApi.PolarBleSdkFeature.FEATURE_POLAR_ONLINE_STREAMING)) {
             _isStreaming.value = true
-            hrStreaming(DEVICE_ID)
+            createHrStream(DEVICE_ID)
         } else {
             _isStreaming.value = false
             flowOf()
@@ -125,7 +125,7 @@ class PolarRepository(private val context: Context) {
         }
     }
 
-    fun hrStreaming(deviceId: String): Flow<PolarHrData.PolarHrSample> = callbackFlow {
+    fun createHrStream(deviceId: String): Flow<PolarHrData.PolarHrSample> = callbackFlow {
         val disposable = api.startHrStreaming(deviceId)
             .subscribe(
                 { hrData ->
