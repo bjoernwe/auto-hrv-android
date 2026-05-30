@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import com.polar.polarsdkecghrdemo.PolarApplication
+import com.polar.polarsdkecghrdemo.domain.bluetooth.BluetoothPermissionHelper
 import com.polar.polarsdkecghrdemo.ui.theme.AutoHrvTheme
 
 class HRActivity : ComponentActivity() {

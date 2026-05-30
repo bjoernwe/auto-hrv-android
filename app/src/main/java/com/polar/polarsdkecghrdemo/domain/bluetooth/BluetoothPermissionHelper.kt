@@ -1,4 +1,4 @@
-package com.polar.polarsdkecghrdemo.ui.hr
+package com.polar.polarsdkecghrdemo.domain.bluetooth
 
 import android.Manifest
 import android.app.Activity
