@@ -47,7 +47,7 @@ class PolarViewModel(private val repository: PolarRepository) : ViewModel() {
                 _uiState.update { current ->
                     current.copy(
                         hr = sample.hr,
-                        rrMs = if (sample.rrsMs.isNotEmpty()) sample.rrsMs else current.rrMs,
+                        rrMs = sample.rrsMs.ifEmpty { current.rrMs },
                     )
                 }
             }
