@@ -49,12 +49,11 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                 deviceId = hrViewModel.deviceId,
                 connectionState = uiState.connectionState,
                 batteryLevel = uiState.batteryLevel,
-                firmwareVersion = uiState.firmwareVersion,
             )
 
             Spacer(Modifier.height(32.dp))
 
-            HrSection(hr = uiState.hr, rrMs = uiState.rrMs)
+            HrSection(hr = uiState.hr)
 
             if (uiState.hrHistory.size >= 2) {
                 Spacer(Modifier.height(16.dp))
@@ -86,11 +85,10 @@ private fun DeviceInfoSection(
     deviceId: String,
     connectionState: ConnectionState,
     batteryLevel: Int?,
-    firmwareVersion: String?,
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            text = "ID: $deviceId",
+            text = "Device ID: $deviceId",
             style = MaterialTheme.typography.bodyLarge,
         )
         Text(
@@ -104,33 +102,17 @@ private fun DeviceInfoSection(
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
-        if (firmwareVersion != null) {
-            Text(
-                text = "Firmware: $firmwareVersion",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
     }
 }
 
 @Composable
-private fun HrSection(hr: Int?, rrMs: List<Int>) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = hr?.toString() ?: "—",
-            fontSize = 96.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFFC00000),
-        )
-        if (rrMs.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "(${rrMs.joinToString(separator = "ms, ")}ms)",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color(0xFF0099CC),
-            )
-        }
-    }
+private fun HrSection(hr: Int?) {
+    Text(
+        text = hr?.toString() ?: "—",
+        fontSize = 64.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color(0xFFC00000),
+    )
 }
 
 private fun ConnectionState.label(): String = when (this) {
