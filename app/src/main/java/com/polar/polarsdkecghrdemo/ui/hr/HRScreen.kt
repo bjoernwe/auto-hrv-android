@@ -18,10 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.polar.polarsdkecghrdemo.data.model.ConnectionState
 import com.polar.polarsdkecghrdemo.ui.breathing.BreathingPacerViewModel
@@ -51,9 +48,15 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                 batteryLevel = uiState.batteryLevel,
             )
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(24.dp))
 
-            HrSection(hr = uiState.hr, smoothness = uiState.smoothness)
+            HrMetricGrid(
+                metrics = listOf(
+                    HrMetric("Heart Rate", uiState.hr?.let { "$it bpm" } ?: "—"),
+                    HrMetric("Smoothness", uiState.smoothness?.let { "%.2f".format(it) } ?: "—"),
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             if (uiState.hrHistory.size >= 2) {
                 Spacer(Modifier.height(16.dp))
@@ -115,25 +118,6 @@ private fun DeviceInfoSection(
             Text(
                 text = "Battery: $batteryLevel%",
                 style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-    }
-}
-
-@Composable
-private fun HrSection(hr: Int?, smoothness: Float?) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = hr?.toString() ?: "—",
-            fontSize = 64.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFFC00000),
-        )
-        if (smoothness != null) {
-            Text(
-                text = "Smoothness: %.2f".format(smoothness),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
