@@ -6,6 +6,7 @@ import org.apache.commons.math3.transform.DftNormalization
 import org.apache.commons.math3.transform.FastFourierTransformer
 import org.apache.commons.math3.transform.TransformType
 import javax.inject.Inject
+import kotlin.math.ln
 import kotlin.math.sqrt
 
 class HeartRateStatsUseCase @Inject constructor() {
@@ -15,6 +16,9 @@ class HeartRateStatsUseCase @Inject constructor() {
 
     fun powerSpectrum(hrHistory: Flow<List<Int>>): Flow<List<Float>?> =
         hrHistory.map { computePowerSpectrum(it) }
+
+    fun periodicity(hrHistory: Flow<List<Int>>): Flow<Float?> =
+        hrHistory.map { values -> computePowerSpectrum(values)?.let { computePeriodicity(it) } }
 
     private fun normalize(values: List<Int>): List<Float> {
         val floats = values.map { it.toFloat() }
@@ -50,6 +54,20 @@ class HeartRateStatsUseCase @Inject constructor() {
             val im = result[i].imaginary
             (re * re + im * im).toFloat()
         }
+    }
+
+    private fun computePeriodicity(spectrum: List<Float>): Float? {
+        // Drop the first bin — it reflects slow HR trends rather than rhythmic periodicity
+        val bins = spectrum.drop(1)
+        if (bins.size < 2) return null
+        val total = bins.sum()
+        if (total < 1e-10f) return null
+        val entropy = bins.fold(0.0) { acc, p ->
+            val prob = (p / total).toDouble()
+            if (prob > 0.0) acc - prob * ln(prob) else acc
+        }.toFloat()
+        val maxEntropy = ln(bins.size.toDouble()).toFloat()
+        return if (maxEntropy > 0f) 1f - (entropy / maxEntropy) else 0f
     }
 
     private fun nextPowerOf2(n: Int): Int {

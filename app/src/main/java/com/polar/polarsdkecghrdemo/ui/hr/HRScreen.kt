@@ -54,6 +54,7 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                 metrics = listOf(
                     HrMetric("Heart Rate", uiState.hr?.let { "$it bpm" } ?: "—"),
                     HrMetric("Smoothness", uiState.smoothness?.let { "%.2f".format(it) } ?: "—"),
+                    HrMetric("Periodicity", uiState.periodicity?.let { "%.2f".format(it) } ?: "—"),
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
