@@ -5,20 +5,20 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import com.polar.polarsdkecghrdemo.PolarApplication
+import com.polar.polarsdkecghrdemo.domain.bluetooth.GetBluetoothPermissionUseCase
 import com.polar.polarsdkecghrdemo.ui.theme.AutoHrvTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class HRActivity : ComponentActivity() {
 
-    private val viewModel: PolarViewModel by viewModels {
-        PolarViewModel.Factory((application as PolarApplication).repository)
-    }
+    private val viewModel: PolarViewModel by viewModels()
 
-    private val bluetoothPermissionHelper = BluetoothPermissionHelper(
+    private val getBluetoothPermissions = GetBluetoothPermissionUseCase(
         activity = this,
         onGranted = { viewModel.connect() },
         onDenied = {
-            Toast.makeText(applicationContext, "Needed permissions are missing", Toast.LENGTH_LONG).show()
+            Toast.makeText(applicationContext, "Needed Bluetooth permissions are missing", Toast.LENGTH_LONG).show()
         },
     )
 
@@ -29,6 +29,6 @@ class HRActivity : ComponentActivity() {
                 HRScreen(viewModel = viewModel)
             }
         }
-        bluetoothPermissionHelper.checkAndRequest()
+        getBluetoothPermissions()
     }
 }

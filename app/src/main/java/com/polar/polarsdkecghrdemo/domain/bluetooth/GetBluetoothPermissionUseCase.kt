@@ -1,4 +1,4 @@
-package com.polar.polarsdkecghrdemo.ui.hr
+package com.polar.polarsdkecghrdemo.domain.bluetooth
 
 import android.Manifest
 import android.app.Activity
@@ -12,7 +12,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 
-class BluetoothPermissionHelper(
+class GetBluetoothPermissionUseCase(
     private val activity: ComponentActivity,
     private val onGranted: () -> Unit,
     private val onDenied: () -> Unit,
@@ -35,7 +35,7 @@ class BluetoothPermissionHelper(
             }
         }
 
-    fun checkAndRequest() {
+    operator fun invoke() {
         val btManager = activity.getSystemService(BluetoothManager::class.java)
         val adapter = btManager?.adapter
         if (adapter == null) {
