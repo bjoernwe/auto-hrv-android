@@ -53,7 +53,9 @@ class PolarViewModel(private val repository: PolarRepository) : ViewModel() {
             }
         }
         viewModelScope.launch {
-            repository.getHrHistory(30).collect { _uiState.update { it } }
+            repository.getHrHistory(30).collect {  history ->
+                _uiState.update { it.copy(hrHistory = history) }
+            }
         }
     }
 
