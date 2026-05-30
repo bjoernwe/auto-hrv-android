@@ -15,10 +15,8 @@ import javax.inject.Inject
 data class HrUiState(
     val connectionState: ConnectionState = ConnectionState.Idle,
     val hr: Int? = null,
-    val rrMs: List<Int> = emptyList(),
     val hrHistory: List<Int> = emptyList(),
     val batteryLevel: Int? = null,
-    val firmwareVersion: String? = null,
 )
 
 @HiltViewModel
@@ -40,18 +38,8 @@ class PolarViewModel @Inject constructor(private val repository: PolarRepository
             }
         }
         viewModelScope.launch {
-            repository.firmwareVersion.collect { version ->
-                _uiState.update { it.copy(firmwareVersion = version) }
-            }
-        }
-        viewModelScope.launch {
             repository.hrFlow.collect { sample ->
-                _uiState.update { current ->
-                    current.copy(
-                        hr = sample.hr,
-                        rrMs = sample.rrsMs.ifEmpty { current.rrMs },
-                    )
-                }
+                _uiState.update { it.copy(hr = sample.hr) }
             }
         }
         viewModelScope.launch {
