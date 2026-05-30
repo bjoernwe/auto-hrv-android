@@ -53,7 +53,7 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
 
             Spacer(Modifier.height(32.dp))
 
-            HrSection(hr = uiState.hr)
+            HrSection(hr = uiState.hr, smoothness = uiState.smoothness)
 
             if (uiState.hrHistory.size >= 2) {
                 Spacer(Modifier.height(16.dp))
@@ -106,13 +106,22 @@ private fun DeviceInfoSection(
 }
 
 @Composable
-private fun HrSection(hr: Int?) {
-    Text(
-        text = hr?.toString() ?: "—",
-        fontSize = 64.sp,
-        fontWeight = FontWeight.Bold,
-        color = Color(0xFFC00000),
-    )
+private fun HrSection(hr: Int?, smoothness: Float?) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = hr?.toString() ?: "—",
+            fontSize = 64.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFC00000),
+        )
+        if (smoothness != null) {
+            Text(
+                text = "Smoothness: %.2f".format(smoothness),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
 private fun ConnectionState.label(): String = when (this) {
