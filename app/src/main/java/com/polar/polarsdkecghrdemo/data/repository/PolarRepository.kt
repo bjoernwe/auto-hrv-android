@@ -3,6 +3,9 @@ package com.polar.polarsdkecghrdemo.data.repository
 import android.content.Context
 import android.util.Log
 import com.polar.polarsdkecghrdemo.data.model.ConnectionState
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 import com.polar.sdk.api.PolarBleApi
 import com.polar.sdk.api.PolarBleApiCallback
 import com.polar.sdk.api.PolarBleApiDefaultImpl
@@ -21,7 +24,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import java.util.UUID
 
-class PolarRepository(private val context: Context) {
+@Singleton
+class PolarRepository @Inject constructor(
+    @param:ApplicationContext private val context: Context,
+) {
+
     companion object {
         private const val TAG = "PolarRepository"
         const val DEVICE_ID = "E7A9AB27"

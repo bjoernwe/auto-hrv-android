@@ -1,15 +1,16 @@
 package com.polar.polarsdkecghrdemo.ui.hr
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.polar.polarsdkecghrdemo.data.model.ConnectionState
 import com.polar.polarsdkecghrdemo.data.repository.PolarRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class HrUiState(
     val connectionState: ConnectionState = ConnectionState.Idle,
@@ -20,7 +21,8 @@ data class HrUiState(
     val firmwareVersion: String? = null,
 )
 
-class PolarViewModel(private val repository: PolarRepository) : ViewModel() {
+@HiltViewModel
+class PolarViewModel @Inject constructor(private val repository: PolarRepository) : ViewModel() {
     val deviceId: String = PolarRepository.DEVICE_ID
 
     private val _uiState = MutableStateFlow(HrUiState())
@@ -63,13 +65,5 @@ class PolarViewModel(private val repository: PolarRepository) : ViewModel() {
 
     fun disconnect() = repository.disconnect()
 
-    class Factory(private val repository: PolarRepository) : ViewModelProvider.Factory {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            if (modelClass.isAssignableFrom(PolarViewModel::class.java)) {
-                return PolarViewModel(repository) as T
-            }
-            throw IllegalArgumentException("Unknown ViewModel class")
-        }
-    }
+
 }
