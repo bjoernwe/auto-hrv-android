@@ -12,7 +12,7 @@ data class ExperimentConfig(
             intervalSeconds = 30f,
             outToInRatioMean = 1.5f,
             outToInRatioStd = 0.5f,
-            cycleLengthMean = 9f,
+            cycleLengthMean = 10f,
             cycleLengthStd = 4f,
         )
     }

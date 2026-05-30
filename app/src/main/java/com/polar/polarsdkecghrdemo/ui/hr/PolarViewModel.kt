@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.polar.polarsdkecghrdemo.data.model.ConnectionState
 import com.polar.polarsdkecghrdemo.data.repository.PolarRepository
+import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentHistoryUseCase
+import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
 import com.polar.polarsdkecghrdemo.domain.hr.HeartRateStatsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,12 +25,14 @@ data class HrUiState(
     val smoothness: Float? = null,
     val powerSpectrum: List<Float>? = null,
     val periodicity: Float? = null,
+    val experimentHistory: List<ExperimentRecord> = emptyList(),
 )
 
 @HiltViewModel
 class PolarViewModel @Inject constructor(
     private val repository: PolarRepository,
     private val heartRateStatsUseCase: HeartRateStatsUseCase,
+    private val historyUseCase: ExperimentHistoryUseCase,
 ) : ViewModel() {
     val deviceId: String = PolarRepository.DEVICE_ID
 
@@ -71,7 +75,13 @@ class PolarViewModel @Inject constructor(
         }
         viewModelScope.launch {
             heartRateStatsUseCase.periodicity(hrHistory).collect { p ->
+                if (p != null) historyUseCase.updatePeriodicity(p)
                 _uiState.update { it.copy(periodicity = p) }
+            }
+        }
+        viewModelScope.launch {
+            historyUseCase.history.collect { history ->
+                _uiState.update { it.copy(experimentHistory = history) }
             }
         }
     }

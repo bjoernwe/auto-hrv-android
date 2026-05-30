@@ -82,8 +82,6 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                 )
             }
 
-            HorizontalDivider(Modifier.padding(vertical = 28.dp))
-
             Text(
                 "Breathing Pacer",
                 style = MaterialTheme.typography.titleMedium,
@@ -94,7 +92,26 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
 
             BreathingSection(viewModel = breathingViewModel)
 
-            Spacer(Modifier.height(24.dp))
+            if (uiState.experimentHistory.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(Modifier.padding(vertical = 28.dp))
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "Experiment History",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "x: Out:In ratio  ·  y: Cycle length  ·  opacity: periodicity",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                ExperimentScatterPlot(
+                    history = uiState.experimentHistory,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }
