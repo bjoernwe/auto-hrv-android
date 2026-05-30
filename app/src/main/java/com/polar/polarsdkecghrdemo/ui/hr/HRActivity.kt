@@ -16,11 +16,11 @@ class HRActivity : ComponentActivity() {
     private val hrViewModel: PolarViewModel by viewModels()
     private val breathingViewModel: BreathingPacerViewModel by viewModels()
 
-    private val bluetoothPermissionHelper = GetBluetoothPermissionUseCase(
+    private val getBluetoothPermissions = GetBluetoothPermissionUseCase(
         activity = this,
         onGranted = { hrViewModel.connect() },
         onDenied = {
-            Toast.makeText(applicationContext, "Needed permissions are missing", Toast.LENGTH_LONG).show()
+            Toast.makeText(applicationContext, "Needed Bluetooth permissions are missing", Toast.LENGTH_LONG).show()
         },
     )
 
@@ -34,6 +34,6 @@ class HRActivity : ComponentActivity() {
                 )
             }
         }
-        bluetoothPermissionHelper.checkAndRequest()
+        getBluetoothPermissions()
     }
 }
