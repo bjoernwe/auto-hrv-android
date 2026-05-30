@@ -35,7 +35,7 @@ class GetBluetoothPermissionUseCase(
             }
         }
 
-    fun checkAndRequest() {
+    operator fun invoke() {
         val btManager = activity.getSystemService(BluetoothManager::class.java)
         val adapter = btManager?.adapter
         if (adapter == null) {
