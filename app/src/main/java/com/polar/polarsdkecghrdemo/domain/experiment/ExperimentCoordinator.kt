@@ -5,8 +5,8 @@ import com.polar.polarsdkecghrdemo.di.ApplicationScope
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingParams
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
-import com.polar.polarsdkecghrdemo.domain.breathing.GenerateBreathingParamsUseCase
-import com.polar.polarsdkecghrdemo.domain.hr.HeartRateStatsUseCase
+import com.polar.polarsdkecghrdemo.domain.breathing.GenerateBreathingExperimentsUseCase
+import com.polar.polarsdkecghrdemo.domain.hr.CalcHrStatsUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,15 +25,15 @@ import javax.inject.Singleton
 @Singleton
 class ExperimentCoordinator @Inject constructor(
     @ApplicationScope private val scope: CoroutineScope,
-    generateBreathingParamsUseCase: GenerateBreathingParamsUseCase,
-    heartRateStatsUseCase: HeartRateStatsUseCase,
-    repository: PolarRepository,
+    generateBreathingExperimentsUseCase: GenerateBreathingExperimentsUseCase,
+    calcHrStatsUseCase: CalcHrStatsUseCase,
+    polarRepository: PolarRepository,
 ) {
-    val hrHistory: SharedFlow<List<Int>> = repository.getHrHistory(30)
+    val hrHistory: SharedFlow<List<Int>> = polarRepository.getHrHistory(30)
         .shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
     private val paramsFlow: SharedFlow<BreathingParams> =
-        generateBreathingParamsUseCase(ExperimentConfig.DEFAULT)
+        generateBreathingExperimentsUseCase(ExperimentConfig.DEFAULT)
             .shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
     val currentParams: StateFlow<BreathingParams> = paramsFlow.stateIn(
@@ -42,7 +42,7 @@ class ExperimentCoordinator @Inject constructor(
         BreathingParams(ExperimentConfig.DEFAULT.outToInRatioMean, ExperimentConfig.DEFAULT.cycleLengthMean),
     )
 
-    val periodicity: Flow<Float?> = heartRateStatsUseCase.periodicity(hrHistory)
+    val periodicity: Flow<Float?> = calcHrStatsUseCase.periodicity(hrHistory)
 
     private val _history = MutableStateFlow<List<ExperimentRecord>>(emptyList())
     val history: StateFlow<List<ExperimentRecord>> = _history.asStateFlow()

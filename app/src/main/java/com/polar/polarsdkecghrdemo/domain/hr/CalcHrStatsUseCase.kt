@@ -9,7 +9,7 @@ import javax.inject.Inject
 import kotlin.math.ln
 import kotlin.math.sqrt
 
-class HeartRateStatsUseCase @Inject constructor() {
+class CalcHrStatsUseCase @Inject constructor() {
 
     fun smoothness(hrHistory: Flow<List<Int>>): Flow<Float?> =
         hrHistory.map { computeSmoothness(it) }

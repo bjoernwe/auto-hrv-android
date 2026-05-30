@@ -8,7 +8,7 @@ import kotlinx.coroutines.isActive
 import org.apache.commons.math3.distribution.NormalDistribution
 import javax.inject.Inject
 
-class GenerateBreathingParamsUseCase @Inject constructor() {
+class GenerateBreathingExperimentsUseCase @Inject constructor() {
 
     operator fun invoke(config: ExperimentConfig = ExperimentConfig.DEFAULT): Flow<BreathingParams> = flow {
         val ratioDist = NormalDistribution(config.outToInRatioMean.toDouble(), config.outToInRatioStd.toDouble())
