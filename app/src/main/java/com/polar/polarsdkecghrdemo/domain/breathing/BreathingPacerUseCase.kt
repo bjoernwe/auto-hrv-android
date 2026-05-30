@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import javax.inject.Inject
@@ -32,7 +33,13 @@ class BreathingPacerUseCase @Inject constructor() {
         combine(outToInRatio, cycleLengthSeconds, ::BreathingParams)
             .stateIn(scope, SharingStarted.Eagerly, BreathingParams(outToInRatio.value, cycleLengthSeconds.value))
 
-    operator fun invoke(params: StateFlow<BreathingParams>): Flow<BreathingState> = flow {
+    fun breathingState(
+        scope: CoroutineScope,
+        params: StateFlow<BreathingParams>,
+    ): Flow<BreathingState> =
+        invoke(params).shareIn(scope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+
+    private operator fun invoke(params: StateFlow<BreathingParams>): Flow<BreathingState> = flow {
 
         while (currentCoroutineContext().isActive) {
             // Snapshot params once per cycle so in-flight cycles are never interrupted
