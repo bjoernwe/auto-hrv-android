@@ -5,21 +5,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -40,77 +31,53 @@ import com.polar.polarsdkecghrdemo.domain.breathing.BreathingState
 private val PacerBlue = Color(0xFF00ACC1)
 private val PacerBlueDark = Color(0xFF00838F)
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BreathingPacerScreen(viewModel: BreathingPacerViewModel, onBack: () -> Unit) {
+fun BreathingSection(viewModel: BreathingPacerViewModel) {
     val breathingState by viewModel.breathingState.collectAsStateWithLifecycle()
     val outToInRatio by viewModel.outToInRatio.collectAsStateWithLifecycle()
     val cycleLengthSeconds by viewModel.cycleLengthSeconds.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Breathing Pacer") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
-        },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Spacer(Modifier.weight(1f))
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        PacerCircle(state = breathingState)
 
-            PacerCircle(state = breathingState)
+        Spacer(Modifier.height(12.dp))
 
-            Spacer(Modifier.height(16.dp))
+        Text(
+            text = when (breathingState?.phase) {
+                BreathingPhase.Inhale -> "Inhale"
+                BreathingPhase.Exhale -> "Exhale"
+                null -> "—"
+            },
+            fontSize = 24.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = PacerBlueDark,
+        )
 
-            Text(
-                text = when (breathingState?.phase) {
-                    BreathingPhase.Inhale -> "Inhale"
-                    BreathingPhase.Exhale -> "Exhale"
-                    null -> "—"
-                },
-                fontSize = 28.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = PacerBlueDark,
-            )
+        Spacer(Modifier.height(20.dp))
 
-            Spacer(Modifier.weight(1f))
+        ParameterSlider(
+            label = "Cycle",
+            value = cycleLengthSeconds,
+            displayValue = "%.1f s".format(cycleLengthSeconds),
+            valueRange = 4f..16f,
+            onValueChangeFinished = { viewModel.setCycleLengthSeconds(it) },
+        )
 
-            ParameterSlider(
-                label = "Cycle",
-                value = cycleLengthSeconds,
-                displayValue = "%.1f s".format(cycleLengthSeconds),
-                valueRange = 4f..16f,
-                onValueChangeFinished = { viewModel.setCycleLengthSeconds(it) },
-            )
+        Spacer(Modifier.height(4.dp))
 
-            Spacer(Modifier.height(8.dp))
-
-            ParameterSlider(
-                label = "Out​:​In",
-                value = outToInRatio,
-                displayValue = "%.1f".format(outToInRatio),
-                valueRange = 0.5f..4f,
-                onValueChangeFinished = { viewModel.setOutToInRatio(it) },
-            )
-
-            Spacer(Modifier.height(24.dp))
-        }
+        ParameterSlider(
+            label = "Out:In",
+            value = outToInRatio,
+            displayValue = "%.1f".format(outToInRatio),
+            valueRange = 0.5f..4f,
+            onValueChangeFinished = { viewModel.setOutToInRatio(it) },
+        )
     }
 }
 
 @Composable
 private fun PacerCircle(state: BreathingState?, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier.size(240.dp)) {
+    Canvas(modifier = modifier.size(200.dp)) {
         val maxRadius = size.minDimension * 0.45f
         val minRadius = size.minDimension * 0.18f
 

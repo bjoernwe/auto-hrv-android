@@ -1,24 +1,24 @@
 package com.polar.polarsdkecghrdemo.ui.hr
 
-import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import com.polar.polarsdkecghrdemo.domain.bluetooth.GetBluetoothPermissionUseCase
-import com.polar.polarsdkecghrdemo.ui.breathing.BreathingPacerActivity
+import com.polar.polarsdkecghrdemo.ui.breathing.BreathingPacerViewModel
 import com.polar.polarsdkecghrdemo.ui.theme.AutoHrvTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class HRActivity : ComponentActivity() {
 
-    private val viewModel: PolarViewModel by viewModels()
+    private val hrViewModel: PolarViewModel by viewModels()
+    private val breathingViewModel: BreathingPacerViewModel by viewModels()
 
     private val bluetoothPermissionHelper = GetBluetoothPermissionUseCase(
         activity = this,
-        onGranted = { viewModel.connect() },
+        onGranted = { hrViewModel.connect() },
         onDenied = {
             Toast.makeText(applicationContext, "Needed permissions are missing", Toast.LENGTH_LONG).show()
         },
@@ -29,10 +29,8 @@ class HRActivity : ComponentActivity() {
         setContent {
             AutoHrvTheme {
                 HRScreen(
-                    viewModel = viewModel,
-                    onOpenBreathingPacer = {
-                        startActivity(Intent(this, BreathingPacerActivity::class.java))
-                    },
+                    hrViewModel = hrViewModel,
+                    breathingViewModel = breathingViewModel,
                 )
             }
         }

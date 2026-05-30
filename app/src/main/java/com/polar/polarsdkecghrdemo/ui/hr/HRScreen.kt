@@ -1,14 +1,15 @@
 package com.polar.polarsdkecghrdemo.ui.hr
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -23,55 +24,59 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.polar.polarsdkecghrdemo.data.model.ConnectionState
+import com.polar.polarsdkecghrdemo.ui.breathing.BreathingPacerViewModel
+import com.polar.polarsdkecghrdemo.ui.breathing.BreathingSection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HRScreen(viewModel: PolarViewModel, onOpenBreathingPacer: () -> Unit) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerViewModel) {
+    val uiState by hrViewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("HR / RR") }) },
+        topBar = { TopAppBar(title = { Text("Auto HRV") }) },
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(innerPadding)
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                DeviceInfoSection(
-                    deviceId = viewModel.deviceId,
-                    connectionState = uiState.connectionState,
-                    batteryLevel = uiState.batteryLevel,
-                    firmwareVersion = uiState.firmwareVersion,
+            Spacer(Modifier.height(16.dp))
+
+            DeviceInfoSection(
+                deviceId = hrViewModel.deviceId,
+                connectionState = uiState.connectionState,
+                batteryLevel = uiState.batteryLevel,
+                firmwareVersion = uiState.firmwareVersion,
+            )
+
+            Spacer(Modifier.height(32.dp))
+
+            HrSection(hr = uiState.hr, rrMs = uiState.rrMs)
+
+            if (uiState.hrHistory.size >= 2) {
+                Spacer(Modifier.height(16.dp))
+                HrChart(
+                    hrHistory = uiState.hrHistory,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-
-                Spacer(modifier = Modifier.height(48.dp))
-
-                HrSection(
-                    hr = uiState.hr,
-                    rrMs = uiState.rrMs,
-                )
-
-                if (uiState.hrHistory.size >= 2) {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    HrChart(hrHistory = uiState.hrHistory)
-                }
             }
 
-            Button(
-                onClick = onOpenBreathingPacer,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-            ) {
-                Text("Breathing Pacer")
-            }
+            HorizontalDivider(Modifier.padding(vertical = 28.dp))
+
+            Text(
+                "Breathing Pacer",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            BreathingSection(viewModel = breathingViewModel)
+
+            Spacer(Modifier.height(24.dp))
         }
     }
 }
@@ -118,7 +123,7 @@ private fun HrSection(hr: Int?, rrMs: List<Int>) {
             color = Color(0xFFC00000),
         )
         if (rrMs.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = "(${rrMs.joinToString(separator = "ms, ")}ms)",
                 style = MaterialTheme.typography.bodyLarge,
