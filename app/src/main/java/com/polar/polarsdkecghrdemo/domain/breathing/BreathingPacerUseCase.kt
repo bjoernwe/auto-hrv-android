@@ -1,9 +1,15 @@
 package com.polar.polarsdkecghrdemo.domain.breathing
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import javax.inject.Inject
 
@@ -14,14 +20,32 @@ data class BreathingState(
     val progress: Float,
 )
 
+private data class BreathingParams(val outToInRatio: Float, val cycleLengthSeconds: Float)
+
 class BreathingPacerUseCase @Inject constructor() {
-    operator fun invoke(outToInRatio: Float, cycleLengthSeconds: Float): Flow<BreathingState> = flow {
-        val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
-        val inhaleMs = (cycleMs / (1.0 + outToInRatio)).toLong().coerceAtLeast(100L)
-        val exhaleMs = (cycleMs - inhaleMs).coerceAtLeast(100L)
+
+    operator fun invoke(
+        scope: CoroutineScope,
+        outToInRatio: StateFlow<Float>,
+        cycleLengthSeconds: StateFlow<Float>,
+    ): Flow<BreathingState> {
+        // Eagerly shared so .value is always current when cycleFlow reads it at cycle start.
+        val params = combine(outToInRatio, cycleLengthSeconds, ::BreathingParams)
+            .stateIn(scope, SharingStarted.Eagerly, BreathingParams(outToInRatio.value, cycleLengthSeconds.value))
+        return cycleFlow(params).shareIn(scope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+    }
+
+    private fun cycleFlow(params: StateFlow<BreathingParams>): Flow<BreathingState> = flow {
 
         while (currentCoroutineContext().isActive) {
+            // Snapshot params once per cycle so in-flight cycles are never interrupted
+            val (outToInRatio, cycleLengthSeconds) = params.value
+            val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
+            val inhaleMs = (cycleMs / (1.0 + outToInRatio)).toLong().coerceAtLeast(100L)
+            val exhaleMs = (cycleMs - inhaleMs).coerceAtLeast(100L)
+
             val cycleStart = System.currentTimeMillis()
+
             while (currentCoroutineContext().isActive) {
                 val elapsed = System.currentTimeMillis() - cycleStart
                 if (elapsed >= inhaleMs + exhaleMs) break

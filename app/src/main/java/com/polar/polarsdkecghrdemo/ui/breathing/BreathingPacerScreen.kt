@@ -33,7 +33,7 @@ private val PacerBlueDark = Color(0xFF00838F)
 
 @Composable
 fun BreathingSection(viewModel: BreathingPacerViewModel) {
-    val breathingState by viewModel.breathingState.collectAsStateWithLifecycle()
+    val breathingState by viewModel.breathingState.collectAsStateWithLifecycle(initialValue = null)
     val outToInRatio by viewModel.outToInRatio.collectAsStateWithLifecycle()
     val cycleLengthSeconds by viewModel.cycleLengthSeconds.collectAsStateWithLifecycle()
 
