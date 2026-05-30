@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -32,15 +31,9 @@ class ExperimentCoordinator @Inject constructor(
     val hrHistory: SharedFlow<List<Int>> = polarRepository.getHrHistory(30)
         .shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
-    private val experimentParamsFlow: SharedFlow<BreathingParams> =
+    val currentBreathingPattern: SharedFlow<BreathingParams> =
         generateBreathingExperimentsUseCase(ExperimentConfig.DEFAULT)
             .shareIn(scope, SharingStarted.Eagerly, replay = 1)
-
-    val currentBreathingPattern: StateFlow<BreathingParams> = experimentParamsFlow.stateIn(
-        scope,
-        SharingStarted.Eagerly,
-        BreathingParams(ExperimentConfig.DEFAULT.outToInRatioMean, ExperimentConfig.DEFAULT.cycleLengthMean),
-    )
 
     val periodicity: Flow<Float?> = calcHrStatsUseCase.periodicity(hrHistory)
 
@@ -53,7 +46,7 @@ class ExperimentCoordinator @Inject constructor(
             launch { periodicity.filterNotNull().collect { latestPeriodicity.value = it } }
 
             var prev: BreathingParams? = null
-            experimentParamsFlow.collect { current ->
+            currentBreathingPattern.collect { current ->
                 latestPeriodicity.value?.let { p ->
                     prev?.let { _experimentRecords.update { h -> h + ExperimentRecord(it, p) } }
                 }

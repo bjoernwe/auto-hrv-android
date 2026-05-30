@@ -4,12 +4,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 enum class BreathingPhase { Inhale, Exhale }
@@ -20,16 +22,15 @@ data class BreathingParams(val outToInRatio: Float, val cycleLengthSeconds: Floa
 
 class BreathingPacerUseCase @Inject constructor() {
 
-    operator fun invoke(scope: CoroutineScope, params: StateFlow<BreathingParams>): Flow<BreathingState> =
-        cycleFlow(params).shareIn(scope, SharingStarted.WhileSubscribed(5_000), replay = 1)
-
-    private fun cycleFlow(params: StateFlow<BreathingParams>): Flow<BreathingState> = flow {
-        while (currentCoroutineContext().isActive) {
-            // Re-snapshot at each breath boundary so param changes take effect between breaths
-            emitAll(phaseFlow(BreathingPhase.Inhale, params.value.inhaleMs()))
-            emitAll(phaseFlow(BreathingPhase.Exhale, params.value.exhaleMs()))
-        }
-    }
+    operator fun invoke(scope: CoroutineScope, params: Flow<BreathingParams>): Flow<BreathingState> =
+        channelFlow {
+            val latest = MutableStateFlow(params.first())
+            launch { params.collect { latest.value = it } }
+            while (isActive) {
+                phaseFlow(BreathingPhase.Inhale, latest.value.inhaleMs()).collect { send(it) }
+                phaseFlow(BreathingPhase.Exhale, latest.value.exhaleMs()).collect { send(it) }
+            }
+        }.shareIn(scope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
     private fun phaseFlow(phase: BreathingPhase, durationMs: Long): Flow<BreathingState> = flow {
         val start = System.currentTimeMillis()

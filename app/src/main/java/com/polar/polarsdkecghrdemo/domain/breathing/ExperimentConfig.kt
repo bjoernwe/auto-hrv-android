@@ -7,6 +7,8 @@ data class ExperimentConfig(
     val cycleLengthMean: Float,
     val cycleLengthStd: Float,
 ) {
+    fun defaultParams() = BreathingParams(outToInRatioMean, cycleLengthMean)
+
     companion object {
         val DEFAULT = ExperimentConfig(
             intervalSeconds = 30f,
