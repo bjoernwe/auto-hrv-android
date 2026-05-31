@@ -33,11 +33,6 @@ class ExperimentCoordinator @Inject internal constructor(
 
     val currentBreathingState: StateFlow<BreathingState> = breathingPacerUseCase(scope, targetBreathingPattern)
 
-    private val previousBreathingState: StateFlow<BreathingState> = currentBreathingState
-        .scan(currentBreathingState.value to currentBreathingState.value) { (_, prev), next -> prev to next }
-        .map { it.first }
-        .stateIn(scope, SharingStarted.Eagerly, currentBreathingState.value)
-
     val hrHistory: StateFlow<List<Int>> = polarRepository.getHrHistory(30)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
@@ -45,11 +40,15 @@ class ExperimentCoordinator @Inject internal constructor(
         .stateIn(scope, SharingStarted.Eagerly, null)
 
     val experimentRecords: StateFlow<List<ExperimentRecord>> = targetBreathingPattern
-        .drop(1) // the first value is not a finished experiment
-        .map { periodicity.value }
+        // keep previous event, not current
+        .scan(targetBreathingPattern.value to targetBreathingPattern.value) { (_, current), next -> current to next }
+        .map { it.first }
+        // the initial value change is not a finished experiment yet
+        .drop(1)
+        // create record
+        .map { finishedPattern -> periodicity.value?.let { p -> ExperimentRecord(finishedPattern, p) } }
         .filterNotNull()
-        .scan(emptyList<ExperimentRecord>()) { records, p ->
-            records + ExperimentRecord(previousBreathingState.value.pattern, p)
-        }
+        // keep history
+        .scan(emptyList<ExperimentRecord>()) { records, record -> records + record }
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 }
