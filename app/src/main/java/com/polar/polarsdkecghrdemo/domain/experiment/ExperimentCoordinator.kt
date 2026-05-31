@@ -10,7 +10,6 @@ import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
@@ -33,7 +32,10 @@ class ExperimentCoordinator @Inject internal constructor(
         breathingExperimentsUseCase(experimentConfig)
             .stateIn(scope, SharingStarted.Eagerly, ExperimentConfig.DEFAULT.defaultParams())
 
-    val currentBreathingState: StateFlow<BreathingState> = breathingPacerUseCase(scope, targetBreathingPattern)
+    private val pacerOutput = breathingPacerUseCase(scope, targetBreathingPattern)
+
+    val currentBreathingState: StateFlow<BreathingState> = pacerOutput.breathingState
+    val currentBreathingPattern: StateFlow<BreathingPattern> = pacerOutput.currentPattern
 
     private val rrsMsHistory: StateFlow<List<Int>> = polarRepository.getRrsMsHistory(experimentConfig.evaluationLengthSeconds)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
@@ -41,11 +43,9 @@ class ExperimentCoordinator @Inject internal constructor(
     val stats: StateFlow<TimeSeriesStats?> = timeSeriesStatsUseCase(rrsMsHistory)
         .stateIn(scope, SharingStarted.Eagerly, null)
 
-    val experimentRecords: StateFlow<List<ExperimentRecord>> = currentBreathingState
-        .map { it.pattern }
-        .distinctUntilChanged()
+    val experimentRecords: StateFlow<List<ExperimentRecord>> = currentBreathingPattern
         // keep previous event, not current
-        .scan(currentBreathingState.value.pattern to currentBreathingState.value.pattern) { (_, current), next -> current to next }
+        .scan(currentBreathingPattern.value to currentBreathingPattern.value) { (_, current), next -> current to next }
         .map { it.first }
         // the initial value change is not a finished experiment yet
         .drop(1)
