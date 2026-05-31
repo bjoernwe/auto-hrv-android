@@ -54,10 +54,11 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         val n = nextPowerOf2(ts.size)
         val mean = ts.average()
         val len = ts.size
-        // Apply a Hann window to the data, zero-pad to next power of 2, and subtract mean to suppress DC
+        // Apply a Hann/Hamming window to the data, zero-pad to next power of 2, and subtract mean to suppress DC
         val input = DoubleArray(n) { i ->
             if (i < len) {
-                val w = 0.5 * (1.0 - cos(2.0 * PI * i / (len - 1)))
+                //val w = 0.5 * (1.0 - cos(2.0 * PI * i / (len - 1)))
+                val w = 0.54 - 0.46 * cos(2.0 * PI * i / (len - 1))
                 (ts[i].toDouble() - mean) * w
             } else {
                 0.0
