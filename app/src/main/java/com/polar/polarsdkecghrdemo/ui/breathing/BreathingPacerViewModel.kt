@@ -15,13 +15,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class BreathingPacerViewModel @Inject constructor(
-    breathingPacerUseCase: BreathingPacerUseCase,
     coordinator: ExperimentCoordinator,
 ) : ViewModel() {
 
-    private val targetPattern: StateFlow<BreathingPattern> = coordinator.currentBreathingPattern
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExperimentConfig.DEFAULT.defaultParams())
-
     val breathingState: StateFlow<BreathingState> =
-        breathingPacerUseCase(viewModelScope, targetPattern)
+        coordinator.currentBreathingState
 }

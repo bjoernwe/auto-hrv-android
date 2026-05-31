@@ -2,7 +2,9 @@ package com.polar.polarsdkecghrdemo.domain.experiment
 
 import com.polar.polarsdkecghrdemo.data.repository.PolarRepository
 import com.polar.polarsdkecghrdemo.di.ApplicationScope
+import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPacerUseCase
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPattern
+import com.polar.polarsdkecghrdemo.domain.breathing.BreathingState
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
 import com.polar.polarsdkecghrdemo.domain.hr.CalcHrStatsUseCase
@@ -19,26 +21,21 @@ import javax.inject.Singleton
 class ExperimentCoordinator @Inject internal constructor(
     @param:ApplicationScope private val scope: CoroutineScope,
     breathingExperimentsUseCase: BreathingExperimentsUseCase,
+    breathingPacerUseCase: BreathingPacerUseCase,
     calcHrStatsUseCase: CalcHrStatsUseCase,
     polarRepository: PolarRepository,
 ) {
+    private val targetBreathingPattern: StateFlow<BreathingPattern> =
+        breathingExperimentsUseCase(ExperimentConfig.DEFAULT)
+            .stateIn(scope, SharingStarted.Eagerly, ExperimentConfig.DEFAULT.defaultParams())
+
+    val currentBreathingState: StateFlow<BreathingState> = breathingPacerUseCase(scope, targetBreathingPattern)
+
     val hrHistory: StateFlow<List<Int>> = polarRepository.getHrHistory(30)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     val periodicity: StateFlow<Float?> = calcHrStatsUseCase.periodicity(hrHistory)
         .stateIn(scope, SharingStarted.Eagerly, null)
 
-    val currentBreathingPattern: StateFlow<BreathingPattern> =
-        breathingExperimentsUseCase(ExperimentConfig.DEFAULT)
-            .stateIn(scope, SharingStarted.Eagerly, ExperimentConfig.DEFAULT.defaultParams())
-
-    val experimentRecords: StateFlow<List<ExperimentRecord>> = currentBreathingPattern
-        .scan((null as BreathingPattern?) to emptyList<ExperimentRecord>()) { (prev, records), current ->
-            val updated = periodicity.value?.let { p ->
-                if (prev != null) records + ExperimentRecord(prev, p) else records
-            } ?: records
-            current to updated
-        }
-        .map { (_, records) -> records }
-        .stateIn(scope, SharingStarted.Eagerly, emptyList())
+    val experimentRecords: StateFlow<List<ExperimentRecord>> // TODO: Implement
 }
