@@ -5,7 +5,7 @@ import com.polar.polarsdkecghrdemo.di.ApplicationScope
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPattern
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
-import com.polar.polarsdkecghrdemo.domain.breathing.GenerateBreathingExperimentsUseCase
+import com.polar.polarsdkecghrdemo.domain.experiment.BreathingExperimentsUseCase
 import com.polar.polarsdkecghrdemo.domain.hr.CalcHrStatsUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharedFlow
@@ -21,7 +21,7 @@ import javax.inject.Singleton
 @Singleton
 class ExperimentCoordinator @Inject constructor(
     @ApplicationScope private val scope: CoroutineScope,
-    generateBreathingExperimentsUseCase: GenerateBreathingExperimentsUseCase,
+    breathingExperimentsUseCase: BreathingExperimentsUseCase,
     calcHrStatsUseCase: CalcHrStatsUseCase,
     polarRepository: PolarRepository,
 ) {
@@ -29,7 +29,7 @@ class ExperimentCoordinator @Inject constructor(
         .shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
     val currentBreathingPattern: SharedFlow<BreathingPattern> =
-        generateBreathingExperimentsUseCase(ExperimentConfig.DEFAULT)
+        breathingExperimentsUseCase(ExperimentConfig.DEFAULT)
             .shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
     val periodicity: StateFlow<Float?> = calcHrStatsUseCase.periodicity(hrHistory)
