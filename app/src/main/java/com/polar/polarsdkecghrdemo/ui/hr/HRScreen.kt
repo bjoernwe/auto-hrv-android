@@ -1,7 +1,6 @@
 package com.polar.polarsdkecghrdemo.ui.hr
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,12 +20,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.polar.polarsdkecghrdemo.data.model.ConnectionState
-import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
 import com.polar.polarsdkecghrdemo.ui.breathing.BreathingPacerViewModel
 import com.polar.polarsdkecghrdemo.ui.breathing.BreathingSection
 
@@ -104,29 +100,21 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
 
             BreathingSection(viewModel = breathingViewModel)
 
-            if (uiState.experimentHistory.isNotEmpty()) {
+            val samplingMean = uiState.samplingMean
+            if (samplingMean != null) {
                 Spacer(Modifier.height(16.dp))
                 HorizontalDivider(Modifier.padding(vertical = 28.dp))
-                Spacer(Modifier.height(16.dp))
                 Text(
-                    "Experiment History",
+                    "Current Estimate",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(
-                    "x: Out:In ratio  ·  y: Cycle length  ·  opacity: periodicity  ·  ⊕: sampling mean",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(4.dp))
-                ExperimentScatterPlot(
-                    history = uiState.experimentHistory,
-                    samplingMean = uiState.samplingMean,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(16.dp))
-                ExperimentRecordTable(
-                    records = uiState.experimentHistory,
+                Spacer(Modifier.height(8.dp))
+                HrMetricGrid(
+                    metrics = listOf(
+                        HrMetric("Out:In Ratio", "%.1f".format(samplingMean.outToInRatio)),
+                        HrMetric("Cycle Length (s)", "%.1f".format(samplingMean.cycleLengthSeconds)),
+                    ),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -166,43 +154,3 @@ private fun ConnectionState.label(): String = when (this) {
     is ConnectionState.Disconnected -> "Disconnected"
 }
 
-@Composable
-private fun ExperimentRecordTable(records: List<ExperimentRecord>, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        ExperimentRecordRow(
-            index = "#",
-            outToIn = "Out:In",
-            cycle = "Cycle",
-            periodicity = "Periodicity",
-            header = true,
-        )
-        HorizontalDivider()
-        records.reversed().forEachIndexed { index, record ->
-            ExperimentRecordRow(
-                index = "${index + 1}",
-                outToIn = "%.1f".format(record.params.outToInRatio),
-                cycle = "%.1f s".format(record.params.cycleLengthSeconds),
-                periodicity = "%.2f".format(record.periodicity),
-            )
-        }
-    }
-}
-
-@Composable
-private fun ExperimentRecordRow(
-    index: String,
-    outToIn: String,
-    cycle: String,
-    periodicity: String,
-    header: Boolean = false,
-) {
-    val style = if (header) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall
-    val weight = if (header) FontWeight.SemiBold else FontWeight.Normal
-    val color = if (header) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text(index,     modifier = Modifier.weight(0.5f), style = style, fontWeight = weight, color = color, textAlign = TextAlign.End)
-        Text(outToIn,   modifier = Modifier.weight(1f),   style = style, fontWeight = weight, color = color, textAlign = TextAlign.End)
-        Text(cycle,     modifier = Modifier.weight(1f),   style = style, fontWeight = weight, color = color, textAlign = TextAlign.End)
-        Text(periodicity, modifier = Modifier.weight(1f), style = style, fontWeight = weight, color = color, textAlign = TextAlign.End)
-    }
-}
