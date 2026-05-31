@@ -11,14 +11,14 @@ import kotlin.math.sqrt
 
 class CalcHrStatsUseCase @Inject constructor() {
 
-    fun smoothness(hrHistory: Flow<List<Int>>): Flow<Float?> =
-        hrHistory.map { computeSmoothness(it) }
+    fun smoothness(ts: Flow<List<Int>>): Flow<Float?> =
+        ts.map { computeSmoothness(it) }
 
-    fun powerSpectrum(hrHistory: Flow<List<Int>>): Flow<List<Float>?> =
-        hrHistory.map { computePowerSpectrum(it) }
+    fun powerSpectrum(ts: Flow<List<Int>>): Flow<List<Float>?> =
+        ts.map { computePowerSpectrum(it) }
 
-    fun periodicity(hrHistory: Flow<List<Int>>): Flow<Float?> =
-        hrHistory.map { values -> computePowerSpectrum(values)?.let { computePeriodicity(it) } }
+    fun periodicity(ts: Flow<List<Int>>): Flow<Float?> =
+        ts.map { values -> computePowerSpectrum(values)?.let { computePeriodicity(it) } }
 
     private fun normalize(values: List<Int>): List<Float> {
         val floats = values.map { it.toFloat() }
@@ -28,9 +28,9 @@ class CalcHrStatsUseCase @Inject constructor() {
         return floats.map { (it - mean) / std }
     }
 
-    private fun computeSmoothness(values: List<Int>): Float? {
-        if (values.size < 2) return null
-        val normalized = normalize(values)
+    private fun computeSmoothness(ts: List<Int>): Float? {
+        if (ts.size < 2) return null
+        val normalized = normalize(ts)
         val meanSquaredDiff = normalized
             .zipWithNext { a, b -> (b - a) * (b - a) }
             .average()
@@ -38,13 +38,13 @@ class CalcHrStatsUseCase @Inject constructor() {
         return 2f - sqrt(meanSquaredDiff)
     }
 
-    private fun computePowerSpectrum(values: List<Int>): List<Float>? {
-        if (values.size < 4) return null
-        val n = nextPowerOf2(values.size)
-        val mean = values.average()
+    private fun computePowerSpectrum(ts: List<Int>): List<Float>? {
+        if (ts.size < 4) return null
+        val n = nextPowerOf2(ts.size)
+        val mean = ts.average()
         // Zero-pad to next power of 2 and subtract mean to suppress DC
         val input = DoubleArray(n) { i ->
-            if (i < values.size) values[i].toDouble() - mean else 0.0
+            if (i < ts.size) ts[i].toDouble() - mean else 0.0
         }
         val result = FastFourierTransformer(DftNormalization.STANDARD)
             .transform(input, TransformType.FORWARD)

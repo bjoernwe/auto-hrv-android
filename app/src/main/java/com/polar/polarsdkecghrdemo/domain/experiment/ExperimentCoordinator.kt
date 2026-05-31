@@ -27,16 +27,18 @@ class ExperimentCoordinator @Inject internal constructor(
     calcHrStatsUseCase: CalcHrStatsUseCase,
     polarRepository: PolarRepository,
 ) {
+    private val experimentConfig = ExperimentConfig.DEFAULT
+
     private val targetBreathingPattern: StateFlow<BreathingPattern> =
-        breathingExperimentsUseCase(ExperimentConfig.DEFAULT)
+        breathingExperimentsUseCase(experimentConfig)
             .stateIn(scope, SharingStarted.Eagerly, ExperimentConfig.DEFAULT.defaultParams())
 
     val currentBreathingState: StateFlow<BreathingState> = breathingPacerUseCase(scope, targetBreathingPattern)
 
-    val hrHistory: StateFlow<List<Int>> = polarRepository.getHrHistory(30)
+    val rrsMsHistory: StateFlow<List<Int>> = polarRepository.getRrsMsHistory(experimentConfig.intervalSeconds)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    val periodicity: StateFlow<Float?> = calcHrStatsUseCase.periodicity(hrHistory)
+    val periodicity: StateFlow<Float?> = calcHrStatsUseCase.periodicity(rrsMsHistory)
         .stateIn(scope, SharingStarted.Eagerly, null)
 
     val experimentRecords: StateFlow<List<ExperimentRecord>> = targetBreathingPattern

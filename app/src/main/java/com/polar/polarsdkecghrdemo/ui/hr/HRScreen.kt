@@ -63,10 +63,10 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            if (uiState.hrHistory.size >= 2) {
+            if (uiState.rrsMsHistory.size >= 2) {
                 Spacer(Modifier.height(16.dp))
-                HrChart(
-                    hrHistory = uiState.hrHistory,
+                TimeSeriesChart(
+                    ts = uiState.rrsMsHistory,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

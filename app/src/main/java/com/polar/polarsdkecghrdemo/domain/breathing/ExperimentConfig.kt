@@ -1,7 +1,7 @@
 package com.polar.polarsdkecghrdemo.domain.breathing
 
 data class ExperimentConfig(
-    val intervalSeconds: Float,
+    val intervalSeconds: Int,
     val outToInRatioMean: Float,
     val outToInRatioStd: Float,
     val cycleLengthMean: Float,
@@ -11,7 +11,7 @@ data class ExperimentConfig(
 
     companion object {
         val DEFAULT = ExperimentConfig(
-            intervalSeconds = 30f,
+            intervalSeconds = 3,
             outToInRatioMean = 1.5f,
             outToInRatioStd = 0.5f,
             cycleLengthMean = 10f,

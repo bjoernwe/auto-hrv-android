@@ -18,7 +18,7 @@ import javax.inject.Inject
 data class HrUiState(
     val connectionState: ConnectionState = ConnectionState.Idle,
     val hr: Int? = null,
-    val hrHistory: List<Int> = emptyList(),
+    val rrsMsHistory: List<Int> = emptyList(),
     val batteryLevel: Int? = null,
     val smoothness: Float? = null,
     val powerSpectrum: List<Float>? = null,
@@ -38,7 +38,7 @@ class PolarViewModel @Inject constructor(
     val uiState: StateFlow<HrUiState> = _uiState.asStateFlow()
 
     init {
-        val hrHistory = coordinator.hrHistory
+        val rrsMsHistory = coordinator.rrsMsHistory
 
         viewModelScope.launch {
             repository.connectionState.collect { state ->
@@ -56,17 +56,17 @@ class PolarViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            hrHistory.collect { history ->
-                _uiState.update { it.copy(hrHistory = history) }
+            rrsMsHistory.collect { history ->
+                _uiState.update { it.copy(rrsMsHistory = history) }
             }
         }
         viewModelScope.launch {
-            calcHrStatsUseCase.smoothness(hrHistory).collect { smoothness ->
+            calcHrStatsUseCase.smoothness(rrsMsHistory).collect { smoothness ->
                 _uiState.update { it.copy(smoothness = smoothness) }
             }
         }
         viewModelScope.launch {
-            calcHrStatsUseCase.powerSpectrum(hrHistory).collect { spectrum ->
+            calcHrStatsUseCase.powerSpectrum(rrsMsHistory).collect { spectrum ->
                 _uiState.update { it.copy(powerSpectrum = spectrum) }
             }
         }
