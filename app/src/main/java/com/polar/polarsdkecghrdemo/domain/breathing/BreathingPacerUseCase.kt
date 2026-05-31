@@ -3,8 +3,10 @@ package com.polar.polarsdkecghrdemo.domain.breathing
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -13,25 +15,36 @@ import javax.inject.Inject
 
 enum class BreathingPhase { Inhale, Exhale }
 
-data class BreathingState(val phase: BreathingPhase, val progress: Float, val pattern: BreathingPattern)
+data class BreathingState(val phase: BreathingPhase, val progress: Float)
 
 data class BreathingPattern(val outToInRatio: Float, val cycleLengthSeconds: Float)
 
+class PacerOutput(
+    val breathingState: StateFlow<BreathingState>,
+    val currentPattern: StateFlow<BreathingPattern>,
+)
+
 class BreathingPacerUseCase @Inject constructor() {
 
-    operator fun invoke(scope: CoroutineScope, targetPattern: StateFlow<BreathingPattern>): StateFlow<BreathingState> {
-        return flow {
+    operator fun invoke(scope: CoroutineScope, targetPattern: StateFlow<BreathingPattern>): PacerOutput {
+        val currentBreathingPattern = MutableStateFlow(targetPattern.value)
+
+        val breathingState = flow {
             while (true) {
                 val inhalePattern = targetPattern.value
-                emitAll(progressFlow(inhalePattern.inhaleMs()).map { BreathingState(BreathingPhase.Inhale, it, inhalePattern) })
+                currentBreathingPattern.value = inhalePattern
+                emitAll(progressFlow(inhalePattern.inhaleMs()).map { BreathingState(BreathingPhase.Inhale, it) })
                 val exhalePattern = targetPattern.value
-                emitAll(progressFlow(exhalePattern.exhaleMs()).map { BreathingState(BreathingPhase.Exhale, it, exhalePattern) })
+                currentBreathingPattern.value = exhalePattern
+                emitAll(progressFlow(exhalePattern.exhaleMs()).map { BreathingState(BreathingPhase.Exhale, it) })
             }
         }.stateIn(
             scope = scope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = BreathingState(BreathingPhase.Inhale, 0f, targetPattern.value)
+            initialValue = BreathingState(BreathingPhase.Inhale, 0f)
         )
+
+        return PacerOutput(breathingState, currentBreathingPattern.asStateFlow())
     }
 
     private fun progressFlow(durationMs: Long): Flow<Float> = flow {
