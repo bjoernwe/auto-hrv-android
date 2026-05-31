@@ -38,8 +38,11 @@ class ExperimentCoordinator @Inject internal constructor(
 
     private val objective: () -> Float = {
         val periodicity = stats.value?.periodicity ?: 0f
+        val smoothness = stats.value?.smoothness ?: 0f
         val variance = stats.value?.variance ?: 0f
-        -periodicity - sqrt(variance).div(100)
+        0.minus(periodicity)
+            .minus(smoothness.div(3))
+            .minus(sqrt(variance).div(50))
     }
 
     private val initialBreathingPattern = experimentConfig.defaultParams()
