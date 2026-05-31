@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.apache.commons.math3.analysis.MultivariateFunction
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 
@@ -40,17 +39,14 @@ internal class BreathingExperimentsUseCase @Inject constructor(
         config: ExperimentConfig = ExperimentConfig.DEFAULT,
         objective: () -> Float,
     ): Flow<BreathingExperiment> = channelFlow {
-        val asks = Channel<DoubleArray>(Channel.RENDEZVOUS)
+        val asks = Channel<BreathingPattern>(Channel.RENDEZVOUS)
         val tells = Channel<Double>(Channel.RENDEZVOUS)
         val experimentMs = (config.experimentLengthSeconds * 1000).toLong()
         val currentSamplingMean = AtomicReference(config.defaultParams())
 
-        val optimizerObjective = MultivariateFunction { candidate ->
-            // ask: hand the candidate to the experiment loop
-            if (asks.trySendBlocking(candidate.clone()).isClosed) {
-                throw CancellationException("optimizer cancelled")
-            }
-            // tell: block until the experiment reports its (negated) periodicity
+        val optimizerObjective: (BreathingPattern) -> Double = { candidate ->
+            val channelResult = asks.trySendBlocking(candidate)
+            if (channelResult.isClosed) { throw CancellationException("optimizer cancelled") }
             runBlocking { tells.receive() }
         }
 
@@ -60,7 +56,7 @@ internal class BreathingExperimentsUseCase @Inject constructor(
 
         try {
             for (candidate in asks) {
-                send(BreathingExperiment(candidate.toBreathingPattern(), currentSamplingMean.get()))
+                send(BreathingExperiment(candidate, currentSamplingMean.get()))
                 delay(experimentMs)
                 tells.send(-objective().toDouble())
             }

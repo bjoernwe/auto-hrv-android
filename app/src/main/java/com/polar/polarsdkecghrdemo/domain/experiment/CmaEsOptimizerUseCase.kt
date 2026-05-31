@@ -2,7 +2,6 @@ package com.polar.polarsdkecghrdemo.domain.experiment
 
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPattern
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
-import org.apache.commons.math3.analysis.MultivariateFunction
 import org.apache.commons.math3.linear.RealMatrix
 import org.apache.commons.math3.optim.InitialGuess
 import org.apache.commons.math3.optim.MaxEval
@@ -26,7 +25,7 @@ private const val STOP_FITNESS = -1.0
 private const val CONVERGENCE_REL = 1e-3
 private const val CONVERGENCE_ABS = 1e-3
 
-internal fun DoubleArray.toBreathingPattern() = BreathingPattern(
+private fun DoubleArray.toBreathingPattern() = BreathingPattern(
     outToInRatio = this[0].toFloat().coerceAtLeast(MIN_RATIO.toFloat()),
     cycleLengthSeconds = this[1].toFloat().coerceAtLeast(MIN_CYCLE.toFloat()),
 )
@@ -44,7 +43,7 @@ internal class CmaEsOptimizerUseCase @Inject constructor() {
 
     operator fun invoke(
         config: ExperimentConfig,
-        objective: MultivariateFunction,
+        objective: (BreathingPattern) -> Double,
         onSamplingMean: (BreathingPattern) -> Unit,
     ) {
         val lowerBounds = doubleArrayOf(
@@ -84,7 +83,7 @@ internal class CmaEsOptimizerUseCase @Inject constructor() {
             val mean = optimizer.statisticsMeanHistory.lastOrNull()?.toBreathingPattern()
                 ?: currentGuess.toBreathingPattern()
             onSamplingMean(mean)
-            objective.value(candidate)
+            objective(candidate.toBreathingPattern())
         }
 
         try {
