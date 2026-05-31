@@ -114,13 +114,14 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    "x: Out:In ratio  ·  y: Cycle length  ·  opacity: periodicity",
+                    "x: Out:In ratio  ·  y: Cycle length  ·  opacity: periodicity  ·  ⊕: sampling mean",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(4.dp))
                 ExperimentScatterPlot(
                     history = uiState.experimentHistory,
+                    samplingMean = uiState.samplingMean,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(16.dp))
