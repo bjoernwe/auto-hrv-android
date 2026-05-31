@@ -145,9 +145,8 @@ class PolarRepository @Inject constructor(
         val disposable = api.startHrStreaming(DEVICE_ID)
             .subscribe(
                 { hrData ->
-                    for (hrDat in hrData.samples) {
-                        trySend(hrDat)
-                    }
+                    // If there's more than one sample, ignore. Effectively re-samples to 1Hz.
+                    trySend(hrData.samples.last())
                 },
                 { error -> close(error) },
                 { close() }
