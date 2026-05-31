@@ -10,9 +10,10 @@ import kotlin.math.ln
 import kotlin.math.sqrt
 
 data class TimeSeriesStats(
-    val smoothness: Float?,
-    val powerSpectrum: List<Float>?,
     val periodicity: Float?,
+    val powerSpectrum: List<Float>?,
+    val smoothness: Float?,
+    val variance: Float?,
 )
 
 internal class TimeSeriesStatsUseCase @Inject constructor() {
@@ -20,9 +21,10 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
     operator fun invoke(ts: Flow<List<Int>>): Flow<TimeSeriesStats> {
         return ts.map { ts ->
             TimeSeriesStats(
-                smoothness = computeSmoothness(ts),
-                powerSpectrum = computePowerSpectrum(ts),
                 periodicity = computePeriodicity(ts),
+                powerSpectrum = computePowerSpectrum(ts),
+                smoothness = computeSmoothness(ts),
+                variance = computeVariance(ts),
             )
         }
     }
@@ -77,6 +79,12 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         }.toFloat()
         val maxEntropy = ln(bins.size.toDouble()).toFloat()
         return if (maxEntropy > 0f) 1f - (entropy / maxEntropy) else 0f
+    }
+
+    private fun computeVariance(ts: List<Int>): Float? {
+        if (ts.size < 2) return null
+        val mean = ts.average().toFloat()
+        return ts.map { (it - mean) * (it - mean) }.average().toFloat()
     }
 
     private fun nextPowerOf2(n: Int): Int {
