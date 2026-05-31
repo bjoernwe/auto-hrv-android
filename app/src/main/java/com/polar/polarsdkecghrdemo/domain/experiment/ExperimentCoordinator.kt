@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
@@ -45,10 +46,10 @@ class ExperimentCoordinator @Inject internal constructor(
 
     val experimentRecords: StateFlow<List<ExperimentRecord>> = targetBreathingPattern
         .drop(1) // the first value is not a finished experiment
-        .scan(emptyList<ExperimentRecord>()) { records, _ ->
-            periodicity.value?.let { p ->
-                records + ExperimentRecord(previousBreathingState.value.pattern, p)
-            } ?: records
+        .map { periodicity.value }
+        .filterNotNull()
+        .scan(emptyList<ExperimentRecord>()) { records, p ->
+            records + ExperimentRecord(previousBreathingState.value.pattern, p)
         }
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 }
