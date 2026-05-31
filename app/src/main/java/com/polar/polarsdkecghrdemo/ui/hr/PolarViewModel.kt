@@ -6,7 +6,7 @@ import com.polar.polarsdkecghrdemo.data.model.ConnectionState
 import com.polar.polarsdkecghrdemo.data.repository.PolarRepository
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
 import com.polar.polarsdkecghrdemo.domain.experiment.ExperimentCoordinator
-import com.polar.polarsdkecghrdemo.domain.hr.CalcHrStatsUseCase
+import com.polar.polarsdkecghrdemo.domain.experiment.CalcHrStatsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

@@ -1,4 +1,4 @@
-package com.polar.polarsdkecghrdemo.domain.hr
+package com.polar.polarsdkecghrdemo.domain.experiment
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

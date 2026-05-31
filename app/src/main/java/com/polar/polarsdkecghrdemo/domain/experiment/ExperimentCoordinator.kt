@@ -7,7 +7,7 @@ import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPattern
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingState
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
-import com.polar.polarsdkecghrdemo.domain.hr.CalcHrStatsUseCase
+import com.polar.polarsdkecghrdemo.domain.experiment.CalcHrStatsUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
