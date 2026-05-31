@@ -12,6 +12,7 @@ import kotlin.math.ln
 import kotlin.math.sqrt
 
 data class TimeSeriesStats(
+    val peakPower: Float?,
     val periodicity: Float?,
     val powerSpectrum: List<Float>?,
     val smoothness: Float?,
@@ -22,9 +23,11 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
 
     operator fun invoke(ts: Flow<List<Int>>): Flow<TimeSeriesStats> {
         return ts.map { ts ->
+            val spectrum = computePowerSpectrum(ts)
             TimeSeriesStats(
-                periodicity = computePeriodicity(ts),
-                powerSpectrum = computePowerSpectrum(ts),
+                peakPower = spectrum?.drop(1)?.max(),
+                periodicity = computePeriodicity(spectrum),
+                powerSpectrum = spectrum,
                 smoothness = computeSmoothness(ts),
                 variance = computeVariance(ts),
             )
@@ -74,8 +77,7 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         }
     }
 
-    private fun computePeriodicity(ts: List<Int>): Float? {
-        val spectrum = computePowerSpectrum(ts)
+    private fun computePeriodicity(spectrum: List<Float>?): Float? {
         if (spectrum === null) return null
         if (spectrum.size < 3) return null
         // Drop the first bin — it reflects slow HR trends rather than rhythmic periodicity
