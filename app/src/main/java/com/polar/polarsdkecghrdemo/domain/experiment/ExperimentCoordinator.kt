@@ -7,7 +7,6 @@ import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPattern
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingState
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
-import com.polar.polarsdkecghrdemo.domain.experiment.CalcHrStatsUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +23,7 @@ class ExperimentCoordinator @Inject internal constructor(
     @param:ApplicationScope private val scope: CoroutineScope,
     breathingExperimentsUseCase: BreathingExperimentsUseCase,
     breathingPacerUseCase: BreathingPacerUseCase,
-    calcHrStatsUseCase: CalcHrStatsUseCase,
+    timeSeriesStatsUseCase: TimeSeriesStatsUseCase,
     polarRepository: PolarRepository,
 ) {
     private val experimentConfig = ExperimentConfig.DEFAULT
@@ -38,7 +37,7 @@ class ExperimentCoordinator @Inject internal constructor(
     val rrsMsHistory: StateFlow<List<Int>> = polarRepository.getRrsMsHistory(experimentConfig.intervalSeconds)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    val periodicity: StateFlow<Float?> = calcHrStatsUseCase.periodicity(rrsMsHistory)
+    val periodicity: StateFlow<Float?> = timeSeriesStatsUseCase.periodicity(rrsMsHistory)
         .stateIn(scope, SharingStarted.Eagerly, null)
 
     val experimentRecords: StateFlow<List<ExperimentRecord>> = targetBreathingPattern

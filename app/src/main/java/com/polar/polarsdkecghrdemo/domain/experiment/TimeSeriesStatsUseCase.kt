@@ -9,7 +9,7 @@ import javax.inject.Inject
 import kotlin.math.ln
 import kotlin.math.sqrt
 
-class CalcHrStatsUseCase @Inject constructor() {
+class TimeSeriesStatsUseCase @Inject constructor() {
 
     fun smoothness(ts: Flow<List<Int>>): Flow<Float?> =
         ts.map { computeSmoothness(it) }
