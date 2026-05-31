@@ -100,6 +100,27 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
 
             BreathingSection(viewModel = breathingViewModel)
 
+            if (uiState.experimentHistory.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(Modifier.padding(vertical = 28.dp))
+                Text(
+                    "Experiment History",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "x: Cycle length  ·  y: Out:In ratio  ·  opacity: periodicity  ·  ⊕: sampling mean",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                ExperimentScatterPlot(
+                    history = uiState.experimentHistory,
+                    samplingMean = uiState.samplingMean,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
             val samplingMean = uiState.samplingMean
             if (samplingMean != null) {
                 Spacer(Modifier.height(16.dp))
