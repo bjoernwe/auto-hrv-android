@@ -30,7 +30,6 @@ private val PacerBlueDark = Color(0xFF00838F)
 @Composable
 fun BreathingSection(viewModel: BreathingPacerViewModel) {
     val breathingState by viewModel.breathingState.collectAsStateWithLifecycle(initialValue = null)
-    val breathingPattern by viewModel.currentBreathingPattern.collectAsStateWithLifecycle()
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         PacerCircle(state = breathingState)
@@ -50,16 +49,16 @@ fun BreathingSection(viewModel: BreathingPacerViewModel) {
 
         Spacer(Modifier.height(12.dp))
 
-        ParamReadout(breathingPattern)
+        ParamReadout(breathingState?.pattern)
     }
 }
 
 @Composable
-private fun ParamReadout(params: BreathingPattern) {
+private fun ParamReadout(params: BreathingPattern?) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        ParamLabel(label = "Cycle", value = "%.1f s".format(params.cycleLengthSeconds))
+        ParamLabel(label = "Cycle", value = params?.let { "%.1f s".format(it.cycleLengthSeconds) } ?: "—")
         Spacer(Modifier.width(24.dp))
-        ParamLabel(label = "Out:In", value = "%.1f".format(params.outToInRatio))
+        ParamLabel(label = "Out:In", value = params?.let { "%.1f".format(it.outToInRatio) } ?: "—")
     }
 }
 

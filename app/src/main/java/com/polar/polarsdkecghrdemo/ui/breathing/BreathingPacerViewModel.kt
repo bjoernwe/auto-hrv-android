@@ -19,9 +19,9 @@ class BreathingPacerViewModel @Inject constructor(
     coordinator: ExperimentCoordinator,
 ) : ViewModel() {
 
-    val currentBreathingPattern: StateFlow<BreathingPattern> = coordinator.currentBreathingPattern
+    private val targetPattern: StateFlow<BreathingPattern> = coordinator.currentBreathingPattern
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExperimentConfig.DEFAULT.defaultParams())
 
     val breathingState: StateFlow<BreathingState> =
-        breathingPacerUseCase(viewModelScope, currentBreathingPattern)
+        breathingPacerUseCase(viewModelScope, targetPattern)
 }
