@@ -12,10 +12,10 @@ data class ExperimentConfig(
         val DEFAULT = ExperimentConfig(
             experimentLengthSeconds = 30,
             evaluationLengthSeconds = 16+1, // 2*n + 1 is a good value for the power spectrum
-            outToInRatioMean = 1.5f,
+            outToInRatioMean = 2f,
             outToInRatioStd = 0.5f,
             cycleLengthMean = 10f,
-            cycleLengthStd = 4f,
+            cycleLengthStd = 2f,
         )
     }
 }
