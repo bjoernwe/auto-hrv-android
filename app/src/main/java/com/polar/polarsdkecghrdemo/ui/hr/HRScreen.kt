@@ -1,6 +1,7 @@
 package com.polar.polarsdkecghrdemo.ui.hr
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,9 +19,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.polar.polarsdkecghrdemo.data.model.ConnectionState
+import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
 import com.polar.polarsdkecghrdemo.ui.breathing.BreathingPacerViewModel
 import com.polar.polarsdkecghrdemo.ui.breathing.BreathingSection
 
@@ -111,6 +115,11 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                     history = uiState.experimentHistory,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                Spacer(Modifier.height(16.dp))
+                ExperimentRecordTable(
+                    records = uiState.experimentHistory,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }
@@ -146,4 +155,45 @@ private fun ConnectionState.label(): String = when (this) {
     is ConnectionState.Connecting -> "Connecting…"
     is ConnectionState.Connected -> "Connected"
     is ConnectionState.Disconnected -> "Disconnected"
+}
+
+@Composable
+private fun ExperimentRecordTable(records: List<ExperimentRecord>, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        ExperimentRecordRow(
+            index = "#",
+            outToIn = "Out:In",
+            cycle = "Cycle",
+            periodicity = "Periodicity",
+            header = true,
+        )
+        HorizontalDivider()
+        records.reversed().forEachIndexed { index, record ->
+            ExperimentRecordRow(
+                index = "${index + 1}",
+                outToIn = "%.1f".format(record.params.outToInRatio),
+                cycle = "%.1f s".format(record.params.cycleLengthSeconds),
+                periodicity = "%.2f".format(record.periodicity),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExperimentRecordRow(
+    index: String,
+    outToIn: String,
+    cycle: String,
+    periodicity: String,
+    header: Boolean = false,
+) {
+    val style = if (header) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall
+    val weight = if (header) FontWeight.SemiBold else FontWeight.Normal
+    val color = if (header) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text(index,     modifier = Modifier.weight(0.5f), style = style, fontWeight = weight, color = color, textAlign = TextAlign.End)
+        Text(outToIn,   modifier = Modifier.weight(1f),   style = style, fontWeight = weight, color = color, textAlign = TextAlign.End)
+        Text(cycle,     modifier = Modifier.weight(1f),   style = style, fontWeight = weight, color = color, textAlign = TextAlign.End)
+        Text(periodicity, modifier = Modifier.weight(1f), style = style, fontWeight = weight, color = color, textAlign = TextAlign.End)
+    }
 }
