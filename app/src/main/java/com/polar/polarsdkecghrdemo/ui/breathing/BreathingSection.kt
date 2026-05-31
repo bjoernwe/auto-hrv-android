@@ -30,7 +30,7 @@ private val PacerBlueDark = Color(0xFF00838F)
 @Composable
 fun BreathingSection(viewModel: BreathingPacerViewModel) {
     val breathingState by viewModel.breathingState.collectAsStateWithLifecycle(initialValue = null)
-    val params by viewModel.currentParams.collectAsStateWithLifecycle()
+    val breathingPattern by viewModel.currentBreathingPattern.collectAsStateWithLifecycle()
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         PacerCircle(state = breathingState)
@@ -50,7 +50,7 @@ fun BreathingSection(viewModel: BreathingPacerViewModel) {
 
         Spacer(Modifier.height(12.dp))
 
-        ParamReadout(params)
+        ParamReadout(breathingPattern)
     }
 }
 

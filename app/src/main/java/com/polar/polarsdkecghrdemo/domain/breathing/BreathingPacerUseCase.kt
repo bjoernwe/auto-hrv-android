@@ -18,17 +18,11 @@ data class BreathingPattern(val outToInRatio: Float, val cycleLengthSeconds: Flo
 
 class BreathingPacerUseCase @Inject constructor() {
 
-    operator fun invoke(scope: CoroutineScope, targetPattern: Flow<BreathingPattern>): StateFlow<BreathingState> {
-        val latestPattern = targetPattern.stateIn(
-            scope = scope,
-            started = SharingStarted.Eagerly,
-            initialValue = ExperimentConfig.DEFAULT.defaultParams()
-        )
-
-        return flow<BreathingState> {
+    operator fun invoke(scope: CoroutineScope, targetPattern: StateFlow<BreathingPattern>): StateFlow<BreathingState> {
+        return flow {
             while (true) {
-                emitAll(phaseFlow(BreathingPhase.Inhale, latestPattern.value.inhaleMs()))
-                emitAll(phaseFlow(BreathingPhase.Exhale, latestPattern.value.exhaleMs()))
+                emitAll(phaseFlow(BreathingPhase.Inhale, targetPattern.value.inhaleMs()))
+                emitAll(phaseFlow(BreathingPhase.Exhale, targetPattern.value.exhaleMs()))
             }
         }.stateIn(
             scope = scope,
