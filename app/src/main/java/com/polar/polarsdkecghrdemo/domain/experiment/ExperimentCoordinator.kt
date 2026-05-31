@@ -5,7 +5,6 @@ import com.polar.polarsdkecghrdemo.di.ApplicationScope
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPattern
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
-import com.polar.polarsdkecghrdemo.domain.experiment.BreathingExperimentsUseCase
 import com.polar.polarsdkecghrdemo.domain.hr.CalcHrStatsUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharedFlow
@@ -19,8 +18,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ExperimentCoordinator @Inject constructor(
-    @ApplicationScope private val scope: CoroutineScope,
+class ExperimentCoordinator @Inject internal constructor(
+    @param:ApplicationScope private val scope: CoroutineScope,
     breathingExperimentsUseCase: BreathingExperimentsUseCase,
     calcHrStatsUseCase: CalcHrStatsUseCase,
     polarRepository: PolarRepository,
@@ -36,7 +35,7 @@ class ExperimentCoordinator @Inject constructor(
         .stateIn(scope, SharingStarted.Eagerly, null)
 
     val experimentRecords: StateFlow<List<ExperimentRecord>> = currentBreathingPattern
-        .scan(null as BreathingPattern? to emptyList<ExperimentRecord>()) { (prev, records), current ->
+        .scan((null as BreathingPattern?) to emptyList<ExperimentRecord>()) { (prev, records), current ->
             val updated = periodicity.value?.let { p ->
                 if (prev != null) records + ExperimentRecord(prev, p) else records
             } ?: records

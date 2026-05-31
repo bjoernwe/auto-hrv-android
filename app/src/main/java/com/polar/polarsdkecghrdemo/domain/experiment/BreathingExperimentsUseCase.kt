@@ -10,7 +10,7 @@ import kotlinx.coroutines.isActive
 import org.apache.commons.math3.distribution.NormalDistribution
 import javax.inject.Inject
 
-class BreathingExperimentsUseCase @Inject constructor() {
+internal class BreathingExperimentsUseCase @Inject constructor() {
 
     operator fun invoke(config: ExperimentConfig = ExperimentConfig.Companion.DEFAULT): Flow<BreathingPattern> =
         flow {
