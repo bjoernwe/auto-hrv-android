@@ -35,10 +35,12 @@ class ExperimentCoordinator @Inject internal constructor(
     val stats: StateFlow<TimeSeriesStats?> = timeSeriesStatsUseCase(rrsMsHistory)
         .stateIn(scope, SharingStarted.Eagerly, null)
 
+    private val objective: () -> Float = { -(stats.value?.periodicity ?: 0f) }
+
     private val initialBreathingPattern = experimentConfig.defaultParams()
 
     private val experiments: StateFlow<BreathingExperiment> =
-        breathingExperimentsUseCase(experimentConfig) { stats.value?.periodicity }
+        breathingExperimentsUseCase(experimentConfig, objective)
             .stateIn(scope, SharingStarted.Eagerly, BreathingExperiment(initialBreathingPattern, initialBreathingPattern))
 
     val samplingMean: StateFlow<BreathingPattern> = experiments

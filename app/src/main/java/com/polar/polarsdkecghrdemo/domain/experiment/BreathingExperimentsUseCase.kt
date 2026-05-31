@@ -38,14 +38,14 @@ internal class BreathingExperimentsUseCase @Inject constructor(
 
     operator fun invoke(
         config: ExperimentConfig = ExperimentConfig.DEFAULT,
-        periodicity: () -> Float?,
+        objective: () -> Float,
     ): Flow<BreathingExperiment> = channelFlow {
         val asks = Channel<DoubleArray>(Channel.RENDEZVOUS)
         val tells = Channel<Double>(Channel.RENDEZVOUS)
         val experimentMs = (config.experimentLengthSeconds * 1000).toLong()
         val currentSamplingMean = AtomicReference(config.defaultParams())
 
-        val objective = MultivariateFunction { candidate ->
+        val optimizerObjective = MultivariateFunction { candidate ->
             // ask: hand the candidate to the experiment loop
             if (asks.trySendBlocking(candidate.clone()).isClosed) {
                 throw CancellationException("optimizer cancelled")
@@ -55,15 +55,14 @@ internal class BreathingExperimentsUseCase @Inject constructor(
         }
 
         launch(Dispatchers.Default) {
-            optimizer(config, objective) { currentSamplingMean.set(it) }
+            optimizer(config, optimizerObjective) { currentSamplingMean.set(it) }
         }
 
         try {
             for (candidate in asks) {
                 send(BreathingExperiment(candidate.toBreathingPattern(), currentSamplingMean.get()))
                 delay(experimentMs)
-                // CMA-ES minimizes, so report the negated periodicity to maximize it.
-                tells.send(-(periodicity() ?: 0f).toDouble())
+                tells.send(-objective().toDouble())
             }
         } finally {
             asks.close()
