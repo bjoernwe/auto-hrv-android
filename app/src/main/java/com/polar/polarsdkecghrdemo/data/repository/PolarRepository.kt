@@ -32,6 +32,7 @@ class PolarRepository @Inject constructor(
     companion object {
         private const val TAG = "PolarRepository"
         const val DEVICE_ID = "E7A9AB27"
+        const val SAMPLES_PER_SECOND = 1
     }
 
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
@@ -53,14 +54,12 @@ class PolarRepository @Inject constructor(
     val hrFlow: Flow<PolarHrData.PolarHrSample> = readyFeatures.flatMapLatest { features ->
         if (features.contains(PolarBleApi.PolarBleSdkFeature.FEATURE_POLAR_ONLINE_STREAMING)) {
             _isStreaming.value = true
-            createHrStream(DEVICE_ID)
+            createHrStream()
         } else {
             _isStreaming.value = false
             flowOf()
         }
     }
-
-    val simpleHr: Flow<Int> = hrFlow.map { it.hr }
 
     private val api: PolarBleApi by lazy {
         PolarBleApiDefaultImpl.defaultImplementation(
@@ -94,7 +93,7 @@ class PolarRepository @Inject constructor(
 
                 override fun bleSdkFeatureReady(identifier: String, feature: PolarBleApi.PolarBleSdkFeature) {
                     Log.d(TAG, "feature ready $feature")
-                    _readyFeatures.value = _readyFeatures.value + feature
+                    _readyFeatures.value += feature
                 }
 
                 override fun disInformationReceived(identifier: String, uuid: UUID, value: String) {
@@ -128,16 +127,22 @@ class PolarRepository @Inject constructor(
         }
     }
 
-    fun getHrHistory(length: Int): Flow<List<Int>> {
-        return hrFlow.scan<PolarHrData.PolarHrSample, List<Int>>(emptyList()) { acc, sample ->
-            acc + sample.hr
-        }.map { samples ->
-            samples.takeLast(length)
+    fun getHrHistory(seconds: Int): Flow<List<Int>> {
+        return hrFlow
+            .scan<PolarHrData.PolarHrSample, List<Int>>(emptyList()) { acc, sample -> acc + sample.hr }
+            .map { samples -> samples.takeLast(seconds * SAMPLES_PER_SECOND) }
+    }
+
+    fun getRrsMsHistory(seconds: Int): Flow<List<Int>> {
+        return hrFlow
+            .scan<PolarHrData.PolarHrSample, List<Int>>(emptyList()) { acc, sample -> acc + sample.rrsMs }
+            .map { samples ->
+            samples.takeLast(seconds * SAMPLES_PER_SECOND)
         }
     }
 
-    fun createHrStream(deviceId: String): Flow<PolarHrData.PolarHrSample> = callbackFlow {
-        val disposable = api.startHrStreaming(deviceId)
+    private fun createHrStream(): Flow<PolarHrData.PolarHrSample> = callbackFlow {
+        val disposable = api.startHrStreaming(DEVICE_ID)
             .subscribe(
                 { hrData ->
                     for (hrDat in hrData.samples) {

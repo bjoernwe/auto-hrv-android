@@ -22,7 +22,7 @@ internal class BreathingExperimentsUseCase @Inject constructor() {
                 config.cycleLengthMean.toDouble(),
                 config.cycleLengthStd.toDouble()
             )
-            val intervalMs = (config.intervalSeconds * 1000).toLong()
+            val intervalMs = (config.experimentLengthSeconds * 1000).toLong()
 
             while (currentCoroutineContext().isActive) {
                 emit(

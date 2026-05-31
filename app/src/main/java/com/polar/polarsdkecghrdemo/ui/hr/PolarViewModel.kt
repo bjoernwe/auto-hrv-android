@@ -4,10 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.polar.polarsdkecghrdemo.data.model.ConnectionState
 import com.polar.polarsdkecghrdemo.data.repository.PolarRepository
+import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
 import com.polar.polarsdkecghrdemo.domain.experiment.ExperimentCoordinator
-import com.polar.polarsdkecghrdemo.domain.hr.CalcHrStatsUseCase
+import com.polar.polarsdkecghrdemo.domain.experiment.TimeSeriesStats
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,27 +20,28 @@ import javax.inject.Inject
 data class HrUiState(
     val connectionState: ConnectionState = ConnectionState.Idle,
     val hr: Int? = null,
-    val hrHistory: List<Int> = emptyList(),
+    val rrsMsHistory: List<Int> = emptyList(),
     val batteryLevel: Int? = null,
-    val smoothness: Float? = null,
-    val powerSpectrum: List<Float>? = null,
-    val periodicity: Float? = null,
+    val stats: TimeSeriesStats? = null,
     val experimentHistory: List<ExperimentRecord> = emptyList(),
 )
 
 @HiltViewModel
 class PolarViewModel @Inject constructor(
     private val repository: PolarRepository,
-    private val calcHrStatsUseCase: CalcHrStatsUseCase,
     private val coordinator: ExperimentCoordinator,
+    private val polarRepository: PolarRepository,
 ) : ViewModel() {
+
+    private val experimentConfig = ExperimentConfig.DEFAULT
+
     val deviceId: String = PolarRepository.DEVICE_ID
 
     private val _uiState = MutableStateFlow(HrUiState())
     val uiState: StateFlow<HrUiState> = _uiState.asStateFlow()
 
     init {
-        val hrHistory = coordinator.hrHistory
+        val rrsMsHistory: Flow<List<Int>> = polarRepository.getRrsMsHistory(experimentConfig.experimentLengthSeconds)
 
         viewModelScope.launch {
             repository.connectionState.collect { state ->
@@ -56,23 +59,13 @@ class PolarViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            hrHistory.collect { history ->
-                _uiState.update { it.copy(hrHistory = history) }
+            rrsMsHistory.collect { history ->
+                _uiState.update { it.copy(rrsMsHistory = history) }
             }
         }
         viewModelScope.launch {
-            calcHrStatsUseCase.smoothness(hrHistory).collect { smoothness ->
-                _uiState.update { it.copy(smoothness = smoothness) }
-            }
-        }
-        viewModelScope.launch {
-            calcHrStatsUseCase.powerSpectrum(hrHistory).collect { spectrum ->
-                _uiState.update { it.copy(powerSpectrum = spectrum) }
-            }
-        }
-        viewModelScope.launch {
-            coordinator.periodicity.collect { p ->
-                _uiState.update { it.copy(periodicity = p) }
+            coordinator.stats.collect { stats ->
+                _uiState.update { it.copy(stats = stats) }
             }
         }
         viewModelScope.launch {

@@ -16,9 +16,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,6 +34,12 @@ import com.polar.polarsdkecghrdemo.ui.breathing.BreathingSection
 @Composable
 fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerViewModel) {
     val uiState by hrViewModel.uiState.collectAsStateWithLifecycle()
+
+    val view = LocalView.current
+    DisposableEffect(Unit) {
+        view.keepScreenOn = true
+        onDispose { view.keepScreenOn = false }
+    }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Auto HRV") }) },
@@ -57,21 +65,21 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
             HrMetricGrid(
                 metrics = listOf(
                     HrMetric("Heart Rate (bpm)", uiState.hr?.let { "$it" } ?: "—"),
-                    HrMetric("Smoothness", uiState.smoothness?.let { "%.2f".format(it) } ?: "—"),
-                    HrMetric("Periodicity", uiState.periodicity?.let { "%.2f".format(it) } ?: "—"),
+                    HrMetric("Smoothness", uiState.stats?.smoothness?.let { "%.2f".format(it) } ?: "—"),
+                    HrMetric("Periodicity", uiState.stats?.periodicity?.let { "%.2f".format(it) } ?: "—"),
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            if (uiState.hrHistory.size >= 2) {
+            if (uiState.rrsMsHistory.size >= 2) {
                 Spacer(Modifier.height(16.dp))
-                HrChart(
-                    hrHistory = uiState.hrHistory,
+                TimeSeriesChart(
+                    ts = uiState.rrsMsHistory,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
 
-            val powerSpectrum = uiState.powerSpectrum
+            val powerSpectrum = uiState.stats?.powerSpectrum
             if (powerSpectrum != null) {
                 Spacer(Modifier.height(16.dp))
                 Text(
