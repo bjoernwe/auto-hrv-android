@@ -61,7 +61,7 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
             HrMetricGrid(
                 metrics = listOf(
                     HrMetric("Heart Rate (bpm)", uiState.hr?.let { "$it" } ?: "—"),
-                    HrMetric("Variance", uiState.stats?.variance?.let { "%.0f".format(it) } ?: "—"),
+                    HrMetric("Std Dev", uiState.stats?.stdDev?.let { "%.0f".format(it) } ?: "—"),
                     HrMetric("Smoothness", uiState.stats?.smoothness?.let { "%.2f".format(it) } ?: "—"),
                     HrMetric("Periodicity", uiState.stats?.periodicity?.let { "%.2f".format(it) } ?: "—"),
                     HrMetric("Peak Power", uiState.stats?.peakPower?.let { "%.0fk".format(it.div(1000)) } ?: "—"),

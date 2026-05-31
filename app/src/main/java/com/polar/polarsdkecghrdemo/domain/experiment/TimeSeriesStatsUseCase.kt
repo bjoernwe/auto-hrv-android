@@ -16,7 +16,7 @@ data class TimeSeriesStats(
     val periodicity: Float?,
     val powerSpectrum: List<Float>?,
     val smoothness: Float?,
-    val variance: Float?,
+    val stdDev: Float?,
 )
 
 internal class TimeSeriesStatsUseCase @Inject constructor() {
@@ -29,7 +29,7 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
                 periodicity = computePeriodicity(spectrum),
                 powerSpectrum = spectrum,
                 smoothness = computeSmoothness(ts),
-                variance = computeVariance(ts),
+                stdDev = computeStdDev(ts),
             )
         }
     }
@@ -92,10 +92,10 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         return if (maxEntropy > 0f) 1f - (entropy / maxEntropy) else 0f
     }
 
-    private fun computeVariance(ts: List<Int>): Float? {
+    private fun computeStdDev(ts: List<Int>): Float? {
         if (ts.size < 2) return null
         val mean = ts.average().toFloat()
-        return ts.map { (it - mean) * (it - mean) }.average().toFloat()
+        return sqrt(ts.map { (it - mean) * (it - mean) }.average().toFloat())
     }
 
     private fun nextPowerOf2(n: Int): Int {
