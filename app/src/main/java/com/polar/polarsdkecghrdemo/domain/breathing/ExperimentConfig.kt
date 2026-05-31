@@ -12,8 +12,8 @@ data class ExperimentConfig(
 
     companion object {
         val DEFAULT = ExperimentConfig(
-            experimentLengthSeconds = 20,
-            evaluationLengthSeconds = 16+1,
+            experimentLengthSeconds = 30,
+            evaluationLengthSeconds = 16+1, // 2*n + 1 is a good value for the power spectrum
             outToInRatioMean = 1.5f,
             outToInRatioStd = 0.5f,
             cycleLengthMean = 10f,
