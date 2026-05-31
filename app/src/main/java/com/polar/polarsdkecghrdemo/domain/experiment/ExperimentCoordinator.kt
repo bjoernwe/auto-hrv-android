@@ -34,7 +34,7 @@ class ExperimentCoordinator @Inject internal constructor(
 
     val currentBreathingState: StateFlow<BreathingState> = breathingPacerUseCase(scope, targetBreathingPattern)
 
-    val rrsMsHistory: StateFlow<List<Int>> = polarRepository.getRrsMsHistory(experimentConfig.intervalSeconds)
+    private val rrsMsHistory: StateFlow<List<Int>> = polarRepository.getRrsMsHistory(experimentConfig.evaluationLengthSeconds)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     val stats: StateFlow<TimeSeriesStats?> = timeSeriesStatsUseCase(rrsMsHistory)
