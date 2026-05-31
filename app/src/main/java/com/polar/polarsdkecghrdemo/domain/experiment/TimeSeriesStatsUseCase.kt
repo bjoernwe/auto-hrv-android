@@ -6,6 +6,8 @@ import org.apache.commons.math3.transform.DftNormalization
 import org.apache.commons.math3.transform.FastFourierTransformer
 import org.apache.commons.math3.transform.TransformType
 import javax.inject.Inject
+import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.ln
 import kotlin.math.sqrt
 
@@ -51,9 +53,15 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         if (ts.size < 4) return null
         val n = nextPowerOf2(ts.size)
         val mean = ts.average()
-        // Zero-pad to next power of 2 and subtract mean to suppress DC
+        val len = ts.size
+        // Apply a Hann window to the data, zero-pad to next power of 2, and subtract mean to suppress DC
         val input = DoubleArray(n) { i ->
-            if (i < ts.size) ts[i].toDouble() - mean else 0.0
+            if (i < len) {
+                val w = 0.5 * (1.0 - cos(2.0 * PI * i / (len - 1)))
+                (ts[i].toDouble() - mean) * w
+            } else {
+                0.0
+            }
         }
         val result = FastFourierTransformer(DftNormalization.STANDARD)
             .transform(input, TransformType.FORWARD)
