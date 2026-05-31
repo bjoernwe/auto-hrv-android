@@ -40,11 +40,11 @@ internal class BreathingExperimentsUseCase @Inject constructor(
         objective: () -> Float,
     ): Flow<BreathingExperiment> = channelFlow {
         val asks = Channel<BreathingPattern>(Channel.RENDEZVOUS)
-        val tells = Channel<Double>(Channel.RENDEZVOUS)
+        val tells = Channel<Float>(Channel.RENDEZVOUS)
         val experimentMs = (config.experimentLengthSeconds * 1000).toLong()
         val currentSamplingMean = AtomicReference(config.defaultParams())
 
-        val optimizerObjective: (BreathingPattern) -> Double = { candidate ->
+        val optimizerObjective: (BreathingPattern) -> Float = { candidate ->
             val channelResult = asks.trySendBlocking(candidate)
             if (channelResult.isClosed) { throw CancellationException("optimizer cancelled") }
             runBlocking { tells.receive() }
@@ -56,9 +56,11 @@ internal class BreathingExperimentsUseCase @Inject constructor(
 
         try {
             for (candidate in asks) {
-                send(BreathingExperiment(candidate, currentSamplingMean.get()))
+                val experimentPattern = BreathingExperiment(candidate, currentSamplingMean.get())
+                send(experimentPattern)
                 delay(experimentMs)
-                tells.send(objective().toDouble())
+                val experimentResult = objective()
+                tells.send(experimentResult)
             }
         } finally {
             asks.close()

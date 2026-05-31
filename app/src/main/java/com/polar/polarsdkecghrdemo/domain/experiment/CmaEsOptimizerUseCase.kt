@@ -43,7 +43,7 @@ internal class CmaEsOptimizerUseCase @Inject constructor() {
 
     operator fun invoke(
         config: ExperimentConfig,
-        objective: (BreathingPattern) -> Double,
+        objective: (BreathingPattern) -> Float,
         onSamplingMean: (BreathingPattern) -> Unit,
     ) {
         val lowerBounds = doubleArrayOf(
@@ -83,7 +83,7 @@ internal class CmaEsOptimizerUseCase @Inject constructor() {
             val mean = optimizer.statisticsMeanHistory.lastOrNull()?.toBreathingPattern()
                 ?: currentGuess.toBreathingPattern()
             onSamplingMean(mean)
-            objective(candidate.toBreathingPattern())
+            objective(candidate.toBreathingPattern()).toDouble()
         }
 
         try {
