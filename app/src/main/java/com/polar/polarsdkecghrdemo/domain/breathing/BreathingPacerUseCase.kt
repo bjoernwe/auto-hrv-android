@@ -41,14 +41,14 @@ class BreathingPacerUseCase @Inject constructor() {
             delay(16L)
         }
     }
+}
 
-    private fun BreathingParams.inhaleMs(): Long {
-        val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
-        return (cycleMs / (1.0 + outToInRatio)).toLong().coerceAtLeast(200L)
-    }
+private fun BreathingParams.inhaleMs(): Long {
+    val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
+    return (cycleMs / (1.0 + outToInRatio)).toLong().coerceAtLeast(200L)
+}
 
-    private fun BreathingParams.exhaleMs(): Long {
-        val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
-        return (cycleMs - inhaleMs()).coerceAtLeast(200L)
-    }
+private fun BreathingParams.exhaleMs(): Long {
+    val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
+    return (cycleMs - inhaleMs()).coerceAtLeast(200L)
 }
