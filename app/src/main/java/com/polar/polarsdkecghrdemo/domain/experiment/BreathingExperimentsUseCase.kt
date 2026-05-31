@@ -58,7 +58,7 @@ internal class BreathingExperimentsUseCase @Inject constructor(
             for (candidate in asks) {
                 send(BreathingExperiment(candidate, currentSamplingMean.get()))
                 delay(experimentMs)
-                tells.send(-objective().toDouble())
+                tells.send(objective().toDouble())
             }
         } finally {
             asks.close()
