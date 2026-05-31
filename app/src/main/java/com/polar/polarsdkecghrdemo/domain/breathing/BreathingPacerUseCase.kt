@@ -18,14 +18,14 @@ enum class BreathingPhase { Inhale, Exhale }
 
 data class BreathingState(val phase: BreathingPhase, val progress: Float)
 
-data class BreathingParams(val outToInRatio: Float, val cycleLengthSeconds: Float)
+data class BreathingPattern(val outToInRatio: Float, val cycleLengthSeconds: Float)
 
 class BreathingPacerUseCase @Inject constructor() {
 
-    operator fun invoke(scope: CoroutineScope, params: Flow<BreathingParams>): Flow<BreathingState> =
+    operator fun invoke(scope: CoroutineScope, pattern: Flow<BreathingPattern>): Flow<BreathingState> =
         channelFlow {
-            val latest = MutableStateFlow(params.first())
-            launch { params.collect { latest.value = it } }
+            val latest = MutableStateFlow(pattern.first())
+            launch { pattern.collect { latest.value = it } }
             while (isActive) {
                 phaseFlow(BreathingPhase.Inhale, latest.value.inhaleMs()).collect { send(it) }
                 phaseFlow(BreathingPhase.Exhale, latest.value.exhaleMs()).collect { send(it) }
@@ -43,12 +43,12 @@ class BreathingPacerUseCase @Inject constructor() {
     }
 }
 
-private fun BreathingParams.inhaleMs(): Long {
+private fun BreathingPattern.inhaleMs(): Long {
     val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
     return (cycleMs / (1.0 + outToInRatio)).toLong().coerceAtLeast(200L)
 }
 
-private fun BreathingParams.exhaleMs(): Long {
+private fun BreathingPattern.exhaleMs(): Long {
     val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
     return (cycleMs - inhaleMs()).coerceAtLeast(200L)
 }

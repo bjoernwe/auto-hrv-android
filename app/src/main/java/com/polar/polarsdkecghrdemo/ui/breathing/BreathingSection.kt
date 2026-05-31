@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.polar.polarsdkecghrdemo.domain.breathing.BreathingParams
+import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPattern
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPhase
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingState
 
@@ -55,7 +55,7 @@ fun BreathingSection(viewModel: BreathingPacerViewModel) {
 }
 
 @Composable
-private fun ParamReadout(params: BreathingParams) {
+private fun ParamReadout(params: BreathingPattern) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         ParamLabel(label = "Cycle", value = "%.1f s".format(params.cycleLengthSeconds))
         Spacer(Modifier.width(24.dp))

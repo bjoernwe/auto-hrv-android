@@ -2,7 +2,7 @@ package com.polar.polarsdkecghrdemo.domain.experiment
 
 import com.polar.polarsdkecghrdemo.data.repository.PolarRepository
 import com.polar.polarsdkecghrdemo.di.ApplicationScope
-import com.polar.polarsdkecghrdemo.domain.breathing.BreathingParams
+import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPattern
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
 import com.polar.polarsdkecghrdemo.domain.breathing.GenerateBreathingExperimentsUseCase
@@ -28,7 +28,7 @@ class ExperimentCoordinator @Inject constructor(
     val hrHistory: SharedFlow<List<Int>> = polarRepository.getHrHistory(30)
         .shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
-    val currentBreathingPattern: SharedFlow<BreathingParams> =
+    val currentBreathingPattern: SharedFlow<BreathingPattern> =
         generateBreathingExperimentsUseCase(ExperimentConfig.DEFAULT)
             .shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
@@ -36,7 +36,7 @@ class ExperimentCoordinator @Inject constructor(
         .stateIn(scope, SharingStarted.Eagerly, null)
 
     val experimentRecords: StateFlow<List<ExperimentRecord>> = currentBreathingPattern
-        .scan(null as BreathingParams? to emptyList<ExperimentRecord>()) { (prev, records), current ->
+        .scan(null as BreathingPattern? to emptyList<ExperimentRecord>()) { (prev, records), current ->
             val updated = periodicity.value?.let { p ->
                 if (prev != null) records + ExperimentRecord(prev, p) else records
             } ?: records

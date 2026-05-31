@@ -10,14 +10,14 @@ import javax.inject.Inject
 
 class GenerateBreathingExperimentsUseCase @Inject constructor() {
 
-    operator fun invoke(config: ExperimentConfig = ExperimentConfig.DEFAULT): Flow<BreathingParams> = flow {
+    operator fun invoke(config: ExperimentConfig = ExperimentConfig.DEFAULT): Flow<BreathingPattern> = flow {
         val ratioDist = NormalDistribution(config.outToInRatioMean.toDouble(), config.outToInRatioStd.toDouble())
         val lengthDist = NormalDistribution(config.cycleLengthMean.toDouble(), config.cycleLengthStd.toDouble())
         val intervalMs = (config.intervalSeconds * 1000).toLong()
 
         while (currentCoroutineContext().isActive) {
             emit(
-                BreathingParams(
+                BreathingPattern(
                     outToInRatio = ratioDist.sample().toFloat().coerceAtLeast(0.1f),
                     cycleLengthSeconds = lengthDist.sample().toFloat().coerceAtLeast(2f),
                 ),

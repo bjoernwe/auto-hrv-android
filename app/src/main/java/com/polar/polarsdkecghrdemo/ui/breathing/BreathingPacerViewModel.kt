@@ -3,7 +3,7 @@ package com.polar.polarsdkecghrdemo.ui.breathing
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPacerUseCase
-import com.polar.polarsdkecghrdemo.domain.breathing.BreathingParams
+import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPattern
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingState
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
 import com.polar.polarsdkecghrdemo.domain.experiment.ExperimentCoordinator
@@ -20,7 +20,7 @@ class BreathingPacerViewModel @Inject constructor(
     coordinator: ExperimentCoordinator,
 ) : ViewModel() {
 
-    val currentParams: StateFlow<BreathingParams> = coordinator.currentBreathingPattern
+    val currentParams: StateFlow<BreathingPattern> = coordinator.currentBreathingPattern
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExperimentConfig.DEFAULT.defaultParams())
 
     val breathingState: Flow<BreathingState> =
