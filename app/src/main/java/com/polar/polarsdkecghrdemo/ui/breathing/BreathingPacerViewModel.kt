@@ -8,7 +8,6 @@ import com.polar.polarsdkecghrdemo.domain.breathing.BreathingState
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
 import com.polar.polarsdkecghrdemo.domain.experiment.ExperimentCoordinator
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -23,6 +22,6 @@ class BreathingPacerViewModel @Inject constructor(
     val currentParams: StateFlow<BreathingPattern> = coordinator.currentBreathingPattern
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExperimentConfig.DEFAULT.defaultParams())
 
-    val breathingState: Flow<BreathingState> =
+    val breathingState: StateFlow<BreathingState> =
         breathingPacerUseCase(viewModelScope, coordinator.currentBreathingPattern)
 }

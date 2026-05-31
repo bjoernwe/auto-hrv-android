@@ -4,9 +4,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
@@ -18,7 +18,7 @@ data class BreathingPattern(val outToInRatio: Float, val cycleLengthSeconds: Flo
 
 class BreathingPacerUseCase @Inject constructor() {
 
-    operator fun invoke(scope: CoroutineScope, pattern: Flow<BreathingPattern>): Flow<BreathingState> {
+    operator fun invoke(scope: CoroutineScope, pattern: Flow<BreathingPattern>): StateFlow<BreathingState> {
         val latestPattern = pattern.stateIn(
             scope = scope,
             started = SharingStarted.Eagerly,
@@ -30,7 +30,11 @@ class BreathingPacerUseCase @Inject constructor() {
                 emitAll(phaseFlow(BreathingPhase.Inhale, latestPattern.value.inhaleMs()))
                 emitAll(phaseFlow(BreathingPhase.Exhale, latestPattern.value.exhaleMs()))
             }
-        }.shareIn(scope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+        }.stateIn(
+            scope = scope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = BreathingState(BreathingPhase.Inhale, 0f)
+        )
     }
 
     private fun phaseFlow(phase: BreathingPhase, durationMs: Long): Flow<BreathingState> = flow {
