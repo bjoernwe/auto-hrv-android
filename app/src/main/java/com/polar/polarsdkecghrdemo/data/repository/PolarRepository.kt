@@ -32,7 +32,7 @@ class PolarRepository @Inject constructor(
     companion object {
         private const val TAG = "PolarRepository"
         const val DEVICE_ID = "E7A9AB27"
-        const val SAMPLES_PER_SECOND = 10
+        const val SAMPLES_PER_SECOND = 1
     }
 
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Idle)

@@ -10,6 +10,7 @@ import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
@@ -42,6 +43,7 @@ class ExperimentCoordinator @Inject internal constructor(
 
     val experimentRecords: StateFlow<List<ExperimentRecord>> = currentBreathingState
         .map { it.pattern }
+        .distinctUntilChanged()
         // keep previous event, not current
         .scan(currentBreathingState.value.pattern to currentBreathingState.value.pattern) { (_, current), next -> current to next }
         .map { it.first }
