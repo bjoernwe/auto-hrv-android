@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 internal class BreathingExperimentsUseCase @Inject constructor() {
 
-    operator fun invoke(config: ExperimentConfig = ExperimentConfig.Companion.DEFAULT): Flow<BreathingPattern> =
+    operator fun invoke(config: ExperimentConfig = ExperimentConfig.DEFAULT): Flow<BreathingPattern> =
         flow {
             val ratioDist = NormalDistribution(
                 config.outToInRatioMean.toDouble(),
