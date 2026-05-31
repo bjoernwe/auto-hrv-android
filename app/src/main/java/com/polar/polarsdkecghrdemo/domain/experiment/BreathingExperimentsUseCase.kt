@@ -159,7 +159,7 @@ internal class BreathingExperimentsUseCase @Inject constructor() {
         const val DIMENSIONS = 2
         const val MIN_RATIO = 0.2
         const val MIN_CYCLE = 2.0
-        const val BOUND_STDS = 2.0
+        const val BOUND_STDS = 3.0
         const val MAX_ITERATIONS = 1000
         const val STOP_FITNESS = -1.0
         const val CONVERGENCE_REL = 1e-3
