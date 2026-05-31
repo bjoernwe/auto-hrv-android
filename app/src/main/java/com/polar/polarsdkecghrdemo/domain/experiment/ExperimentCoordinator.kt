@@ -40,9 +40,10 @@ class ExperimentCoordinator @Inject internal constructor(
     val stats: StateFlow<TimeSeriesStats?> = timeSeriesStatsUseCase(rrsMsHistory)
         .stateIn(scope, SharingStarted.Eagerly, null)
 
-    val experimentRecords: StateFlow<List<ExperimentRecord>> = targetBreathingPattern
+    val experimentRecords: StateFlow<List<ExperimentRecord>> = currentBreathingState
+        .map { it.pattern }
         // keep previous event, not current
-        .scan(targetBreathingPattern.value to targetBreathingPattern.value) { (_, current), next -> current to next }
+        .scan(currentBreathingState.value.pattern to currentBreathingState.value.pattern) { (_, current), next -> current to next }
         .map { it.first }
         // the initial value change is not a finished experiment yet
         .drop(1)

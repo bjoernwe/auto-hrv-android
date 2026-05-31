@@ -12,8 +12,8 @@ data class ExperimentConfig(
 
     companion object {
         val DEFAULT = ExperimentConfig(
-            experimentLengthSeconds = 3,
-            evaluationLengthSeconds = 5,
+            experimentLengthSeconds = 16,
+            evaluationLengthSeconds = 16,
             outToInRatioMean = 1.5f,
             outToInRatioStd = 0.5f,
             cycleLengthMean = 10f,
