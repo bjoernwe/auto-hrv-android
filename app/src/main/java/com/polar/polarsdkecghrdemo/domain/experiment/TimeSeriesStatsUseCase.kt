@@ -9,16 +9,23 @@ import javax.inject.Inject
 import kotlin.math.ln
 import kotlin.math.sqrt
 
-class TimeSeriesStatsUseCase @Inject constructor() {
+data class TimeSeriesStats(
+    val smoothness: Float?,
+    val powerSpectrum: List<Float>?,
+    val periodicity: Float?,
+)
 
-    fun smoothness(ts: Flow<List<Int>>): Flow<Float?> =
-        ts.map { computeSmoothness(it) }
+internal class TimeSeriesStatsUseCase @Inject constructor() {
 
-    fun powerSpectrum(ts: Flow<List<Int>>): Flow<List<Float>?> =
-        ts.map { computePowerSpectrum(it) }
-
-    fun periodicity(ts: Flow<List<Int>>): Flow<Float?> =
-        ts.map { values -> computePowerSpectrum(values)?.let { computePeriodicity(it) } }
+    operator fun invoke(ts: Flow<List<Int>>): Flow<TimeSeriesStats> {
+        return ts.map { ts ->
+            TimeSeriesStats(
+                smoothness = computeSmoothness(ts),
+                powerSpectrum = computePowerSpectrum(ts),
+                periodicity = computePeriodicity(ts),
+            )
+        }
+    }
 
     private fun normalize(values: List<Int>): List<Float> {
         val floats = values.map { it.toFloat() }
@@ -56,10 +63,12 @@ class TimeSeriesStatsUseCase @Inject constructor() {
         }
     }
 
-    private fun computePeriodicity(spectrum: List<Float>): Float? {
+    private fun computePeriodicity(ts: List<Int>): Float? {
+        val spectrum = computePowerSpectrum(ts)
+        if (spectrum === null) return null
+        if (spectrum.size < 3) return null
         // Drop the first bin — it reflects slow HR trends rather than rhythmic periodicity
         val bins = spectrum.drop(1)
-        if (bins.size < 2) return null
         val total = bins.sum()
         if (total < 1e-10f) return null
         val entropy = bins.fold(0.0) { acc, p ->

@@ -57,8 +57,8 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
             HrMetricGrid(
                 metrics = listOf(
                     HrMetric("Heart Rate (bpm)", uiState.hr?.let { "$it" } ?: "—"),
-                    HrMetric("Smoothness", uiState.smoothness?.let { "%.2f".format(it) } ?: "—"),
-                    HrMetric("Periodicity", uiState.periodicity?.let { "%.2f".format(it) } ?: "—"),
+                    HrMetric("Smoothness", uiState.stats?.smoothness?.let { "%.2f".format(it) } ?: "—"),
+                    HrMetric("Periodicity", uiState.stats?.periodicity?.let { "%.2f".format(it) } ?: "—"),
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -71,7 +71,7 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                 )
             }
 
-            val powerSpectrum = uiState.powerSpectrum
+            val powerSpectrum = uiState.stats?.powerSpectrum
             if (powerSpectrum != null) {
                 Spacer(Modifier.height(16.dp))
                 Text(

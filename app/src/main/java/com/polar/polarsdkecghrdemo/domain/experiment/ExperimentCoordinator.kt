@@ -37,7 +37,7 @@ class ExperimentCoordinator @Inject internal constructor(
     val rrsMsHistory: StateFlow<List<Int>> = polarRepository.getRrsMsHistory(experimentConfig.intervalSeconds)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    val periodicity: StateFlow<Float?> = timeSeriesStatsUseCase.periodicity(rrsMsHistory)
+    val stats: StateFlow<TimeSeriesStats?> = timeSeriesStatsUseCase(rrsMsHistory)
         .stateIn(scope, SharingStarted.Eagerly, null)
 
     val experimentRecords: StateFlow<List<ExperimentRecord>> = targetBreathingPattern
@@ -47,7 +47,7 @@ class ExperimentCoordinator @Inject internal constructor(
         // the initial value change is not a finished experiment yet
         .drop(1)
         // create record
-        .map { finishedPattern -> periodicity.value?.let { p -> ExperimentRecord(finishedPattern, p) } }
+        .map { finishedPattern -> stats.value?.periodicity?.let { p -> ExperimentRecord(finishedPattern, p) } }
         .filterNotNull()
         // keep history
         .scan(emptyList<ExperimentRecord>()) { records, record -> records + record }
