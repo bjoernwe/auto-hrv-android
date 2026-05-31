@@ -41,7 +41,7 @@ class ExperimentCoordinator @Inject internal constructor(
         val periodicity = stats.value?.periodicity ?: 0f
         val smoothness = stats.value?.smoothness ?: 0f
         val stdDev = stats.value?.stdDev ?: 0f
-        0 - peakPower.div(1_00_000) - periodicity - smoothness.div(3) - stdDev.div(200)
+        0 - peakPower.div(1_000_000) - periodicity - smoothness.div(3) - stdDev.div(200)
     }
 
     private val initialBreathingPattern = experimentConfig.defaultParams()
