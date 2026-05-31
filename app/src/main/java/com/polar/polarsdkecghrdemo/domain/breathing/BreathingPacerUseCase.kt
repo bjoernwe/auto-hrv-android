@@ -1,61 +1,56 @@
 package com.polar.polarsdkecghrdemo.domain.breathing
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.isActive
 import javax.inject.Inject
 
 enum class BreathingPhase { Inhale, Exhale }
 
-data class BreathingState(
-    val phase: BreathingPhase,
-    val progress: Float,
-)
+data class BreathingState(val phase: BreathingPhase, val progress: Float, val pattern: BreathingPattern)
 
-private data class BreathingParams(val outToInRatio: Float, val cycleLengthSeconds: Float)
+data class BreathingPattern(val outToInRatio: Float, val cycleLengthSeconds: Float)
 
 class BreathingPacerUseCase @Inject constructor() {
 
-    operator fun invoke(
-        scope: CoroutineScope,
-        outToInRatio: StateFlow<Float>,
-        cycleLengthSeconds: StateFlow<Float>,
-    ): Flow<BreathingState> {
-        // Eagerly shared so .value is always current when cycleFlow reads it at cycle start.
-        val params = combine(outToInRatio, cycleLengthSeconds, ::BreathingParams)
-            .stateIn(scope, SharingStarted.Eagerly, BreathingParams(outToInRatio.value, cycleLengthSeconds.value))
-        return cycleFlow(params).shareIn(scope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+    operator fun invoke(scope: CoroutineScope, targetPattern: StateFlow<BreathingPattern>): StateFlow<BreathingState> {
+        return flow {
+            while (true) {
+                val inhalePattern = targetPattern.value
+                emitAll(progressFlow(inhalePattern.inhaleMs()).map { BreathingState(BreathingPhase.Inhale, it, inhalePattern) })
+                val exhalePattern = targetPattern.value
+                emitAll(progressFlow(exhalePattern.exhaleMs()).map { BreathingState(BreathingPhase.Exhale, it, exhalePattern) })
+            }
+        }.stateIn(
+            scope = scope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = BreathingState(BreathingPhase.Inhale, 0f, targetPattern.value)
+        )
     }
 
-    private fun cycleFlow(params: StateFlow<BreathingParams>): Flow<BreathingState> = flow {
-
-        while (currentCoroutineContext().isActive) {
-            // Snapshot params once per cycle so in-flight cycles are never interrupted
-            val (outToInRatio, cycleLengthSeconds) = params.value
-            val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
-            val inhaleMs = (cycleMs / (1.0 + outToInRatio)).toLong().coerceAtLeast(100L)
-            val exhaleMs = (cycleMs - inhaleMs).coerceAtLeast(100L)
-
-            val cycleStart = System.currentTimeMillis()
-
-            while (currentCoroutineContext().isActive) {
-                val elapsed = System.currentTimeMillis() - cycleStart
-                if (elapsed >= inhaleMs + exhaleMs) break
-                if (elapsed < inhaleMs) {
-                    emit(BreathingState(BreathingPhase.Inhale, elapsed.toFloat() / inhaleMs))
-                } else {
-                    emit(BreathingState(BreathingPhase.Exhale, (elapsed - inhaleMs).toFloat() / exhaleMs))
-                }
-                delay(16L)
-            }
+    private fun progressFlow(durationMs: Long): Flow<Float> = flow {
+        val start = System.currentTimeMillis()
+        while (true) {
+            val elapsed = System.currentTimeMillis() - start
+            if (elapsed >= durationMs) break
+            emit((elapsed.toFloat() / durationMs).coerceAtMost(1f))
+            delay(16L)
         }
     }
+}
+
+private fun BreathingPattern.inhaleMs(): Long {
+    val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
+    return (cycleMs / (1.0 + outToInRatio)).toLong().coerceAtLeast(200L)
+}
+
+private fun BreathingPattern.exhaleMs(): Long {
+    val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
+    return (cycleMs - inhaleMs()).coerceAtLeast(200L)
 }
