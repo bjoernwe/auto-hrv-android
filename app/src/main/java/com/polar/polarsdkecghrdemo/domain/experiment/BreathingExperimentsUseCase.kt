@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.apache.commons.math3.analysis.MultivariateFunction
 import org.apache.commons.math3.linear.RealMatrix
 import org.apache.commons.math3.optim.InitialGuess
 import org.apache.commons.math3.optim.MaxEval
@@ -47,7 +48,16 @@ internal class BreathingExperimentsUseCase @Inject constructor() {
         val tells = Channel<Double>(Channel.RENDEZVOUS)
         val experimentMs = (config.experimentLengthSeconds * 1000).toLong()
 
-        launch(Dispatchers.Default) { runOptimizer(config, asks, tells, onSamplingMean) }
+        val objective = MultivariateFunction { candidate ->
+            // ask: hand the candidate to the experiment loop
+            if (asks.trySendBlocking(candidate.clone()).isClosed) {
+                throw CancellationException("optimizer cancelled")
+            }
+            // tell: block until the experiment reports its (negated) periodicity
+            runBlocking { tells.receive() }
+        }
+
+        launch(Dispatchers.Default) { runOptimizer(config, objective, onSamplingMean) }
 
         try {
             for (candidate in asks) {
@@ -64,14 +74,12 @@ internal class BreathingExperimentsUseCase @Inject constructor() {
     }
 
     /**
-     * Runs CMA-ES to completion (and restarts it around the best point found) until the
-     * [asks] channel is closed. Each objective evaluation hands a candidate to the experiment
-     * loop and blocks the worker thread until the corresponding periodicity is reported.
+     * Runs CMA-ES indefinitely, restarting around the best point after each convergence.
+     * Wraps [objective] to also forward the current sampling-distribution mean on each evaluation.
      */
     private fun runOptimizer(
         config: ExperimentConfig,
-        asks: Channel<DoubleArray>,
-        tells: Channel<Double>,
+        objective: MultivariateFunction,
         onSamplingMean: (BreathingPattern) -> Unit,
     ) {
         val lowerBounds = doubleArrayOf(
@@ -103,20 +111,15 @@ internal class BreathingExperimentsUseCase @Inject constructor() {
             config.outToInRatioMean.toDouble().coerceIn(lowerBounds[0], upperBounds[0]),
             config.cycleLengthMean.toDouble().coerceIn(lowerBounds[1], upperBounds[1]),
         )
-        val objective = ObjectiveFunction { candidate ->
-            // Surface the current sampling-distribution mean: the latest one CMA-ES recorded, or
-            // the restart point until the first generation completes. CMA-ES appends to the
-            // history on this same worker thread, so the read is race-free; the redundant repeats
-            // within a generation are conflated by the StateFlow downstream.
+
+        // Wrap the objective to also surface the sampling mean on each evaluation. CMA-ES appends
+        // to the mean history on this same worker thread, so the read is race-free; redundant
+        // repeats within a generation are conflated by the StateFlow downstream.
+        val wrappedObjective = ObjectiveFunction { candidate ->
             val mean = optimizer.statisticsMeanHistory.lastOrNull()?.toBreathingPattern()
                 ?: currentGuess.toBreathingPattern()
             onSamplingMean(mean)
-            // ask: hand the candidate to the experiment loop
-            if (asks.trySendBlocking(candidate.clone()).isClosed) {
-                throw CancellationException("optimizer cancelled")
-            }
-            // tell: block until the experiment reports its (negated) periodicity
-            runBlocking { tells.receive() }
+            objective.value(candidate)
         }
 
         try {
@@ -126,7 +129,7 @@ internal class BreathingExperimentsUseCase @Inject constructor() {
                 optimizer.statisticsMeanHistory.clear()
                 val result = optimizer.optimize(
                     MaxEval(Int.MAX_VALUE),
-                    objective,
+                    wrappedObjective,
                     GoalType.MINIMIZE,
                     InitialGuess(currentGuess),
                     CMAESOptimizer.Sigma(initialSigma),
