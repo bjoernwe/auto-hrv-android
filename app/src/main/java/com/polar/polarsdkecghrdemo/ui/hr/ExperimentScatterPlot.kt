@@ -34,17 +34,17 @@ fun ExperimentScatterPlot(
         val dotRadius = 10.dp.toPx()
 
         // Include the sampling mean in the axis range so the marker is always in frame.
-        val ratios = history.map { it.params.outToInRatio } + listOfNotNull(samplingMean?.outToInRatio)
         val lengths = history.map { it.params.cycleLengthSeconds } + listOfNotNull(samplingMean?.cycleLengthSeconds)
-        val xMin = ratios.min(); val xMax = ratios.max()
-        val yMin = lengths.min(); val yMax = lengths.max()
+        val ratios = history.map { it.params.outToInRatio } + listOfNotNull(samplingMean?.outToInRatio)
+        val xMin = lengths.min(); val xMax = lengths.max()
+        val yMin = ratios.min(); val yMax = ratios.max()
         val xRange = (xMax - xMin).coerceAtLeast(0.1f)
         val yRange = (yMax - yMin).coerceAtLeast(0.1f)
 
-        fun offsetOf(ratio: Float, length: Float): Offset {
-            val cx = padding + (ratio - xMin) / xRange * plotW
-            // Y is inverted: higher cycle length → top of canvas
-            val cy = size.height - padding - (length - yMin) / yRange * plotH
+        fun offsetOf(length: Float, ratio: Float): Offset {
+            val cx = padding + (length - xMin) / xRange * plotW
+            // Y is inverted: higher out:in ratio → top of canvas
+            val cy = size.height - padding - (ratio - yMin) / yRange * plotH
             return Offset(cx, cy)
         }
 
@@ -52,13 +52,13 @@ fun ExperimentScatterPlot(
             drawCircle(
                 color = DotColor.copy(alpha = record.periodicity.coerceIn(0f, 1f)),
                 radius = dotRadius,
-                center = offsetOf(record.params.outToInRatio, record.params.cycleLengthSeconds),
+                center = offsetOf(record.params.cycleLengthSeconds, record.params.outToInRatio),
             )
         }
 
         // Draw the current sampling mean as a hollow ring with a crosshair.
         samplingMean?.let { mean ->
-            val center = offsetOf(mean.outToInRatio, mean.cycleLengthSeconds)
+            val center = offsetOf(mean.cycleLengthSeconds, mean.outToInRatio)
             val strokeWidth = 2.dp.toPx()
             drawCircle(
                 color = MeanColor,
