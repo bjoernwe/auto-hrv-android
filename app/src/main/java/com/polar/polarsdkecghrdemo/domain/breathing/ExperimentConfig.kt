@@ -8,8 +8,6 @@ data class ExperimentConfig(
     val cycleLengthMean: Float,
     val cycleLengthStd: Float,
 ) {
-    fun defaultParams() = BreathingPattern(outToInRatioMean, cycleLengthMean)
-
     companion object {
         val DEFAULT = ExperimentConfig(
             experimentLengthSeconds = 30,
@@ -21,3 +19,5 @@ data class ExperimentConfig(
         )
     }
 }
+
+fun ExperimentConfig.defaultParams() = BreathingPattern(outToInRatioMean, cycleLengthMean)

@@ -7,11 +7,10 @@ import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPattern
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingState
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
+import com.polar.polarsdkecghrdemo.domain.breathing.defaultParams
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
@@ -36,17 +35,19 @@ class ExperimentCoordinator @Inject internal constructor(
     val stats: StateFlow<TimeSeriesStats?> = timeSeriesStatsUseCase(rrsMsHistory)
         .stateIn(scope, SharingStarted.Eagerly, null)
 
-    private val _samplingMean = MutableStateFlow(experimentConfig.defaultParams())
+    private val initialBreathingPattern = experimentConfig.defaultParams()
 
-    /** Current mean of the CMA-ES sampling distribution over the breathing parameters. */
-    val samplingMean: StateFlow<BreathingPattern> = _samplingMean.asStateFlow()
+    private val experiments: StateFlow<BreathingExperiment> =
+        breathingExperimentsUseCase(experimentConfig) { stats.value?.periodicity }
+            .stateIn(scope, SharingStarted.Eagerly, BreathingExperiment(initialBreathingPattern, initialBreathingPattern))
 
-    private val targetBreathingPattern: StateFlow<BreathingPattern> =
-        breathingExperimentsUseCase(
-            config = experimentConfig,
-            periodicity = { stats.value?.periodicity },
-            onSamplingMean = { _samplingMean.value = it },
-        ).stateIn(scope, SharingStarted.Eagerly, experimentConfig.defaultParams())
+    val samplingMean: StateFlow<BreathingPattern> = experiments
+        .map { it.samplingMean }
+        .stateIn(scope, SharingStarted.Eagerly, initialBreathingPattern)
+
+    private val targetBreathingPattern: StateFlow<BreathingPattern> = experiments
+        .map { it.candidate }
+        .stateIn(scope, SharingStarted.Eagerly, initialBreathingPattern)
 
     private val pacerOutput = breathingPacerUseCase(scope, targetBreathingPattern)
 

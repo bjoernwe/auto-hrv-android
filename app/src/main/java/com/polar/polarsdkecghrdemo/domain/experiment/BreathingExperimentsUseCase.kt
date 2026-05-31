@@ -2,6 +2,7 @@ package com.polar.polarsdkecghrdemo.domain.experiment
 
 import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPattern
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
+import com.polar.polarsdkecghrdemo.domain.breathing.defaultParams
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -21,10 +22,16 @@ import org.apache.commons.math3.optim.nonlinear.scalar.GoalType
 import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.CMAESOptimizer
 import org.apache.commons.math3.random.MersenneTwister
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import kotlin.math.floor
 import kotlin.math.ln
 import kotlin.math.max
+
+data class BreathingExperiment(
+    val candidate: BreathingPattern,
+    val samplingMean: BreathingPattern,
+)
 
 /**
  * Optimizes the breathing parameters (out-to-in ratio and cycle length) with CMA-ES from
@@ -42,11 +49,11 @@ internal class BreathingExperimentsUseCase @Inject constructor() {
     operator fun invoke(
         config: ExperimentConfig = ExperimentConfig.DEFAULT,
         periodicity: () -> Float?,
-        onSamplingMean: (BreathingPattern) -> Unit = {},
-    ): Flow<BreathingPattern> = channelFlow {
+    ): Flow<BreathingExperiment> = channelFlow {
         val asks = Channel<DoubleArray>(Channel.RENDEZVOUS)
         val tells = Channel<Double>(Channel.RENDEZVOUS)
         val experimentMs = (config.experimentLengthSeconds * 1000).toLong()
+        val currentSamplingMean = AtomicReference(config.defaultParams())
 
         val objective = MultivariateFunction { candidate ->
             // ask: hand the candidate to the experiment loop
@@ -57,11 +64,13 @@ internal class BreathingExperimentsUseCase @Inject constructor() {
             runBlocking { tells.receive() }
         }
 
-        launch(Dispatchers.Default) { runOptimizer(config, objective, onSamplingMean) }
+        launch(Dispatchers.Default) {
+            runOptimizer(config, objective) { currentSamplingMean.set(it) }
+        }
 
         try {
             for (candidate in asks) {
-                send(candidate.toBreathingPattern())
+                send(BreathingExperiment(candidate.toBreathingPattern(), currentSamplingMean.get()))
                 delay(experimentMs)
                 // CMA-ES minimizes, so report the negated periodicity to maximize it.
                 tells.send(-(periodicity() ?: 0f).toDouble())
