@@ -1,17 +1,13 @@
 package com.polar.polarsdkecghrdemo.domain.breathing
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 enum class BreathingPhase { Inhale, Exhale }
@@ -22,22 +18,27 @@ data class BreathingPattern(val outToInRatio: Float, val cycleLengthSeconds: Flo
 
 class BreathingPacerUseCase @Inject constructor() {
 
-    operator fun invoke(scope: CoroutineScope, pattern: Flow<BreathingPattern>): Flow<BreathingState> =
-        channelFlow {
-            val latest = MutableStateFlow(pattern.first())
-            launch { pattern.collect { latest.value = it } }
-            while (isActive) {
-                phaseFlow(BreathingPhase.Inhale, latest.value.inhaleMs()).collect { send(it) }
-                phaseFlow(BreathingPhase.Exhale, latest.value.exhaleMs()).collect { send(it) }
+    operator fun invoke(scope: CoroutineScope, pattern: Flow<BreathingPattern>): Flow<BreathingState> {
+        val latestPattern = pattern.stateIn(
+            scope = scope,
+            started = SharingStarted.Eagerly,
+            initialValue = ExperimentConfig.DEFAULT.defaultParams()
+        )
+
+        return flow<BreathingState> {
+            while (true) {
+                emitAll(phaseFlow(BreathingPhase.Inhale, latestPattern.value.inhaleMs()))
+                emitAll(phaseFlow(BreathingPhase.Exhale, latestPattern.value.exhaleMs()))
             }
         }.shareIn(scope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+    }
 
     private fun phaseFlow(phase: BreathingPhase, durationMs: Long): Flow<BreathingState> = flow {
         val start = System.currentTimeMillis()
-        while (currentCoroutineContext().isActive) {
+        while (true) {
             val elapsed = System.currentTimeMillis() - start
             if (elapsed >= durationMs) break
-            emit(BreathingState(phase, elapsed.toFloat() / durationMs))
+            emit(BreathingState(phase, (elapsed.toFloat() / durationMs).coerceAtMost(1f)))
             delay(16L)
         }
     }
