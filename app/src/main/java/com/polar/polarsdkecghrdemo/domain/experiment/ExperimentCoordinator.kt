@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.sqrt
 
 @Singleton
 class ExperimentCoordinator @Inject internal constructor(
@@ -35,7 +36,11 @@ class ExperimentCoordinator @Inject internal constructor(
     val stats: StateFlow<TimeSeriesStats?> = timeSeriesStatsUseCase(rrsMsHistory)
         .stateIn(scope, SharingStarted.Eagerly, null)
 
-    private val objective: () -> Float = { -(stats.value?.periodicity ?: 0f) }
+    private val objective: () -> Float = {
+        val periodicity = stats.value?.periodicity ?: 0f
+        val variance = stats.value?.variance ?: 0f
+        -periodicity - sqrt(variance).div(100)
+    }
 
     private val initialBreathingPattern = experimentConfig.defaultParams()
 
