@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.apache.commons.math3.linear.RealMatrix
 import org.apache.commons.math3.optim.InitialGuess
 import org.apache.commons.math3.optim.MaxEval
 import org.apache.commons.math3.optim.SimpleBounds
@@ -40,12 +41,13 @@ internal class BreathingExperimentsUseCase @Inject constructor() {
     operator fun invoke(
         config: ExperimentConfig = ExperimentConfig.DEFAULT,
         periodicity: () -> Float?,
+        onSamplingMean: (BreathingPattern) -> Unit = {},
     ): Flow<BreathingPattern> = channelFlow {
         val asks = Channel<DoubleArray>(Channel.RENDEZVOUS)
         val tells = Channel<Double>(Channel.RENDEZVOUS)
         val experimentMs = (config.experimentLengthSeconds * 1000).toLong()
 
-        launch(Dispatchers.Default) { runOptimizer(config, asks, tells) }
+        launch(Dispatchers.Default) { runOptimizer(config, asks, tells, onSamplingMean) }
 
         try {
             for (candidate in asks) {
@@ -70,6 +72,7 @@ internal class BreathingExperimentsUseCase @Inject constructor() {
         config: ExperimentConfig,
         asks: Channel<DoubleArray>,
         tells: Channel<Double>,
+        onSamplingMean: (BreathingPattern) -> Unit,
     ) {
         val lowerBounds = doubleArrayOf(
             max(MIN_RATIO, config.outToInRatioMean - BOUND_STDS * config.outToInRatioStd),
@@ -85,7 +88,29 @@ internal class BreathingExperimentsUseCase @Inject constructor() {
         )
         val populationSize = 4 + floor(3.0 * ln(DIMENSIONS.toDouble())).toInt()
 
+        val optimizer = CMAESOptimizer(
+            MAX_ITERATIONS,
+            STOP_FITNESS,
+            true, // isActiveCMA
+            0, // diagonalOnly
+            1, // checkFeasableCount
+            MersenneTwister(),
+            true, // generateStatistics — exposes the sampling-distribution mean history
+            SimpleValueChecker(CONVERGENCE_REL, CONVERGENCE_ABS),
+        )
+
+        var currentGuess = doubleArrayOf(
+            config.outToInRatioMean.toDouble().coerceIn(lowerBounds[0], upperBounds[0]),
+            config.cycleLengthMean.toDouble().coerceIn(lowerBounds[1], upperBounds[1]),
+        )
         val objective = ObjectiveFunction { candidate ->
+            // Surface the current sampling-distribution mean: the latest one CMA-ES recorded, or
+            // the restart point until the first generation completes. CMA-ES appends to the
+            // history on this same worker thread, so the read is race-free; the redundant repeats
+            // within a generation are conflated by the StateFlow downstream.
+            val mean = optimizer.statisticsMeanHistory.lastOrNull()?.toBreathingPattern()
+                ?: currentGuess.toBreathingPattern()
+            onSamplingMean(mean)
             // ask: hand the candidate to the experiment loop
             if (asks.trySendBlocking(candidate.clone()).isClosed) {
                 throw CancellationException("optimizer cancelled")
@@ -94,23 +119,11 @@ internal class BreathingExperimentsUseCase @Inject constructor() {
             runBlocking { tells.receive() }
         }
 
-        val optimizer = CMAESOptimizer(
-            MAX_ITERATIONS,
-            STOP_FITNESS,
-            true, // isActiveCMA
-            0, // diagonalOnly
-            1, // checkFeasableCount
-            MersenneTwister(),
-            false, // generateStatistics
-            SimpleValueChecker(CONVERGENCE_REL, CONVERGENCE_ABS),
-        )
-
-        var currentGuess = doubleArrayOf(
-            config.outToInRatioMean.toDouble().coerceIn(lowerBounds[0], upperBounds[0]),
-            config.cycleLengthMean.toDouble().coerceIn(lowerBounds[1], upperBounds[1]),
-        )
         try {
             while (true) {
+                // Forget the previous run's means so the restart point shows until this run's
+                // first generation completes.
+                optimizer.statisticsMeanHistory.clear()
                 val result = optimizer.optimize(
                     MaxEval(Int.MAX_VALUE),
                     objective,
@@ -131,6 +144,12 @@ internal class BreathingExperimentsUseCase @Inject constructor() {
     private fun DoubleArray.toBreathingPattern() = BreathingPattern(
         outToInRatio = this[0].toFloat().coerceAtLeast(MIN_RATIO.toFloat()),
         cycleLengthSeconds = this[1].toFloat().coerceAtLeast(MIN_CYCLE.toFloat()),
+    )
+
+    /** The mean is stored by CMA-ES as a 1×N row matrix (the transpose of the column mean). */
+    private fun RealMatrix.toBreathingPattern() = BreathingPattern(
+        outToInRatio = getEntry(0, 0).toFloat().coerceAtLeast(MIN_RATIO.toFloat()),
+        cycleLengthSeconds = getEntry(0, 1).toFloat().coerceAtLeast(MIN_CYCLE.toFloat()),
     )
 
     private companion object {
