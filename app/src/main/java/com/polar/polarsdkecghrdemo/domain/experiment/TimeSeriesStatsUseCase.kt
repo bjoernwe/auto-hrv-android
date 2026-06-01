@@ -6,25 +6,51 @@ import org.apache.commons.math3.transform.DftNormalization
 import org.apache.commons.math3.transform.FastFourierTransformer
 import org.apache.commons.math3.transform.TransformType
 import javax.inject.Inject
+import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.ln
 import kotlin.math.sqrt
 
 data class TimeSeriesStats(
-    val smoothness: Float?,
-    val powerSpectrum: List<Float>?,
+    val autoCorrelation: List<Float>?,
+    val autoCorrelationPeak: Float?,
+    val peakPower: Float?,
     val periodicity: Float?,
+    val powerSpectrum: List<Float>?,
+    val smoothness: Float?,
+    val stdDev: Float?,
 )
+
+private class SpectrumData(val fullSpectrum: DoubleArray) {
+    val oneSided: List<Float> get() = (1..fullSpectrum.size / 2).map { i -> fullSpectrum[i].toFloat() }
+}
 
 internal class TimeSeriesStatsUseCase @Inject constructor() {
 
     operator fun invoke(ts: Flow<List<Int>>): Flow<TimeSeriesStats> {
         return ts.map { ts ->
+            val spectrumData = computeSpectrumData(ts)
+            val acf = spectrumData?.let { computeAutoCorrelation(it.fullSpectrum) }
             TimeSeriesStats(
+                autoCorrelation = acf,
+                autoCorrelationPeak = acf?.let { findBreathingCycleLength(it) },
+                peakPower = spectrumData?.oneSided?.drop(1)?.max(),
+                periodicity = computePeriodicity(spectrumData?.oneSided),
+                powerSpectrum = spectrumData?.oneSided,
                 smoothness = computeSmoothness(ts),
-                powerSpectrum = computePowerSpectrum(ts),
-                periodicity = computePeriodicity(ts),
+                stdDev = computeStdDev(ts),
             )
         }
+    }
+
+    // Searches for the highest ACF peak in the lag range corresponding to 3–15 s breathing cycles.
+    // Assumes 1 s per sample, so lag == cycle length in seconds directly.
+    private fun findBreathingCycleLength(acf: List<Float>): Float? {
+        val minLag = 5
+        val maxLag = 16.coerceAtMost(acf.size - 1)
+        if (minLag > maxLag) return null
+        val peakLag = (minLag..maxLag).maxByOrNull { acf[it] } ?: return null
+        return peakLag.toFloat()
     }
 
     private fun normalize(values: List<Int>): List<Float> {
@@ -45,26 +71,42 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         return 2f - sqrt(meanSquaredDiff)
     }
 
-    private fun computePowerSpectrum(ts: List<Int>): List<Float>? {
+    private fun computeSpectrumData(ts: List<Int>): SpectrumData? {
         if (ts.size < 4) return null
         val n = nextPowerOf2(ts.size)
         val mean = ts.average()
-        // Zero-pad to next power of 2 and subtract mean to suppress DC
+        val len = ts.size
+        // Apply a Hann/Hamming window to the data, zero-pad to next power of 2, and subtract mean to suppress DC
         val input = DoubleArray(n) { i ->
-            if (i < ts.size) ts[i].toDouble() - mean else 0.0
+            if (i < len) {
+                //val w = 0.5 * (1.0 - cos(2.0 * PI * i / (len - 1)))
+                val w = 0.54 - 0.46 * cos(2.0 * PI * i / (len - 1))
+                (ts[i].toDouble() - mean) * w
+            } else {
+                0.0
+            }
         }
         val result = FastFourierTransformer(DftNormalization.STANDARD)
             .transform(input, TransformType.FORWARD)
-        // One-sided spectrum: skip DC (bin 0), return bins 1..n/2
-        return (1..n / 2).map { i ->
+        val fullPower = DoubleArray(n) { i ->
             val re = result[i].real
             val im = result[i].imaginary
-            (re * re + im * im).toFloat()
+            re * re + im * im
         }
+        // One-sided spectrum: skip DC (bin 0), return bins 1..n/2
+        return SpectrumData(fullPower)
     }
 
-    private fun computePeriodicity(ts: List<Int>): Float? {
-        val spectrum = computePowerSpectrum(ts)
+    // Wiener-Khinchin: autocorrelation = IFFT(power spectrum), normalized to lag-0 = 1
+    private fun computeAutoCorrelation(fullPower: DoubleArray): List<Float> {
+        val acfComplex = FastFourierTransformer(DftNormalization.STANDARD)
+            .transform(fullPower, TransformType.INVERSE)
+        val zero = acfComplex[0].real.coerceAtLeast(1e-10)
+        val halfN = fullPower.size / 2
+        return (0 until halfN).map { i -> (acfComplex[i].real / zero).toFloat() }
+    }
+
+    private fun computePeriodicity(spectrum: List<Float>?): Float? {
         if (spectrum === null) return null
         if (spectrum.size < 3) return null
         // Drop the first bin — it reflects slow HR trends rather than rhythmic periodicity
@@ -77,6 +119,12 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         }.toFloat()
         val maxEntropy = ln(bins.size.toDouble()).toFloat()
         return if (maxEntropy > 0f) 1f - (entropy / maxEntropy) else 0f
+    }
+
+    private fun computeStdDev(ts: List<Int>): Float? {
+        if (ts.size < 2) return null
+        val mean = ts.average().toFloat()
+        return sqrt(ts.map { (it - mean) * (it - mean) }.average().toFloat())
     }
 
     private fun nextPowerOf2(n: Int): Int {
