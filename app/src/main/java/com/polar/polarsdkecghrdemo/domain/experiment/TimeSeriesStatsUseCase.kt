@@ -46,8 +46,8 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
     // Searches for the highest ACF peak in the lag range corresponding to 3–15 s breathing cycles.
     // Assumes 1 s per sample, so lag == cycle length in seconds directly.
     private fun findBreathingCycleLength(acf: List<Float>): Float? {
-        val minLag = 5
-        val maxLag = 16.coerceAtMost(acf.size - 1)
+        val minLag = 6
+        val maxLag = 14.coerceAtMost(acf.size - 1)
         if (minLag > maxLag) return null
         val peakLag = (minLag..maxLag).maxByOrNull { acf[it] } ?: return null
         return peakLag.toFloat()
