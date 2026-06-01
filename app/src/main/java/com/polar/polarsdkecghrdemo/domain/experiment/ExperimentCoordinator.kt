@@ -12,13 +12,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.sqrt
 
 @Singleton
 class ExperimentCoordinator @Inject internal constructor(
@@ -54,14 +54,18 @@ class ExperimentCoordinator @Inject internal constructor(
         .map { it.samplingMean }
         .stateIn(scope, SharingStarted.Eagerly, initialBreathingPattern)
 
-    private val targetBreathingPattern: StateFlow<BreathingPattern> = stats.map {
-        it?.autoCorrelationPeak
-    }.map { arPeak ->
-        BreathingPattern(
-            ExperimentConfig.DEFAULT.outToInRatioMean,
-            arPeak ?: ExperimentConfig.DEFAULT.cycleLengthMean,
-        )
-    }.stateIn(scope, SharingStarted.Eagerly, initialBreathingPattern)
+    private val targetBreathingPattern: StateFlow<BreathingPattern> = stats
+        .map { s ->
+            BreathingPattern(
+                s?.fallingToRaisingRatio?.coerceAtMost(3f) ?: ExperimentConfig.DEFAULT.outToInRatioMean,
+                s?.autoCorrelationPeak ?: ExperimentConfig.DEFAULT.cycleLengthMean,
+            )
+        }
+        .scan(emptyList<BreathingPattern>()) { window, pattern -> (window + pattern).takeLast(5) }
+        .filter { it.isNotEmpty() }
+        .map { window -> window.reduce { a, b -> a + b } / window.size.toFloat() }
+        //.map { pattern -> (pattern + BreathingPattern.DEFAULT) / 2f }
+        .stateIn(scope, SharingStarted.Eagerly, initialBreathingPattern)
 
     private val pacerOutput = breathingPacerUseCase(scope, targetBreathingPattern)
 
