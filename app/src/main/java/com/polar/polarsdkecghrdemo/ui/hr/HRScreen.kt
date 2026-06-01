@@ -62,9 +62,9 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                 metrics = listOf(
                     HrMetric("Heart Rate (bpm)", uiState.hr?.let { "$it" } ?: "—"),
                     HrMetric("Std Dev", uiState.stats?.stdDev?.let { "%.0f".format(it) } ?: "—"),
-                    HrMetric("Smoothness", uiState.stats?.smoothness?.let { "%.2f".format(it) } ?: "—"),
-                    HrMetric("Periodicity", uiState.stats?.periodicity?.let { "%.2f".format(it) } ?: "—"),
-                    HrMetric("Peak Power", uiState.stats?.peakPower?.let { "%.0fk".format(it.div(1000)) } ?: "—"),
+                    //HrMetric("Smoothness", uiState.stats?.smoothness?.let { "%.2f".format(it) } ?: "—"),
+                    //HrMetric("Periodicity", uiState.stats?.periodicity?.let { "%.2f".format(it) } ?: "—"),
+                    //HrMetric("Peak Power", uiState.stats?.peakPower?.let { "%.0fk".format(it.div(1000)) } ?: "—"),
                     HrMetric("ACF Cycle (s)", uiState.stats?.autoCorrelationPeak?.let { "%.1f".format(it) } ?: "—"),
                 ),
                 modifier = Modifier.fillMaxWidth(),
