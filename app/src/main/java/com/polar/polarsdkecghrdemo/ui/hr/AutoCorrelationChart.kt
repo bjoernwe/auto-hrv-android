@@ -15,9 +15,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun AutoCorrelationChart(acf: List<Float>, modifier: Modifier = Modifier) {
+fun AutoCorrelationChart(acf: List<Float>, peakLag: Float? = null, modifier: Modifier = Modifier) {
     val lineColor = Color(0xFF00A878)
     val zeroLineColor = Color(0xFF888888)
+    val peakColor = Color(0xFF00A878)
+    val textMeasurer = rememberTextMeasurer()
     Canvas(
         modifier = modifier
             .fillMaxWidth()
@@ -43,6 +45,21 @@ fun AutoCorrelationChart(acf: List<Float>, modifier: Modifier = Modifier) {
                 end = Offset(x1, y1),
                 strokeWidth = strokePx,
                 cap = StrokeCap.Round,
+            )
+        }
+        if (peakLag != null) {
+            val peakIdx = peakLag.toInt().coerceIn(0, acf.size - 1)
+            val px = peakIdx / (acf.size - 1f) * size.width
+            val py = yCenter - acf[peakIdx].coerceIn(-1f, 1f) * yCenter
+            drawCircle(color = peakColor, radius = 4.dp.toPx(), center = Offset(px, py))
+            val label = "%.0f s".format(peakLag)
+            val measured = textMeasurer.measure(label, style = TextStyle(fontSize = 12.sp, color = peakColor))
+            drawText(
+                measured,
+                topLeft = Offset(
+                    x = (px - measured.size.width / 2f).coerceIn(0f, size.width - measured.size.width),
+                    y = (py - 4.dp.toPx() - measured.size.height).coerceAtLeast(0f),
+                ),
             )
         }
     }

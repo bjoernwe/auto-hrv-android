@@ -104,6 +104,7 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                 Spacer(Modifier.height(4.dp))
                 AutoCorrelationChart(
                     acf = autoCorrelation,
+                    peakLag = uiState.stats?.autoCorrelationPeak,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
