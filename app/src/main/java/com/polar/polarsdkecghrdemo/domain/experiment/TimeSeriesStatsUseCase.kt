@@ -20,17 +20,18 @@ data class TimeSeriesStats(
     val stdDev: Float?,
 )
 
+private class SpectrumData(val oneSided: List<Float>, val fullSpectrum: DoubleArray)
+
 internal class TimeSeriesStatsUseCase @Inject constructor() {
 
     operator fun invoke(ts: Flow<List<Int>>): Flow<TimeSeriesStats> {
         return ts.map { ts ->
             val spectrumData = computeSpectrumData(ts)
-            val oneSided = spectrumData?.first
             TimeSeriesStats(
-                autoCorrelation = spectrumData?.let { computeAutoCorrelation(it.second) },
-                peakPower = oneSided?.drop(1)?.max(),
-                periodicity = computePeriodicity(oneSided),
-                powerSpectrum = oneSided,
+                autoCorrelation = spectrumData?.let { computeAutoCorrelation(it.fullSpectrum) },
+                peakPower = spectrumData?.oneSided?.drop(1)?.max(),
+                periodicity = computePeriodicity(spectrumData?.oneSided),
+                powerSpectrum = spectrumData?.oneSided,
                 smoothness = computeSmoothness(ts),
                 stdDev = computeStdDev(ts),
             )
@@ -55,7 +56,7 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         return 2f - sqrt(meanSquaredDiff)
     }
 
-    private fun computeSpectrumData(ts: List<Int>): Pair<List<Float>, DoubleArray>? {
+    private fun computeSpectrumData(ts: List<Int>): SpectrumData? {
         if (ts.size < 4) return null
         val n = nextPowerOf2(ts.size)
         val mean = ts.average()
@@ -79,7 +80,7 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         }
         // One-sided spectrum: skip DC (bin 0), return bins 1..n/2
         val oneSided = (1..n / 2).map { i -> fullPower[i].toFloat() }
-        return Pair(oneSided, fullPower)
+        return SpectrumData(oneSided, fullPower)
     }
 
     // Wiener-Khinchin: autocorrelation = IFFT(power spectrum), normalized to lag-0 = 1
