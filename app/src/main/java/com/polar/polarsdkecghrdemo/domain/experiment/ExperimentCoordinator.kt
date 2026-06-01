@@ -57,7 +57,8 @@ class ExperimentCoordinator @Inject internal constructor(
     private val targetBreathingPattern: StateFlow<BreathingPattern> = stats
         .map { s ->
             BreathingPattern(
-                s?.fallingToRaisingRatio?.coerceAtMost(3f) ?: ExperimentConfig.DEFAULT.outToInRatioMean,
+                //s?.fallingToRaisingRatio?.coerceAtMost(3f) ?: ExperimentConfig.DEFAULT.outToInRatioMean,
+                ExperimentConfig.DEFAULT.outToInRatioMean,
                 s?.autoCorrelationPeak ?: ExperimentConfig.DEFAULT.cycleLengthMean,
             )
         }
