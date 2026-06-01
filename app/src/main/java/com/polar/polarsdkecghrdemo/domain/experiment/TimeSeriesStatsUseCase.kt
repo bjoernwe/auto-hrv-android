@@ -12,6 +12,7 @@ import kotlin.math.ln
 import kotlin.math.sqrt
 
 data class TimeSeriesStats(
+    val autoCorrelation: List<Float>?,
     val peakPower: Float?,
     val periodicity: Float?,
     val powerSpectrum: List<Float>?,
@@ -23,11 +24,13 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
 
     operator fun invoke(ts: Flow<List<Int>>): Flow<TimeSeriesStats> {
         return ts.map { ts ->
-            val spectrum = computePowerSpectrum(ts)
+            val spectrumData = computeSpectrumData(ts)
+            val oneSided = spectrumData?.first
             TimeSeriesStats(
-                peakPower = spectrum?.drop(1)?.max(),
-                periodicity = computePeriodicity(spectrum),
-                powerSpectrum = spectrum,
+                autoCorrelation = spectrumData?.let { computeAutoCorrelation(it.second) },
+                peakPower = oneSided?.drop(1)?.max(),
+                periodicity = computePeriodicity(oneSided),
+                powerSpectrum = oneSided,
                 smoothness = computeSmoothness(ts),
                 stdDev = computeStdDev(ts),
             )
@@ -52,7 +55,7 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         return 2f - sqrt(meanSquaredDiff)
     }
 
-    private fun computePowerSpectrum(ts: List<Int>): List<Float>? {
+    private fun computeSpectrumData(ts: List<Int>): Pair<List<Float>, DoubleArray>? {
         if (ts.size < 4) return null
         val n = nextPowerOf2(ts.size)
         val mean = ts.average()
@@ -69,12 +72,23 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         }
         val result = FastFourierTransformer(DftNormalization.STANDARD)
             .transform(input, TransformType.FORWARD)
-        // One-sided spectrum: skip DC (bin 0), return bins 1..n/2
-        return (1..n / 2).map { i ->
+        val fullPower = DoubleArray(n) { i ->
             val re = result[i].real
             val im = result[i].imaginary
-            (re * re + im * im).toFloat()
+            re * re + im * im
         }
+        // One-sided spectrum: skip DC (bin 0), return bins 1..n/2
+        val oneSided = (1..n / 2).map { i -> fullPower[i].toFloat() }
+        return Pair(oneSided, fullPower)
+    }
+
+    // Wiener-Khinchin: autocorrelation = IFFT(power spectrum), normalized to lag-0 = 1
+    private fun computeAutoCorrelation(fullPower: DoubleArray): List<Float> {
+        val acfComplex = FastFourierTransformer(DftNormalization.STANDARD)
+            .transform(fullPower, TransformType.INVERSE)
+        val zero = acfComplex[0].real.coerceAtLeast(1e-10)
+        val halfN = fullPower.size / 2
+        return (0 until halfN).map { i -> (acfComplex[i].real / zero).toFloat() }
     }
 
     private fun computePeriodicity(spectrum: List<Float>?): Float? {
