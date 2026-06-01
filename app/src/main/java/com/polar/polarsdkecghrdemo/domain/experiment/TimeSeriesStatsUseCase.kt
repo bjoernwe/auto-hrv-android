@@ -20,7 +20,9 @@ data class TimeSeriesStats(
     val stdDev: Float?,
 )
 
-private class SpectrumData(val oneSided: List<Float>, val fullSpectrum: DoubleArray)
+private class SpectrumData(val fullSpectrum: DoubleArray) {
+    val oneSided: List<Float> get() = (1..fullSpectrum.size / 2).map { i -> fullSpectrum[i].toFloat() }
+}
 
 internal class TimeSeriesStatsUseCase @Inject constructor() {
 
@@ -79,8 +81,7 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
             re * re + im * im
         }
         // One-sided spectrum: skip DC (bin 0), return bins 1..n/2
-        val oneSided = (1..n / 2).map { i -> fullPower[i].toFloat() }
-        return SpectrumData(oneSided, fullPower)
+        return SpectrumData(fullPower)
     }
 
     // Wiener-Khinchin: autocorrelation = IFFT(power spectrum), normalized to lag-0 = 1
