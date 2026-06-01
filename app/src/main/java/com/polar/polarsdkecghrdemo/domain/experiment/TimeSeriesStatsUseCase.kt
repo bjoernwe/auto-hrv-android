@@ -13,6 +13,7 @@ import kotlin.math.sqrt
 
 data class TimeSeriesStats(
     val autoCorrelation: List<Float>?,
+    val autoCorrelationPeak: Float?,
     val peakPower: Float?,
     val periodicity: Float?,
     val powerSpectrum: List<Float>?,
@@ -29,8 +30,10 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
     operator fun invoke(ts: Flow<List<Int>>): Flow<TimeSeriesStats> {
         return ts.map { ts ->
             val spectrumData = computeSpectrumData(ts)
+            val acf = spectrumData?.let { computeAutoCorrelation(it.fullSpectrum) }
             TimeSeriesStats(
-                autoCorrelation = spectrumData?.let { computeAutoCorrelation(it.fullSpectrum) },
+                autoCorrelation = acf,
+                autoCorrelationPeak = acf?.let { findBreathingCycleLength(it) },
                 peakPower = spectrumData?.oneSided?.drop(1)?.max(),
                 periodicity = computePeriodicity(spectrumData?.oneSided),
                 powerSpectrum = spectrumData?.oneSided,
@@ -38,6 +41,16 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
                 stdDev = computeStdDev(ts),
             )
         }
+    }
+
+    // Searches for the highest ACF peak in the lag range corresponding to 3–15 s breathing cycles.
+    // Assumes 1 s per sample, so lag == cycle length in seconds directly.
+    private fun findBreathingCycleLength(acf: List<Float>): Float? {
+        val minLag = 5
+        val maxLag = 16.coerceAtMost(acf.size - 1)
+        if (minLag > maxLag) return null
+        val peakLag = (minLag..maxLag).maxByOrNull { acf[it] } ?: return null
+        return peakLag.toFloat()
     }
 
     private fun normalize(values: List<Int>): List<Float> {
