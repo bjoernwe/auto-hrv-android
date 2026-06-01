@@ -54,9 +54,11 @@ class ExperimentCoordinator @Inject internal constructor(
         .map { it.samplingMean }
         .stateIn(scope, SharingStarted.Eagerly, initialBreathingPattern)
 
-    private val targetBreathingPattern: StateFlow<BreathingPattern> = experiments
-        .map { it.candidate }
-        .stateIn(scope, SharingStarted.Eagerly, initialBreathingPattern)
+    private val targetBreathingPattern: StateFlow<BreathingPattern> = stats.map {
+        it?.autoCorrelationPeak ?: 10f
+    }.map {
+        BreathingPattern(3.5f, it)
+    }.stateIn(scope, SharingStarted.Eagerly, initialBreathingPattern)
 
     private val pacerOutput = breathingPacerUseCase(scope, targetBreathingPattern)
 
