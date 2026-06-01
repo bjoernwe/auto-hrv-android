@@ -13,15 +13,19 @@ import com.polar.sdk.api.model.PolarDeviceInfo
 import com.polar.sdk.api.model.PolarHrData
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 @Singleton
@@ -133,11 +137,23 @@ class PolarRepository @Inject constructor(
             .map { samples -> samples.takeLast(seconds * SAMPLES_PER_SECOND) }
     }
 
-    fun getRrsMsHistory(seconds: Int): Flow<List<Int>> {
-        return hrFlow
-            .scan<PolarHrData.PolarHrSample, List<Int>>(emptyList()) { acc, sample -> acc + sample.rrsMs }
-            .map { samples ->
-            samples.takeLast(seconds * SAMPLES_PER_SECOND)
+    fun getRrsMsHistory(seconds: Int): Flow<List<Int>> = rrMsResampled1Hz()
+        .scan(emptyList<Int>()) {
+            acc, rr -> (acc + rr).takeLast(seconds * SAMPLES_PER_SECOND)
+        }
+
+    /**
+     * Resamples the irregular, beat-indexed RR stream onto a uniform 1 Hz time grid via
+     * zero-order hold: a 1 Hz ticker emits the most recently observed RR interval. This makes a
+     * sample index == seconds, so downstream lag/frequency axes are in real time units. The
+     * breathing band (~0.07-0.17 Hz) sits well below the 0.5 Hz Nyquist limit, so 1 Hz suffices.
+     */
+    private fun rrMsResampled1Hz(): Flow<Int> = channelFlow {
+        val latestRrMs = MutableStateFlow<Int?>(null)
+        launch { hrFlow.collect { sample -> sample.rrsMs.lastOrNull()?.let { latestRrMs.value = it } } }
+        while (isActive) {
+            latestRrMs.value?.let { send(it) }
+            delay(1000L / SAMPLES_PER_SECOND)
         }
     }
 
