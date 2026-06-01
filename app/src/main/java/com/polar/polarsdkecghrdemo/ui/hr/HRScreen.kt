@@ -66,6 +66,7 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                     //HrMetric("Periodicity", uiState.stats?.periodicity?.let { "%.2f".format(it) } ?: "—"),
                     //HrMetric("Peak Power", uiState.stats?.peakPower?.let { "%.0fk".format(it.div(1000)) } ?: "—"),
                     HrMetric("ACF Cycle (s)", uiState.stats?.autoCorrelationPeak?.let { "%.1f".format(it) } ?: "—"),
+                    HrMetric("Fall/Rise", uiState.stats?.fallingToRaisingRatio?.let { "%.2f".format(it) } ?: "—"),
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )

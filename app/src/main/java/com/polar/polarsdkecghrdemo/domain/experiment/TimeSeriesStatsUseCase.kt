@@ -17,6 +17,7 @@ data class TimeSeriesStats(
     val peakPower: Float?,
     val periodicity: Float?,
     val powerSpectrum: List<Float>?,
+    val fallingToRaisingRatio: Float?,
     val smoothness: Float?,
     val stdDev: Float?,
 )
@@ -37,6 +38,7 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
                 peakPower = spectrumData?.oneSided?.drop(1)?.max(),
                 periodicity = computePeriodicity(spectrumData?.oneSided),
                 powerSpectrum = spectrumData?.oneSided,
+                fallingToRaisingRatio = computeFallingToRaisingRatio(ts),
                 smoothness = computeSmoothness(ts),
                 stdDev = computeStdDev(ts),
             )
@@ -119,6 +121,20 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         }.toFloat()
         val maxEntropy = ln(bins.size.toDouble()).toFloat()
         return if (maxEntropy > 0f) 1f - (entropy / maxEntropy) else 0f
+    }
+
+    private fun computeFallingToRaisingRatio(ts: List<Int>): Float? {
+        if (ts.size < 2) return null
+        var raising = 0
+        var falling = 0
+        ts.zipWithNext { a, b ->
+            when {
+                b > a -> raising++
+                b < a -> falling++
+            }
+        }
+        if (raising == 0) return null
+        return falling.toFloat() / raising.toFloat()
     }
 
     private fun computeStdDev(ts: List<Int>): Float? {
