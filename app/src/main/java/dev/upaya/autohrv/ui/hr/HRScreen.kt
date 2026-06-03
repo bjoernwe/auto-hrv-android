@@ -130,9 +130,9 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
                         bandHi = targetCycleLengthRange.endInclusive,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(92.dp),
+                            .height(100.dp),
                     )
-                    Spacer(Modifier.height(8.dp))
+                    //Spacer(Modifier.height(4.dp))
                     BandRangeSlider(
                         value = targetCycleLengthRange,
                         onValueChange = { breathingViewModel.setTargetCycleLengthRange(it) },
@@ -470,7 +470,11 @@ private fun BandRangeSlider(
 }
 
 @Composable
-private fun ThumbWithLabel(label: String, accent: Color) {
+private fun ThumbWithLabel(
+    label: String,
+    accent: Color,
+    labelColor: Color  = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier.wrapContentSize(unbounded = true)
@@ -479,9 +483,10 @@ private fun ThumbWithLabel(label: String, accent: Color) {
             text = label,
             style = MaterialTheme.typography.labelSmall.copy(
                 fontSize = 10.sp,
-                color = accent,
+                color = labelColor,
+
             ),
-            modifier = Modifier.offset(y = (-18).dp)
+            modifier = Modifier.offset(y = (-22).dp)
         )
         Box(
             contentAlignment = Alignment.Center,
