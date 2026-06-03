@@ -4,10 +4,12 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,6 +33,7 @@ private val PacerBlueDark = Color(0xFF00838F)
 fun BreathingSection(viewModel: BreathingPacerViewModel) {
     val breathingState by viewModel.breathingState.collectAsStateWithLifecycle(initialValue = null)
     val pattern by viewModel.currentPattern.collectAsStateWithLifecycle()
+    val targetOutToInRatio by viewModel.targetOutToInRatio.collectAsStateWithLifecycle()
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         PacerCircle(state = breathingState)
@@ -51,6 +54,32 @@ fun BreathingSection(viewModel: BreathingPacerViewModel) {
         Spacer(Modifier.height(12.dp))
 
         ParamReadout(pattern)
+
+        Spacer(Modifier.height(16.dp))
+
+        OutToInRatioSlider(
+            value = targetOutToInRatio,
+            onValueChange = { viewModel.setTargetOutToInRatio(it) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+private fun OutToInRatioSlider(value: Float, onValueChange: (Float) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = "Out:In  ${"%.1f".format(value)}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = 0.5f..4.0f,
+            steps = 34,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

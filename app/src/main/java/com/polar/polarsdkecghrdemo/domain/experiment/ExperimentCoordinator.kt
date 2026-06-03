@@ -9,8 +9,11 @@ import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
 import com.polar.polarsdkecghrdemo.domain.breathing.defaultParams
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
@@ -29,6 +32,13 @@ class ExperimentCoordinator @Inject internal constructor(
     polarRepository: PolarRepository,
 ) {
     private val experimentConfig = ExperimentConfig.DEFAULT
+
+    private val _targetOutToInRatio = MutableStateFlow(experimentConfig.outToInRatioMean)
+    val targetOutToInRatio: StateFlow<Float> = _targetOutToInRatio
+
+    fun setTargetOutToInRatio(ratio: Float) {
+        _targetOutToInRatio.value = ratio
+    }
 
     private val rrsMsHistory: StateFlow<List<Int>> = polarRepository.getRrsMsHistory(experimentConfig.evaluationLengthSeconds)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
@@ -54,19 +64,16 @@ class ExperimentCoordinator @Inject internal constructor(
         .map { it.samplingMean }
         .stateIn(scope, SharingStarted.Eagerly, initialBreathingPattern)
 
-    private val targetBreathingPattern: StateFlow<BreathingPattern> = stats
-        .map { s ->
-            BreathingPattern(
-                //s?.fallingToRaisingRatio?.coerceAtMost(3f) ?: ExperimentConfig.DEFAULT.outToInRatioMean,
-                ExperimentConfig.DEFAULT.outToInRatioMean,
-                s?.autoCorrelationPeak ?: ExperimentConfig.DEFAULT.cycleLengthMean,
-            )
-        }
-        .scan(emptyList<BreathingPattern>()) { window, pattern -> (window + pattern).takeLast(
-            ExperimentConfig.DEFAULT.experimentLengthSeconds) }
+    private val smoothedCycleLength: Flow<Float> = stats
+        .map { s -> s?.autoCorrelationPeak ?: experimentConfig.cycleLengthMean }
+        .scan(emptyList<Float>()) { window, cl -> (window + cl).takeLast(experimentConfig.experimentLengthSeconds) }
         .filter { it.isNotEmpty() }
         .map { window -> window.reduce { a, b -> a + b } / window.size.toFloat() }
-        //.map { pattern -> (pattern + BreathingPattern.DEFAULT) / 2f }
+
+    private val targetBreathingPattern: StateFlow<BreathingPattern> =
+        combine(smoothedCycleLength, targetOutToInRatio) { cl, ratio ->
+            BreathingPattern(ratio, cl)
+        }
         .stateIn(scope, SharingStarted.Eagerly, initialBreathingPattern)
 
     private val pacerOutput = breathingPacerUseCase(scope, targetBreathingPattern)

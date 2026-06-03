@@ -10,8 +10,13 @@ import javax.inject.Inject
 
 @HiltViewModel
 class BreathingPacerViewModel @Inject constructor(
-    coordinator: ExperimentCoordinator,
+    private val coordinator: ExperimentCoordinator,
 ) : ViewModel() {
     val breathingState: StateFlow<BreathingState> = coordinator.currentBreathingState
     val currentPattern: StateFlow<BreathingPattern> = coordinator.currentBreathingPattern
+    val targetOutToInRatio: StateFlow<Float> = coordinator.targetOutToInRatio
+
+    fun setTargetOutToInRatio(ratio: Float) {
+        coordinator.setTargetOutToInRatio(ratio)
+    }
 }
