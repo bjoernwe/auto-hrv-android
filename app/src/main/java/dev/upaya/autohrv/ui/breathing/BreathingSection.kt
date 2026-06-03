@@ -18,13 +18,12 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
 import dev.upaya.autohrv.domain.breathing.BreathingState
-import dev.upaya.autohrv.ui.theme.AutoHrvAccent
 import kotlin.math.PI
 import kotlin.math.cos
 
 @Composable
 fun BreathingPacerOrb(state: BreathingState, modifier: Modifier = Modifier) {
-    val accent = AutoHrvAccent
+    val colorScheme = MaterialTheme.colorScheme
     val textMeasurer = rememberTextMeasurer()
 
     val scale = when (state.phase) {
@@ -37,44 +36,43 @@ fun BreathingPacerOrb(state: BreathingState, modifier: Modifier = Modifier) {
     }
 
     val labelStyle = MaterialTheme.typography.titleLarge.copy(
-        fontSize = 19.sp,
         fontWeight = FontWeight.Bold,
-        color = Color(0xFF04181B),
-        letterSpacing = 0.04.em,
+        color = colorScheme.onPrimary,
+        letterSpacing = 0.02.em,
     )
 
     Canvas(modifier = modifier) {
         val maxRadius = size.minDimension / 2f
-        val minFraction = 0.34f
+        val minFraction = 0.4f
         val orbRadius = maxRadius * (minFraction + (1f - minFraction) * scale)
         val c = center
 
-        // Guide ring
+        // 1. Guide ring (Material-consistent boundary)
         drawCircle(
-            color = accent.copy(alpha = 0.22f),
+            color = colorScheme.outlineVariant.copy(alpha = 0.3f),
             radius = maxRadius,
             style = Stroke(width = 1.dp.toPx()),
         )
 
-        // Glow
+        // 2. The "Extra" Glow - Dynamic based on orb size
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(accent.copy(alpha = 0.28f), Color.Transparent),
+                colors = listOf(colorScheme.primary.copy(alpha = 0.25f), Color.Transparent),
                 center = c,
-                radius = orbRadius * 1.5f,
+                radius = orbRadius * 1.4f,
             ),
-            radius = orbRadius * 1.5f,
+            radius = orbRadius * 1.4f,
             center = c,
         )
 
-        // Orb — radial gradient: light centre → accent → dark edge
-        val gradientCenter = Offset(c.x, c.y - orbRadius * 0.24f)
+        // 3. The Orb - Material Primary with a 3D-effect gradient
+        val gradientCenter = Offset(c.x, c.y - orbRadius * 0.2f)
         drawCircle(
             brush = Brush.radialGradient(
                 colorStops = arrayOf(
-                    0.0f to lerp(accent, Color.White, 0.15f),
-                    0.45f to accent,
-                    1.0f to lerp(accent, Color.Black, 0.4f),
+                    0.0f to lerp(colorScheme.primary, Color.White, 0.15f), // Highlight
+                    0.5f to colorScheme.primary,                         // Base
+                    1.0f to lerp(colorScheme.primary, Color.Black, 0.3f)  // Depth shadow
                 ),
                 center = gradientCenter,
                 radius = orbRadius,
@@ -83,7 +81,7 @@ fun BreathingPacerOrb(state: BreathingState, modifier: Modifier = Modifier) {
             center = c,
         )
 
-        // Phase label centred on the orb
+        // 4. Phase label centred on the orb
         val measured = textMeasurer.measure(label, style = labelStyle)
         drawText(
             measured,
