@@ -1,6 +1,7 @@
 package dev.upaya.autohrv.ui.breathing
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -9,7 +10,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -35,6 +35,13 @@ fun BreathingPacerOrb(state: BreathingState, modifier: Modifier = Modifier) {
         BreathingPhase.Inhale -> "Inhale"
         BreathingPhase.Exhale -> "Exhale"
     }
+
+    val labelStyle = MaterialTheme.typography.titleLarge.copy(
+        fontSize = 19.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color(0xFF04181B),
+        letterSpacing = 0.04.em,
+    )
 
     Canvas(modifier = modifier) {
         val maxRadius = size.minDimension / 2f
@@ -77,12 +84,6 @@ fun BreathingPacerOrb(state: BreathingState, modifier: Modifier = Modifier) {
         )
 
         // Phase label centred on the orb
-        val labelStyle = TextStyle(
-            fontSize = 19.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF04181B),
-            letterSpacing = 0.04.em,
-        )
         val measured = textMeasurer.measure(label, style = labelStyle)
         drawText(
             measured,

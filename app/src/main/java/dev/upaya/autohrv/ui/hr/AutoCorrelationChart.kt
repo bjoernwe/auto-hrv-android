@@ -12,9 +12,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
@@ -36,6 +34,12 @@ fun AutoCorrelationChart(
     val bgColor = MaterialTheme.colorScheme.background
     val faint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
     val textMeasurer = rememberTextMeasurer()
+
+    val labelStyle = MaterialTheme.typography.labelSmall.copy(
+        fontWeight = FontWeight.SemiBold,
+        color = accent,
+    )
+    val axisStyle = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = faint)
 
     Canvas(
         modifier = modifier,
@@ -141,12 +145,6 @@ fun AutoCorrelationChart(
 
             // Label above the marker
             val peakLabel = "%.1fs".format(peakLag)
-            val labelStyle = TextStyle(
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                fontFamily = FontFamily.Monospace,
-                color = accent,
-            )
             val measured = textMeasurer.measure(peakLabel, style = labelStyle)
             drawText(
                 measured,
@@ -158,7 +156,6 @@ fun AutoCorrelationChart(
         }
 
         // Axis labels
-        val axisStyle = TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace, color = faint)
         val zeroLabel = textMeasurer.measure("0s", style = axisStyle)
         drawText(zeroLabel, topLeft = Offset(padL, chartH - padB + 4.dp.toPx()))
         val lagLabel = textMeasurer.measure("${acf.size - 1}s lag", style = axisStyle)

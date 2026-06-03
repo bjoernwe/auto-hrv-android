@@ -35,8 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
@@ -114,7 +112,7 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
                             .height(100.dp),
                     )
                 }
-                //Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(12.dp))
             }
 
             // ③ Autocorrelation card
@@ -197,8 +195,7 @@ private fun AutoHrvTopBar(
             }
             Text(
                 "Auto HRV",
-                style = TextStyle(
-                    fontSize = 18.sp,
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.SemiBold,
                     color = onSurface,
                     letterSpacing = (-0.01).em,
@@ -223,14 +220,12 @@ private fun AutoHrvTopBar(
             )
             Text(
                 text = deviceId.take(8),
-                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Medium, color = onSurface),
+                style = MaterialTheme.typography.labelLarge.copy(color = onSurface),
             )
             if (batteryLevel != null) {
                 Text(
                     text = "$batteryLevel%",
-                    style = TextStyle(
-                        fontSize = 12.sp,
-                        fontFamily = FontFamily.Monospace,
+                    style = MaterialTheme.typography.labelMedium.copy(
                         color = muted,
                     ),
                 )
@@ -260,11 +255,15 @@ private fun ResonancePill(cycleLengthSec: Float, breathsPerMin: Float?) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = "%.1f".format(cycleLengthSec),
-                style = TextStyle(fontSize = 21.sp, fontWeight = FontWeight.SemiBold, color = onSurface),
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = onSurface
+                ),
             )
             Text(
                 text = "s",
-                style = TextStyle(fontSize = 12.sp, fontFamily = FontFamily.Monospace, color = muted),
+                style = MaterialTheme.typography.labelMedium.copy(color = muted),
                 modifier = Modifier.padding(bottom = 3.dp),
             )
         }
@@ -277,11 +276,15 @@ private fun ResonancePill(cycleLengthSec: Float, breathsPerMin: Float?) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = breathsPerMin?.let { "%.1f".format(it) } ?: "—",
-                style = TextStyle(fontSize = 21.sp, fontWeight = FontWeight.SemiBold, color = onSurface),
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontSize = 21.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = onSurface
+                ),
             )
             Text(
                 text = "/min",
-                style = TextStyle(fontSize = 12.sp, fontFamily = FontFamily.Monospace, color = muted),
+                style = MaterialTheme.typography.labelMedium.copy(color = muted),
                 modifier = Modifier.padding(bottom = 3.dp),
             )
         }
@@ -300,7 +303,10 @@ private fun ResonancePill(cycleLengthSec: Float, breathsPerMin: Float?) {
             Box(Modifier.size(7.dp).background(accent, CircleShape))
             Text(
                 text = "In resonance",
-                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = accent),
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = accent,
+                ),
             )
         }
     }
@@ -339,7 +345,7 @@ private fun RRIntervalHeader(swing: Int?) {
             Spacer(Modifier.height(2.dp))
             Text(
                 text = "beat-to-beat, ms",
-                style = TextStyle(fontSize = 12.sp, color = muted),
+                style = MaterialTheme.typography.labelMedium.copy(color = muted),
             )
         }
         Column(horizontalAlignment = Alignment.End) {
@@ -349,23 +355,20 @@ private fun RRIntervalHeader(swing: Int?) {
             ) {
                 Text(
                     text = swing?.let { "$it" } ?: "—",
-                    style = TextStyle(
-                        fontSize = 24.sp,
+                    style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.SemiBold,
                         color = accent,
                     ),
                 )
                 Text(
                     text = "ms",
-                    style = TextStyle(fontSize = 12.sp, fontFamily = FontFamily.Monospace, color = muted),
+                    style = MaterialTheme.typography.labelMedium.copy(color = muted),
                     modifier = Modifier.padding(bottom = 4.dp),
                 )
             }
             Text(
                 text = "SWING",
-                style = TextStyle(
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace,
+                style = MaterialTheme.typography.labelSmall.copy(
                     letterSpacing = 0.04.em,
                     color = faint,
                 ),
@@ -385,7 +388,10 @@ private fun ACFHeader() {
         SectionLabel(text = "AUTOCORRELATION")
         Text(
             text = "peak → pace",
-            style = TextStyle(fontSize = 11.5.sp, color = muted),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 11.5.sp,
+                color = muted,
+            ),
         )
     }
 }
@@ -394,9 +400,7 @@ private fun ACFHeader() {
 private fun SectionLabel(text: String) {
     Text(
         text = text,
-        style = TextStyle(
-            fontSize = 11.sp,
-            fontFamily = FontFamily.Monospace,
+        style = MaterialTheme.typography.labelSmall.copy(
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 0.14.em,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
@@ -416,9 +420,8 @@ private fun BandRangeSlider(
     Column {
         Text(
             text = "${"%.1f".format(value.start)} – ${"%.1f".format(value.endInclusive)} s",
-            style = TextStyle(
+            style = MaterialTheme.typography.labelSmall.copy(
                 fontSize = 10.sp,
-                fontFamily = FontFamily.Monospace,
                 color = accent,
             ),
             modifier = Modifier.align(Alignment.CenterHorizontally),
