@@ -17,6 +17,7 @@ data class TimeSeriesStats(
     val peakPower: Float?,
     val periodicity: Float?,
     val powerSpectrum: List<Float>?,
+    val fallingToRaisingRatio: Float?,
     val smoothness: Float?,
     val stdDev: Float?,
 )
@@ -37,17 +38,19 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
                 peakPower = spectrumData?.oneSided?.drop(1)?.max(),
                 periodicity = computePeriodicity(spectrumData?.oneSided),
                 powerSpectrum = spectrumData?.oneSided,
+                fallingToRaisingRatio = computeFallingToRaisingRatio(ts),
                 smoothness = computeSmoothness(ts),
                 stdDev = computeStdDev(ts),
             )
         }
     }
 
-    // Searches for the highest ACF peak in the lag range corresponding to 3–15 s breathing cycles.
-    // Assumes 1 s per sample, so lag == cycle length in seconds directly.
+    // Searches for the highest ACF peak in the lag range corresponding to 6–14 s breathing cycles.
+    // The RR stream is resampled to a uniform 1 Hz grid upstream, so a lag == cycle length in
+    // seconds directly.
     private fun findBreathingCycleLength(acf: List<Float>): Float? {
-        val minLag = 5
-        val maxLag = 16.coerceAtMost(acf.size - 1)
+        val minLag = MIN_CYCLE_SECONDS
+        val maxLag = MAX_CYCLE_SECONDS.coerceAtMost(acf.size - 1)
         if (minLag > maxLag) return null
         val peakLag = (minLag..maxLag).maxByOrNull { acf[it] } ?: return null
         return peakLag.toFloat()
@@ -121,6 +124,20 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         return if (maxEntropy > 0f) 1f - (entropy / maxEntropy) else 0f
     }
 
+    private fun computeFallingToRaisingRatio(ts: List<Int>): Float? {
+        if (ts.size < 2) return null
+        var raising = 0
+        var falling = 0
+        ts.zipWithNext { a, b ->
+            when {
+                b > a -> raising++
+                b < a -> falling++
+            }
+        }
+        if (raising == 0) return null
+        return falling.toFloat() / raising.toFloat()
+    }
+
     private fun computeStdDev(ts: List<Int>): Float? {
         if (ts.size < 2) return null
         val mean = ts.average().toFloat()
@@ -131,5 +148,10 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         var p = 1
         while (p < n) p = p shl 1
         return p
+    }
+
+    private companion object {
+        const val MIN_CYCLE_SECONDS = 5
+        const val MAX_CYCLE_SECONDS = 12
     }
 }

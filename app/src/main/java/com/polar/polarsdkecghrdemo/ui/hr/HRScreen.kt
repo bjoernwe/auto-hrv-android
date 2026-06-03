@@ -62,10 +62,11 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                 metrics = listOf(
                     HrMetric("Heart Rate (bpm)", uiState.hr?.let { "$it" } ?: "—"),
                     HrMetric("Std Dev", uiState.stats?.stdDev?.let { "%.0f".format(it) } ?: "—"),
-                    HrMetric("Smoothness", uiState.stats?.smoothness?.let { "%.2f".format(it) } ?: "—"),
-                    HrMetric("Periodicity", uiState.stats?.periodicity?.let { "%.2f".format(it) } ?: "—"),
-                    HrMetric("Peak Power", uiState.stats?.peakPower?.let { "%.0fk".format(it.div(1000)) } ?: "—"),
+                    //HrMetric("Smoothness", uiState.stats?.smoothness?.let { "%.2f".format(it) } ?: "—"),
+                    //HrMetric("Periodicity", uiState.stats?.periodicity?.let { "%.2f".format(it) } ?: "—"),
+                    //HrMetric("Peak Power", uiState.stats?.peakPower?.let { "%.0fk".format(it.div(1000)) } ?: "—"),
                     HrMetric("ACF Cycle (s)", uiState.stats?.autoCorrelationPeak?.let { "%.1f".format(it) } ?: "—"),
+                    HrMetric("Fall/Rise", uiState.stats?.fallingToRaisingRatio?.let { "%.2f".format(it) } ?: "—"),
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -104,6 +105,7 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                 Spacer(Modifier.height(4.dp))
                 AutoCorrelationChart(
                     acf = autoCorrelation,
+                    peakLag = uiState.stats?.autoCorrelationPeak,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -118,45 +120,7 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
 
             BreathingSection(viewModel = breathingViewModel)
 
-            if (uiState.experimentHistory.isNotEmpty()) {
-                Spacer(Modifier.height(16.dp))
-                HorizontalDivider(Modifier.padding(vertical = 28.dp))
-                Text(
-                    "Experiment History",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    "x: Cycle length  ·  y: Out:In ratio  ·  opacity: periodicity  ·  ⊕: sampling mean",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(4.dp))
-                ExperimentScatterPlot(
-                    history = uiState.experimentHistory,
-                    samplingMean = uiState.samplingMean,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-
-            val samplingMean = uiState.samplingMean
-            if (samplingMean != null) {
-                Spacer(Modifier.height(16.dp))
-                HorizontalDivider(Modifier.padding(vertical = 28.dp))
-                Text(
-                    "Current Estimate",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(8.dp))
-                HrMetricGrid(
-                    metrics = listOf(
-                        HrMetric("Out:In Ratio", "%.1f".format(samplingMean.outToInRatio)),
-                        HrMetric("Cycle Length (s)", "%.1f".format(samplingMean.cycleLengthSeconds)),
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
