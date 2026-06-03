@@ -1,120 +1,95 @@
 package dev.upaya.autohrv.ui.breathing
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.util.lerp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.upaya.autohrv.domain.breathing.BreathingPattern
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
 import dev.upaya.autohrv.domain.breathing.BreathingState
-
-private val PacerBlue = Color(0xFF00ACC1)
-private val PacerBlueDark = Color(0xFF00838F)
+import dev.upaya.autohrv.ui.theme.AutoHrvAccent
+import kotlin.math.PI
+import kotlin.math.cos
 
 @Composable
-fun BreathingSection(viewModel: BreathingPacerViewModel) {
-    val breathingState by viewModel.breathingState.collectAsStateWithLifecycle(initialValue = null)
-    val pattern by viewModel.currentPattern.collectAsStateWithLifecycle()
-    val targetOutToInRatio by viewModel.targetOutToInRatio.collectAsStateWithLifecycle()
+fun BreathingPacerOrb(state: BreathingState, modifier: Modifier = Modifier) {
+    val accent = AutoHrvAccent
+    val textMeasurer = rememberTextMeasurer()
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        PacerCircle(state = breathingState)
+    val scale = when (state.phase) {
+        BreathingPhase.Inhale -> 0.5f - 0.5f * cos(PI.toFloat() * state.progress)
+        BreathingPhase.Exhale -> 0.5f + 0.5f * cos(PI.toFloat() * state.progress)
+    }
+    val label = when (state.phase) {
+        BreathingPhase.Inhale -> "Inhale"
+        BreathingPhase.Exhale -> "Exhale"
+    }
 
-        Spacer(Modifier.height(12.dp))
+    Canvas(modifier = modifier) {
+        val maxRadius = size.minDimension / 2f
+        val minFraction = 0.34f
+        val orbRadius = maxRadius * (minFraction + (1f - minFraction) * scale)
+        val c = center
 
-        Text(
-            text = when (breathingState?.phase) {
-                BreathingPhase.Inhale -> "Inhale"
-                BreathingPhase.Exhale -> "Exhale"
-                null -> "—"
-            },
-            fontSize = 24.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = PacerBlueDark,
+        // Guide ring
+        drawCircle(
+            color = accent.copy(alpha = 0.22f),
+            radius = maxRadius,
+            style = Stroke(width = 1.dp.toPx()),
         )
 
-        Spacer(Modifier.height(12.dp))
-
-        ParamReadout(pattern)
-
-        Spacer(Modifier.height(16.dp))
-
-        OutToInRatioSlider(
-            value = targetOutToInRatio,
-            onValueChange = { viewModel.setTargetOutToInRatio(it) },
-            modifier = Modifier.fillMaxWidth(),
+        // Glow
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(accent.copy(alpha = 0.28f), Color.Transparent),
+                center = c,
+                radius = orbRadius * 1.5f,
+            ),
+            radius = orbRadius * 1.5f,
+            center = c,
         )
-    }
-}
 
-@Composable
-private fun OutToInRatioSlider(value: Float, onValueChange: (Float) -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = "Out:In  ${"%.1f".format(value)}",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        // Orb — radial gradient: light centre → accent → dark edge
+        val gradientCenter = Offset(c.x, c.y - orbRadius * 0.24f)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colorStops = arrayOf(
+                    0.0f to lerp(accent, Color.White, 0.15f),
+                    0.45f to accent,
+                    1.0f to lerp(accent, Color.Black, 0.4f),
+                ),
+                center = gradientCenter,
+                radius = orbRadius,
+            ),
+            radius = orbRadius,
+            center = c,
         )
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = 0.5f..4.0f,
-            steps = 34,
-            modifier = Modifier.fillMaxWidth(),
+
+        // Phase label centred on the orb
+        val labelStyle = TextStyle(
+            fontSize = 19.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF04181B),
+            letterSpacing = 0.04.em,
         )
-    }
-}
-
-@Composable
-private fun ParamReadout(params: BreathingPattern) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        ParamLabel(label = "Cycle", value = "%.1f s".format(params.cycleLengthSeconds))
-        Spacer(Modifier.width(24.dp))
-        ParamLabel(label = "Out:In", value = "%.1f".format(params.outToInRatio))
-    }
-}
-
-@Composable
-private fun ParamLabel(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun PacerCircle(state: BreathingState?, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier.size(200.dp)) {
-        val maxRadius = size.minDimension * 0.45f
-        val minRadius = size.minDimension * 0.18f
-
-        val fraction = when (state?.phase) {
-            BreathingPhase.Inhale -> state.progress
-            BreathingPhase.Exhale -> 1f - state.progress
-            null -> 0f
-        }
-        val radius = lerp(minRadius, maxRadius, fraction)
-
-        drawCircle(color = PacerBlue.copy(alpha = 0.25f), radius = maxRadius)
-        drawCircle(color = PacerBlue.copy(alpha = 0.7f), radius = radius)
-        drawCircle(color = PacerBlueDark, radius = radius, style = Stroke(width = 2.dp.toPx()))
+        val measured = textMeasurer.measure(label, style = labelStyle)
+        drawText(
+            measured,
+            topLeft = Offset(
+                c.x - measured.size.width / 2f,
+                c.y - measured.size.height / 2f,
+            ),
+        )
     }
 }

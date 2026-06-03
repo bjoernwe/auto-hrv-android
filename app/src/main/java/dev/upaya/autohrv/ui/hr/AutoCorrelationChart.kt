@@ -3,64 +3,172 @@ package dev.upaya.autohrv.ui.hr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun AutoCorrelationChart(acf: List<Float>, peakLag: Float? = null, modifier: Modifier = Modifier) {
-    val lineColor = Color(0xFF00A878)
-    val zeroLineColor = Color(0xFF888888)
-    val peakColor = Color(0xFF00A878)
+fun AutoCorrelationChart(
+    acf: List<Float>,
+    peakLag: Float? = null,
+    bandLo: Float = 0f,
+    bandHi: Float = Float.MAX_VALUE,
+    modifier: Modifier = Modifier,
+) {
+    if (acf.size < 2) return
+
+    val accent = MaterialTheme.colorScheme.primary
+    val surface = MaterialTheme.colorScheme.surface
+    val outlineColor = MaterialTheme.colorScheme.outlineVariant
+    val bgColor = MaterialTheme.colorScheme.background
+    val faint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
     val textMeasurer = rememberTextMeasurer()
+
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .height(100.dp),
+            .height(92.dp),
     ) {
-        if (acf.size < 2) return@Canvas
-        val yCenter = size.height / 2f
-        drawLine(
-            color = zeroLineColor,
-            start = Offset(0f, yCenter),
-            end = Offset(size.width, yCenter),
-            strokeWidth = 1.dp.toPx(),
-        )
-        val strokePx = 2.dp.toPx()
-        acf.zipWithNext().forEachIndexed { i, (a, b) ->
-            val x0 = i / (acf.size - 1f) * size.width
-            val x1 = (i + 1) / (acf.size - 1f) * size.width
-            val y0 = yCenter - a.coerceIn(-1f, 1f) * yCenter
-            val y1 = yCenter - b.coerceIn(-1f, 1f) * yCenter
-            drawLine(
-                color = lineColor,
-                start = Offset(x0, y0),
-                end = Offset(x1, y1),
-                strokeWidth = strokePx,
-                cap = StrokeCap.Round,
+        val padL = 8.dp.toPx()
+        val padR = 8.dp.toPx()
+        val padT = 14.dp.toPx()
+        val padB = 22.dp.toPx()
+        val chartW = size.width
+        val chartH = size.height
+        val plotW = chartW - padL - padR
+        val plotH = chartH - padT - padB
+        val maxLag = (acf.size - 1).toFloat()
+
+        val xs = { t: Float -> padL + (t / maxLag).coerceIn(0f, 1f) * plotW }
+        val yCenter = padT + plotH / 2f
+        val yHalf = plotH / 2f
+        val ys = { v: Float -> yCenter - v.coerceIn(-1f, 1f) * yHalf }
+
+        // Out-of-band shading (regions outside [bandLo, bandHi])
+        val bx0 = xs(bandLo.coerceAtMost(maxLag))
+        val bx1 = xs(bandHi.coerceAtMost(maxLag))
+        val shadingColor = bgColor.copy(alpha = 0.52f)
+        if (bx0 > padL) {
+            drawRect(
+                color = shadingColor,
+                topLeft = Offset(padL, padT),
+                size = Size(bx0 - padL, plotH),
             )
         }
+        if (bx1 < chartW - padR) {
+            drawRect(
+                color = shadingColor,
+                topLeft = Offset(bx1, padT),
+                size = Size(chartW - padR - bx1, plotH),
+            )
+        }
+
+        // Band edge dashed lines
+        val bandEdgeDash = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 4.dp.toPx()))
+        if (bandLo > 0f && bandLo <= maxLag) {
+            drawLine(
+                color = accent.copy(alpha = 0.35f),
+                start = Offset(bx0, padT),
+                end = Offset(bx0, chartH - padB),
+                strokeWidth = 1.dp.toPx(),
+                pathEffect = bandEdgeDash,
+            )
+        }
+        if (bandHi < maxLag) {
+            drawLine(
+                color = accent.copy(alpha = 0.35f),
+                start = Offset(bx1, padT),
+                end = Offset(bx1, chartH - padB),
+                strokeWidth = 1.dp.toPx(),
+                pathEffect = bandEdgeDash,
+            )
+        }
+
+        // Zero line
+        drawLine(
+            color = outlineColor,
+            start = Offset(padL, yCenter),
+            end = Offset(chartW - padR, yCenter),
+            strokeWidth = 1.dp.toPx(),
+        )
+
+        // ACF curve
+        val path = Path()
+        acf.forEachIndexed { i, v ->
+            val x = xs(i.toFloat())
+            val y = ys(v)
+            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        drawPath(
+            path = path,
+            color = accent,
+            style = Stroke(
+                width = 2.dp.toPx(),
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round,
+            ),
+        )
+
+        // Peak marker
         if (peakLag != null) {
             val peakIdx = peakLag.toInt().coerceIn(0, acf.size - 1)
-            val px = peakIdx / (acf.size - 1f) * size.width
-            val py = yCenter - acf[peakIdx].coerceIn(-1f, 1f) * yCenter
-            drawCircle(color = peakColor, radius = 4.dp.toPx(), center = Offset(px, py))
-            val label = "%.0f s".format(peakLag)
-            val measured = textMeasurer.measure(label, style = TextStyle(fontSize = 12.sp, color = peakColor))
+            val peakX = xs(peakIdx.toFloat())
+            val peakY = ys(acf[peakIdx])
+
+            // Dashed vertical line at peak
+            drawLine(
+                color = accent.copy(alpha = 0.45f),
+                start = Offset(peakX, padT),
+                end = Offset(peakX, chartH - padB),
+                strokeWidth = 1.5.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 4.dp.toPx())),
+            )
+
+            // Dot on curve (surface ring + accent dot)
+            drawCircle(color = surface, radius = 6.5.dp.toPx(), center = Offset(peakX, peakY))
+            drawCircle(color = accent, radius = 4.5.dp.toPx(), center = Offset(peakX, peakY))
+
+            // Label above the marker
+            val peakLabel = "%.1fs".format(peakLag)
+            val labelStyle = TextStyle(
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = FontFamily.Monospace,
+                color = accent,
+            )
+            val measured = textMeasurer.measure(peakLabel, style = labelStyle)
             drawText(
                 measured,
                 topLeft = Offset(
-                    x = (px - measured.size.width / 2f).coerceIn(0f, size.width - measured.size.width),
-                    y = (py - 4.dp.toPx() - measured.size.height).coerceAtLeast(0f),
+                    (peakX - measured.size.width / 2f).coerceIn(padL, chartW - padR - measured.size.width),
+                    padT + 2.dp.toPx(),
                 ),
             )
         }
+
+        // Axis labels
+        val axisStyle = TextStyle(fontSize = 10.sp, fontFamily = FontFamily.Monospace, color = faint)
+        val zeroLabel = textMeasurer.measure("0s", style = axisStyle)
+        drawText(zeroLabel, topLeft = Offset(padL, chartH - padB + 4.dp.toPx()))
+        val lagLabel = textMeasurer.measure("${acf.size - 1}s lag", style = axisStyle)
+        drawText(
+            lagLabel,
+            topLeft = Offset(chartW - padR - lagLabel.size.width, chartH - padB + 4.dp.toPx()),
+        )
     }
 }
