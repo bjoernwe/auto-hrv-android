@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -64,6 +65,18 @@ class PolarRepository @Inject constructor(
             flowOf()
         }
     }
+
+    /** Beat-indexed HR: one value per sample, exactly as delivered by the sensor. */
+    val hrBeatFlow: Flow<Int> = hrFlow.map { it.hr }
+
+    /** Beat-indexed RR intervals (true NN intervals), one value per heartbeat. */
+    val rrMsBeatFlow: Flow<Int> = hrFlow.transform { sample -> sample.rrsMs.forEach { emit(it) } }
+
+    /** HR resampled onto a uniform 1 Hz grid (zero-order hold). */
+    val hrResampled1Hz: Flow<Int> = hrBeatFlow.resampledTo1Hz()
+
+    /** RR intervals resampled onto a uniform 1 Hz grid (zero-order hold). */
+    val rrMsResampled1Hz: Flow<Int> = rrMsBeatFlow.resampledTo1Hz()
 
     private val api: PolarBleApi by lazy {
         PolarBleApiDefaultImpl.defaultImplementation(
@@ -131,28 +144,49 @@ class PolarRepository @Inject constructor(
         }
     }
 
-    fun getHrHistory(seconds: Int): Flow<List<Int>> {
-        return hrFlow
-            .scan<PolarHrData.PolarHrSample, List<Int>>(emptyList()) { acc, sample -> acc + sample.hr }
-            .map { samples -> samples.takeLast(seconds * SAMPLES_PER_SECOND) }
-    }
+    /** HR history on the uniform 1 Hz grid, covering the last [seconds] of real time. */
+    fun getHrHistory(seconds: Int): Flow<List<Int>> =
+        hrResampled1Hz.windowedTo(seconds * SAMPLES_PER_SECOND)
 
-    fun getRrsMsHistory(seconds: Int): Flow<List<Int>> = rrMsResampled1Hz()
-        .scan(emptyList<Int>()) {
-            acc, rr -> (acc + rr).takeLast(seconds * SAMPLES_PER_SECOND)
-        }
+    /** RR-interval history on the uniform 1 Hz grid, covering the last [seconds] of real time. */
+    fun getRrsMsHistory(seconds: Int): Flow<List<Int>> =
+        rrMsResampled1Hz.windowedTo(seconds * SAMPLES_PER_SECOND)
 
     /**
-     * Resamples the irregular, beat-indexed RR stream onto a uniform 1 Hz time grid via
-     * zero-order hold: a 1 Hz ticker emits the most recently observed RR interval. This makes a
-     * sample index == seconds, so downstream lag/frequency axes are in real time units. The
-     * breathing band (~0.07-0.17 Hz) sits well below the 0.5 Hz Nyquist limit, so 1 Hz suffices.
+     * Beat-indexed RR-interval history (true NN intervals) covering roughly the last [seconds] of
+     * real time. Unlike [getRrsMsHistory] no resampling is applied, so each interval appears exactly
+     * once — the right basis for beat-to-beat measures such as SDNN.
      */
-    private fun rrMsResampled1Hz(): Flow<Int> = channelFlow {
-        val latestRrMs = MutableStateFlow<Int?>(null)
-        launch { hrFlow.collect { sample -> sample.rrsMs.lastOrNull()?.let { latestRrMs.value = it } } }
+    fun getRrsMsBeatHistory(seconds: Int): Flow<List<Int>> =
+        rrMsBeatFlow.scan(emptyList<Int>()) { acc, rr -> (acc + rr).takeLastWithinMs(seconds * 1000) }
+
+    /** Accumulates a flow into a rolling window of the most recent [maxSamples] values. */
+    private fun Flow<Int>.windowedTo(maxSamples: Int): Flow<List<Int>> =
+        scan(emptyList<Int>()) { acc, value -> (acc + value).takeLast(maxSamples) }
+
+    /** Keeps the most recent intervals whose cumulative duration is within [windowMs]. */
+    private fun List<Int>.takeLastWithinMs(windowMs: Int): List<Int> {
+        var sum = 0
+        val window = ArrayDeque<Int>()
+        for (rr in asReversed()) {
+            window.addFirst(rr)
+            sum += rr
+            if (sum >= windowMs) break
+        }
+        return window
+    }
+
+    /**
+     * Resamples an irregular, beat-indexed stream onto a uniform 1 Hz time grid via zero-order hold:
+     * a 1 Hz ticker re-emits the most recently observed value. This makes a sample index == seconds,
+     * so downstream lag/frequency axes are in real time units. The breathing band (~0.07-0.17 Hz)
+     * sits well below the 0.5 Hz Nyquist limit, so 1 Hz suffices.
+     */
+    private fun <T : Any> Flow<T>.resampledTo1Hz(): Flow<T> = channelFlow {
+        val latest = MutableStateFlow<T?>(null)
+        launch { collect { latest.value = it } }
         while (isActive) {
-            latestRrMs.value?.let { send(it) }
+            latest.value?.let { send(it) }
             delay(1000L / SAMPLES_PER_SECOND)
         }
     }
@@ -160,10 +194,9 @@ class PolarRepository @Inject constructor(
     private fun createHrStream(): Flow<PolarHrData.PolarHrSample> = callbackFlow {
         val disposable = api.startHrStreaming(DEVICE_ID)
             .subscribe(
-                { hrData ->
-                    // If there's more than one sample, ignore. Effectively re-samples to 1Hz.
-                    trySend(hrData.samples.last())
-                },
+                // Emit every sample so no beats (and their RR intervals) are lost; consumers that
+                // want a uniform rate go through resampledTo1Hz instead.
+                { hrData -> hrData.samples.forEach { trySend(it) } },
                 { error -> close(error) },
                 { close() }
             )
