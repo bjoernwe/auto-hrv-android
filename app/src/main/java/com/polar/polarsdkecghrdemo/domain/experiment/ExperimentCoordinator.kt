@@ -57,10 +57,10 @@ class ExperimentCoordinator @Inject internal constructor(
         .stateIn(scope, SharingStarted.Eagerly, null)
 
     private val objective: () -> Float = {
-        val peakPower = stats.value?.peakPower ?: 0f
-        val periodicity = stats.value?.periodicity ?: 0f
-        val smoothness = stats.value?.smoothness ?: 0f
-        val sdrr = stats.value?.sdrr ?: 0f
+        val peakPower = stats.value?.resampledRrsStats?.peakPower ?: 0f
+        val periodicity = stats.value?.resampledRrsStats?.periodicity ?: 0f
+        val smoothness = stats.value?.resampledRrsStats?.smoothness ?: 0f
+        val sdrr = stats.value?.beatRrsStats?.sdrr ?: 0f
         0 - peakPower.div(1_000_000) - periodicity - smoothness.div(3) - sdrr.div(200)
     }
 
@@ -75,7 +75,7 @@ class ExperimentCoordinator @Inject internal constructor(
         .stateIn(scope, SharingStarted.Eagerly, initialBreathingPattern)
 
     private val smoothedCycleLength: Flow<Float> = stats
-        .map { s -> s?.autoCorrelationPeak ?: experimentConfig.cycleLengthMean }
+        .map { s -> s?.resampledRrsStats?.autoCorrelationPeak ?: experimentConfig.cycleLengthMean }
         .map { s -> s.coerceIn(_cycleLengthRange.value) }
         .scan(emptyList<Float>()) { window, cl -> (window + cl).takeLast(experimentConfig.experimentLengthSeconds) }
         .filter { it.isNotEmpty() }
@@ -99,7 +99,7 @@ class ExperimentCoordinator @Inject internal constructor(
         // the initial value change is not a finished experiment yet
         .drop(1)
         // create record
-        .map { finishedPattern -> stats.value?.periodicity?.let { p -> ExperimentRecord(finishedPattern, p) } }
+        .map { finishedPattern -> stats.value?.resampledRrsStats?.periodicity?.let { p -> ExperimentRecord(finishedPattern, p) } }
         .filterNotNull()
         // keep history
         .scan(emptyList<ExperimentRecord>()) { records, record -> records + record }

@@ -12,7 +12,7 @@ import kotlin.math.cos
 import kotlin.math.ln
 import kotlin.math.sqrt
 
-data class TimeSeriesStats(
+data class ResampledRrsStats(
     val autoCorrelation: List<Float>?,
     val autoCorrelationPeak: Float?,
     val peakPower: Float?,
@@ -20,8 +20,16 @@ data class TimeSeriesStats(
     val powerSpectrum: List<Float>?,
     val fallingToRaisingRatio: Float?,
     val smoothness: Float?,
+)
+
+data class BeatRrsStats(
     val sdrr: Float?,
     val rmssd: Float?,
+)
+
+data class TimeSeriesStats(
+    val resampledRrsStats: ResampledRrsStats?,
+    val beatRrsStats: BeatRrsStats?,
 )
 
 private class SpectrumData(val fullSpectrum: DoubleArray) {
@@ -32,18 +40,18 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
 
     /**
      * @param resampledRrsMs RR intervals on a uniform 1 Hz grid — basis for the spectral/ACF stats.
-     * @param beatRrsMs beat-indexed RR intervals — basis for [TimeSeriesStats.sdrr] and
-     *   [TimeSeriesStats.rmssd], which would be biased by the zero-order-hold resampling of
+     * @param beatRrsMs beat-indexed RR intervals — basis for [BeatRrsStats.sdrr] and
+     *   [BeatRrsStats.rmssd], which would be biased by the zero-order-hold resampling of
      *   [resampledRrsMs].
      */
     operator fun invoke(
         resampledRrsMs: Flow<List<Int>>,
         beatRrsMs: Flow<List<Int>>,
     ): Flow<TimeSeriesStats> {
-        val spectralStats = resampledRrsMs.map { ts ->
+        val resampledStats = resampledRrsMs.map { ts ->
             val spectrumData = computeSpectrumData(ts)
             val acf = spectrumData?.let { computeAutoCorrelation(it.fullSpectrum) }
-            TimeSeriesStats(
+            ResampledRrsStats(
                 autoCorrelation = acf,
                 autoCorrelationPeak = acf?.let { findBreathingCycleLength(it) },
                 peakPower = spectrumData?.oneSided?.drop(1)?.max(),
@@ -51,13 +59,11 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
                 powerSpectrum = spectrumData?.oneSided,
                 fallingToRaisingRatio = computeFallingToRaisingRatio(ts),
                 smoothness = computeSmoothness(ts),
-                sdrr = null,
-                rmssd = null,
             )
         }
-        val beatStats = beatRrsMs.map { computeStdDev(it) to computeRmssd(it) }
-        return combine(spectralStats, beatStats) { stats, (sd, rmssd) ->
-            stats.copy(sdrr = sd, rmssd = rmssd)
+        val beatStats = beatRrsMs.map { BeatRrsStats(sdrr = computeStdDev(it), rmssd = computeRmssd(it)) }
+        return combine(resampledStats, beatStats) { resampled, beat ->
+            TimeSeriesStats(resampledRrsStats = resampled, beatRrsStats = beat)
         }
     }
 

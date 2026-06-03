@@ -62,13 +62,13 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
             HrMetricGrid(
                 metrics = listOf(
                     HrMetric("Heart Rate (bpm)", uiState.hr?.let { "$it" } ?: "—"),
-                    HrMetric("RMSSD", uiState.stats?.rmssd?.let { "%.0f".format(it) } ?: "—"),
-                    HrMetric("SDRR", uiState.stats?.sdrr?.let { "%.0f".format(it) } ?: "—"),
-                    //HrMetric("Smoothness", uiState.stats?.smoothness?.let { "%.2f".format(it) } ?: "—"),
-                    //HrMetric("Periodicity", uiState.stats?.periodicity?.let { "%.2f".format(it) } ?: "—"),
-                    //HrMetric("Peak Power", uiState.stats?.peakPower?.let { "%.0fk".format(it.div(1000)) } ?: "—"),
-                    HrMetric("ACF Cycle (s)", uiState.stats?.autoCorrelationPeak?.let { "%.1f".format(it) } ?: "—"),
-                    HrMetric("Fall/Rise", uiState.stats?.fallingToRaisingRatio?.let { "%.2f".format(it) } ?: "—"),
+                    HrMetric("RMSSD", uiState.stats?.beatRrsStats?.rmssd?.let { "%.0f".format(it) } ?: "—"),
+                    HrMetric("SDRR", uiState.stats?.beatRrsStats?.sdrr?.let { "%.0f".format(it) } ?: "—"),
+                    //HrMetric("Smoothness", uiState.stats?.resampledRrsStats?.smoothness?.let { "%.2f".format(it) } ?: "—"),
+                    //HrMetric("Periodicity", uiState.stats?.resampledRrsStats?.periodicity?.let { "%.2f".format(it) } ?: "—"),
+                    //HrMetric("Peak Power", uiState.stats?.resampledRrsStats?.peakPower?.let { "%.0fk".format(it.div(1000)) } ?: "—"),
+                    HrMetric("ACF Cycle (s)", uiState.stats?.resampledRrsStats?.autoCorrelationPeak?.let { "%.1f".format(it) } ?: "—"),
+                    HrMetric("Fall/Rise", uiState.stats?.resampledRrsStats?.fallingToRaisingRatio?.let { "%.2f".format(it) } ?: "—"),
                 ),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -81,7 +81,7 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                 )
             }
 
-            /*val powerSpectrum = uiState.stats?.powerSpectrum
+            /*val powerSpectrum = uiState.stats?.resampledRrsStats?.powerSpectrum
             if (powerSpectrum != null) {
                 Spacer(Modifier.height(16.dp))
                 Text(
@@ -96,7 +96,7 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                 )
             }*/
 
-            val autoCorrelation = uiState.stats?.autoCorrelation
+            val autoCorrelation = uiState.stats?.resampledRrsStats?.autoCorrelation
             if (autoCorrelation != null) {
                 Spacer(Modifier.height(16.dp))
                 Text(
@@ -107,7 +107,7 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                 Spacer(Modifier.height(4.dp))
                 AutoCorrelationChart(
                     acf = autoCorrelation,
-                    peakLag = uiState.stats?.autoCorrelationPeak,
+                    peakLag = uiState.stats?.resampledRrsStats?.autoCorrelationPeak,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
