@@ -4,9 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.polar.polarsdkecghrdemo.data.model.ConnectionState
 import com.polar.polarsdkecghrdemo.data.repository.PolarRepository
-import com.polar.polarsdkecghrdemo.domain.breathing.BreathingPattern
 import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentConfig
-import com.polar.polarsdkecghrdemo.domain.breathing.ExperimentRecord
 import com.polar.polarsdkecghrdemo.domain.experiment.ExperimentCoordinator
 import com.polar.polarsdkecghrdemo.domain.experiment.TimeSeriesStats
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,15 +22,13 @@ data class HrUiState(
     val rrsMsHistory: List<Int> = emptyList(),
     val batteryLevel: Int? = null,
     val stats: TimeSeriesStats? = null,
-    val experimentHistory: List<ExperimentRecord> = emptyList(),
-    val samplingMean: BreathingPattern? = null,
 )
 
 @HiltViewModel
 class PolarViewModel @Inject constructor(
     private val repository: PolarRepository,
     private val coordinator: ExperimentCoordinator,
-    private val polarRepository: PolarRepository,
+    polarRepository: PolarRepository,
 ) : ViewModel() {
 
     private val experimentConfig = ExperimentConfig.DEFAULT
@@ -68,16 +64,6 @@ class PolarViewModel @Inject constructor(
         viewModelScope.launch {
             coordinator.stats.collect { stats ->
                 _uiState.update { it.copy(stats = stats) }
-            }
-        }
-        viewModelScope.launch {
-            coordinator.experimentRecords.collect { history ->
-                _uiState.update { it.copy(experimentHistory = history) }
-            }
-        }
-        viewModelScope.launch {
-            coordinator.samplingMean.collect { mean ->
-                _uiState.update { it.copy(samplingMean = mean) }
             }
         }
     }
