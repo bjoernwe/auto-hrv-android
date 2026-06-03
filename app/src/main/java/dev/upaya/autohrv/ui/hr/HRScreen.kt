@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -427,53 +430,33 @@ private fun BandRangeSlider(
     )
 
     Column {
-        Text(
-            text = "${"%.1f".format(coercedValue.start)} – ${"%.1f".format(coercedValue.endInclusive)} s",
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 10.sp,
-                color = accent,
-            ),
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        )
         RangeSlider(
             value = coercedValue,
             onValueChange = onValueChange,
             valueRange = 0f..safeMaxLag,
             steps = 0,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth()
+                .height(16.dp)
+                .padding(top = 2.dp),
             colors = sliderColors,
             startThumb = {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(20.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .shadow(2.dp, CircleShape)
-                            .background(accent, CircleShape)
-                    )
-                }
+                ThumbWithLabel(
+                    label = "%.0f".format(coercedValue.start),
+                    accent = accent
+                )
             },
             endThumb = {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(20.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .shadow(2.dp, CircleShape)
-                            .background(accent, CircleShape)
-                    )
-                }
+                ThumbWithLabel(
+                    label = "%.0f".format(coercedValue.endInclusive),
+                    accent = accent
+                )
             },
             track = { rangeSliderState ->
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(20.dp)
+                        .height(12.dp)
                 ) {
                     SliderDefaults.Track(
                         rangeSliderState = rangeSliderState,
@@ -483,5 +466,33 @@ private fun BandRangeSlider(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun ThumbWithLabel(label: String, accent: Color) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier.wrapContentSize(unbounded = true)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 10.sp,
+                color = accent,
+            ),
+            modifier = Modifier.offset(y = (-18).dp)
+        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .shadow(2.dp, CircleShape)
+                    .background(accent, CircleShape)
+            )
+        }
     }
 }
