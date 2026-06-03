@@ -38,3 +38,4 @@ Thumbs.db
 /.idea/planningMode.xml
 /.idea/markdown.xml
 /.idea/inspectionProfiles/Project_Default.xml
+*.hprof
