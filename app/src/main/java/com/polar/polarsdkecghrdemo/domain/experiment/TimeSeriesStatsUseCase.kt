@@ -21,6 +21,7 @@ data class TimeSeriesStats(
     val fallingToRaisingRatio: Float?,
     val smoothness: Float?,
     val sdrr: Float?,
+    val rmssd: Float?,
 )
 
 private class SpectrumData(val fullSpectrum: DoubleArray) {
@@ -31,8 +32,9 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
 
     /**
      * @param resampledRrsMs RR intervals on a uniform 1 Hz grid — basis for the spectral/ACF stats.
-     * @param beatRrsMs beat-indexed RR intervals — basis for [TimeSeriesStats.sdrr],
-     *   which would be biased by the zero-order-hold resampling of [resampledRrsMs].
+     * @param beatRrsMs beat-indexed RR intervals — basis for [TimeSeriesStats.sdrr] and
+     *   [TimeSeriesStats.rmssd], which would be biased by the zero-order-hold resampling of
+     *   [resampledRrsMs].
      */
     operator fun invoke(
         resampledRrsMs: Flow<List<Int>>,
@@ -50,10 +52,13 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
                 fallingToRaisingRatio = computeFallingToRaisingRatio(ts),
                 smoothness = computeSmoothness(ts),
                 sdrr = null,
+                rmssd = null,
             )
         }
-        val sdrr = beatRrsMs.map { computeStdDev(it) }
-        return combine(spectralStats, sdrr) { stats, sd -> stats.copy(sdrr = sd) }
+        val beatStats = beatRrsMs.map { computeStdDev(it) to computeRmssd(it) }
+        return combine(spectralStats, beatStats) { stats, (sd, rmssd) ->
+            stats.copy(sdrr = sd, rmssd = rmssd)
+        }
     }
 
     // Searches for the highest ACF peak in the lag range corresponding to 6–14 s breathing cycles.
@@ -155,6 +160,15 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         val mean = ts.average().toFloat()
         val sumSquares = ts.sumOf { val d = it - mean; (d * d).toDouble() }.toFloat()
         return sqrt(sumSquares / (ts.size - 1))
+    }
+
+    // Root mean square of successive differences between adjacent RR intervals.
+    private fun computeRmssd(ts: List<Int>): Float? {
+        if (ts.size < 2) return null
+        val meanSquaredDiff = ts
+            .zipWithNext { a, b -> val d = (b - a).toDouble(); d * d }
+            .average()
+        return sqrt(meanSquaredDiff).toFloat()
     }
 
     private fun nextPowerOf2(n: Int): Int {
