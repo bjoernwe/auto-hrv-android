@@ -15,8 +15,13 @@ class BreathingPacerViewModel @Inject constructor(
     val breathingState: StateFlow<BreathingState> = coordinator.currentBreathingState
     val currentPattern: StateFlow<BreathingPattern> = coordinator.currentBreathingPattern
     val targetOutToInRatio: StateFlow<Float> = coordinator.targetOutToInRatio
+    val targetCycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = coordinator.cycleLengthRange
 
     fun setTargetOutToInRatio(ratio: Float) {
         coordinator.setTargetOutToInRatio(ratio)
+    }
+
+    fun setTargetCycleLengthRange(range: ClosedFloatingPointRange<Float>) {
+        coordinator.setTargetCycleLengthRange(range)
     }
 }

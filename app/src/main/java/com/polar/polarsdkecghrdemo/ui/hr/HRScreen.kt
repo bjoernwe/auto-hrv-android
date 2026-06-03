@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -30,6 +30,7 @@ import com.polar.polarsdkecghrdemo.ui.breathing.BreathingSection
 @Composable
 fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerViewModel) {
     val uiState by hrViewModel.uiState.collectAsStateWithLifecycle()
+    val targetCycleLengthRange by breathingViewModel.targetCycleLengthRange.collectAsStateWithLifecycle()
 
     val view = LocalView.current
     DisposableEffect(Unit) {
@@ -110,6 +111,14 @@ fun HRScreen(hrViewModel: PolarViewModel, breathingViewModel: BreathingPacerView
                 )
             }
 
+            Spacer(Modifier.height(16.dp))
+
+            CycleLengthRangeSlider(
+                value = targetCycleLengthRange,
+                onValueChange = { breathingViewModel.setTargetCycleLengthRange(it) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+
             Text(
                 "Breathing Pacer",
                 style = MaterialTheme.typography.titleMedium,
@@ -147,6 +156,29 @@ private fun DeviceInfoSection(
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CycleLengthRangeSlider(
+    value: ClosedFloatingPointRange<Float>,
+    onValueChange: (ClosedFloatingPointRange<Float>) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = "Cycle length  ${"%.1f".format(value.start)}–${"%.1f".format(value.endInclusive)} s",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        RangeSlider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = 4f..20f,
+            steps = 31,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

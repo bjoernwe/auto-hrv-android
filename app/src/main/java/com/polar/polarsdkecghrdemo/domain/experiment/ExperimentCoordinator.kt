@@ -40,6 +40,13 @@ class ExperimentCoordinator @Inject internal constructor(
         _targetOutToInRatio.value = ratio
     }
 
+    private val _cycleLengthRange = MutableStateFlow(4f..20f)
+    val cycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = _cycleLengthRange
+
+    fun setTargetCycleLengthRange(range: ClosedFloatingPointRange<Float>) {
+        _cycleLengthRange.value = range
+    }
+
     private val rrsMsHistory: StateFlow<List<Int>> = polarRepository.getRrsMsHistory(experimentConfig.evaluationLengthSeconds)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
@@ -66,6 +73,7 @@ class ExperimentCoordinator @Inject internal constructor(
 
     private val smoothedCycleLength: Flow<Float> = stats
         .map { s -> s?.autoCorrelationPeak ?: experimentConfig.cycleLengthMean }
+        .map { s -> s.coerceIn(_cycleLengthRange.value) }
         .scan(emptyList<Float>()) { window, cl -> (window + cl).takeLast(experimentConfig.experimentLengthSeconds) }
         .filter { it.isNotEmpty() }
         .map { window -> window.reduce { a, b -> a + b } / window.size.toFloat() }
