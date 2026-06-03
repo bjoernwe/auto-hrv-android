@@ -1,6 +1,7 @@
 package com.polar.polarsdkecghrdemo.domain.experiment
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import org.apache.commons.math3.transform.DftNormalization
 import org.apache.commons.math3.transform.FastFourierTransformer
@@ -11,7 +12,7 @@ import kotlin.math.cos
 import kotlin.math.ln
 import kotlin.math.sqrt
 
-data class TimeSeriesStats(
+data class ResampledRrsStats(
     val autoCorrelation: List<Float>?,
     val autoCorrelationPeak: Float?,
     val peakPower: Float?,
@@ -19,7 +20,16 @@ data class TimeSeriesStats(
     val powerSpectrum: List<Float>?,
     val fallingToRaisingRatio: Float?,
     val smoothness: Float?,
-    val stdDev: Float?,
+)
+
+data class BeatRrsStats(
+    val sdrr: Float?,
+    val rmssd: Float?,
+)
+
+data class TimeSeriesStats(
+    val resampledRrsStats: ResampledRrsStats?,
+    val beatRrsStats: BeatRrsStats?,
 )
 
 private class SpectrumData(val fullSpectrum: DoubleArray) {
@@ -28,11 +38,20 @@ private class SpectrumData(val fullSpectrum: DoubleArray) {
 
 internal class TimeSeriesStatsUseCase @Inject constructor() {
 
-    operator fun invoke(ts: Flow<List<Int>>): Flow<TimeSeriesStats> {
-        return ts.map { ts ->
+    /**
+     * @param resampledRrsMs RR intervals on a uniform 1 Hz grid — basis for the spectral/ACF stats.
+     * @param beatRrsMs beat-indexed RR intervals — basis for [BeatRrsStats.sdrr] and
+     *   [BeatRrsStats.rmssd], which would be biased by the zero-order-hold resampling of
+     *   [resampledRrsMs].
+     */
+    operator fun invoke(
+        resampledRrsMs: Flow<List<Int>>,
+        beatRrsMs: Flow<List<Int>>,
+    ): Flow<TimeSeriesStats> {
+        val resampledStats = resampledRrsMs.map { ts ->
             val spectrumData = computeSpectrumData(ts)
             val acf = spectrumData?.let { computeAutoCorrelation(it.fullSpectrum) }
-            TimeSeriesStats(
+            ResampledRrsStats(
                 autoCorrelation = acf,
                 autoCorrelationPeak = acf?.let { findBreathingCycleLength(it) },
                 peakPower = spectrumData?.oneSided?.drop(1)?.max(),
@@ -40,8 +59,11 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
                 powerSpectrum = spectrumData?.oneSided,
                 fallingToRaisingRatio = computeFallingToRaisingRatio(ts),
                 smoothness = computeSmoothness(ts),
-                stdDev = computeStdDev(ts),
             )
+        }
+        val beatStats = beatRrsMs.map { BeatRrsStats(sdrr = computeStdDev(it), rmssd = computeRmssd(it)) }
+        return combine(resampledStats, beatStats) { resampled, beat ->
+            TimeSeriesStats(resampledRrsStats = resampled, beatRrsStats = beat)
         }
     }
 
@@ -138,10 +160,21 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         return falling.toFloat() / raising.toFloat()
     }
 
+    // Sample standard deviation (Bessel-corrected, divides by N-1) — matches the SDNN convention.
     private fun computeStdDev(ts: List<Int>): Float? {
         if (ts.size < 2) return null
         val mean = ts.average().toFloat()
-        return sqrt(ts.map { (it - mean) * (it - mean) }.average().toFloat())
+        val sumSquares = ts.sumOf { val d = it - mean; (d * d).toDouble() }.toFloat()
+        return sqrt(sumSquares / (ts.size - 1))
+    }
+
+    // Root mean square of successive differences between adjacent RR intervals.
+    private fun computeRmssd(ts: List<Int>): Float? {
+        if (ts.size < 2) return null
+        val meanSquaredDiff = ts
+            .zipWithNext { a, b -> val d = (b - a).toDouble(); d * d }
+            .average()
+        return sqrt(meanSquaredDiff).toFloat()
     }
 
     private fun nextPowerOf2(n: Int): Int {

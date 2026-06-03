@@ -22,7 +22,7 @@ data class BreathingExperiment(
 
 /**
  * Optimizes the breathing parameters (out-to-in ratio and cycle length) with CMA-ES from
- * Apache Commons Math, using the observed [TimeSeriesStats.periodicity] as the objective to
+ * Apache Commons Math, using the observed [ResampledRrsStats.periodicity] as the objective to
  * maximize.
  *
  * CMA-ES is a synchronous, population-based optimizer, while evaluating a candidate requires
