@@ -62,7 +62,8 @@ class ExperimentCoordinator @Inject internal constructor(
                 s?.autoCorrelationPeak ?: ExperimentConfig.DEFAULT.cycleLengthMean,
             )
         }
-        .scan(emptyList<BreathingPattern>()) { window, pattern -> (window + pattern).takeLast(5) }
+        .scan(emptyList<BreathingPattern>()) { window, pattern -> (window + pattern).takeLast(
+            ExperimentConfig.DEFAULT.experimentLengthSeconds) }
         .filter { it.isNotEmpty() }
         .map { window -> window.reduce { a, b -> a + b } / window.size.toFloat() }
         //.map { pattern -> (pattern + BreathingPattern.DEFAULT) / 2f }

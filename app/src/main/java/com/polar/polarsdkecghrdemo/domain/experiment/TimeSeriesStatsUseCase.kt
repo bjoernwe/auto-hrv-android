@@ -151,7 +151,7 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
     }
 
     private companion object {
-        const val MIN_CYCLE_SECONDS = 6
-        const val MAX_CYCLE_SECONDS = 14
+        const val MIN_CYCLE_SECONDS = 5
+        const val MAX_CYCLE_SECONDS = 12
     }
 }
