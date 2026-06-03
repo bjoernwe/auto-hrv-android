@@ -103,7 +103,6 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
             if (uiState.rrsMsHistory.size >= 2) {
                 HrvCard {
                     RRIntervalHeader(rmssd)
-                    //Spacer(Modifier.height(8.dp))
                     TimeSeriesChart(
                         ts = uiState.rrsMsHistory,
                         modifier = Modifier
@@ -133,6 +132,7 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
                     BandRangeSlider(
                         value = targetCycleLengthRange,
                         onValueChange = { breathingViewModel.setTargetCycleLengthRange(it) },
+                        maxLag = (acf.size - 1).toFloat(),
                     )
                 }
                 Spacer(Modifier.height(12.dp))
@@ -413,13 +413,15 @@ private fun SectionLabel(text: String) {
 private fun BandRangeSlider(
     value: ClosedFloatingPointRange<Float>,
     onValueChange: (ClosedFloatingPointRange<Float>) -> Unit,
+    maxLag: Float,
 ) {
     val accent = MaterialTheme.colorScheme.primary
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val safeMaxLag = maxOf(maxLag, 0.1f)
+    val coercedValue = value.start.coerceIn(0f, safeMaxLag)..value.endInclusive.coerceIn(0f, safeMaxLag)
 
     Column {
         Text(
-            text = "${"%.1f".format(value.start)} – ${"%.1f".format(value.endInclusive)} s",
+            text = "${"%.1f".format(coercedValue.start)} – ${"%.1f".format(coercedValue.endInclusive)} s",
             style = MaterialTheme.typography.labelSmall.copy(
                 fontSize = 10.sp,
                 color = accent,
@@ -427,10 +429,10 @@ private fun BandRangeSlider(
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
         RangeSlider(
-            value = value,
+            value = coercedValue,
             onValueChange = onValueChange,
-            valueRange = 4f..20f,
-            steps = 31,
+            valueRange = 0f..safeMaxLag,
+            steps = if (safeMaxLag >= 1f) safeMaxLag.toInt() - 1 else 0,
             modifier = Modifier.fillMaxWidth(),
             colors = SliderDefaults.colors(
                 thumbColor = MaterialTheme.colorScheme.surface,

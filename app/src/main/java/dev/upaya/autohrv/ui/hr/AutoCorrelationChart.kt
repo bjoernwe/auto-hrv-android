@@ -6,7 +6,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
@@ -44,8 +43,8 @@ fun AutoCorrelationChart(
     Canvas(
         modifier = modifier,
     ) {
-        val padL = 8.dp.toPx()
-        val padR = 8.dp.toPx()
+        val padL = 10.dp.toPx()
+        val padR = 10.dp.toPx()
         val padT = 14.dp.toPx()
         val padB = 22.dp.toPx()
         val chartW = size.width
@@ -156,12 +155,12 @@ fun AutoCorrelationChart(
         }
 
         // Axis labels
-        val zeroLabel = textMeasurer.measure("0s", style = axisStyle)
-        drawText(zeroLabel, topLeft = Offset(padL, chartH - padB + 4.dp.toPx()))
-        val lagLabel = textMeasurer.measure("${acf.size - 1}s lag", style = axisStyle)
-        drawText(
+        //val zeroLabel = textMeasurer.measure("0s", style = axisStyle)
+        //drawText(zeroLabel, topLeft = Offset(padL, chartH - padB + 4.dp.toPx()))
+        //val lagLabel = textMeasurer.measure("${acf.size - 1}s lag", style = axisStyle)
+        /*drawText(
             lagLabel,
             topLeft = Offset(chartW - padR - lagLabel.size.width, chartH - padB + 4.dp.toPx()),
-        )
+        )*/
     }
 }
