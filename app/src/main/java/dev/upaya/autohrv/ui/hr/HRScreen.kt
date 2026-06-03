@@ -34,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -419,6 +420,12 @@ private fun BandRangeSlider(
     val safeMaxLag = maxOf(maxLag, 0.1f)
     val coercedValue = value.start.coerceIn(0f, safeMaxLag)..value.endInclusive.coerceIn(0f, safeMaxLag)
 
+    val sliderColors = SliderDefaults.colors(
+        thumbColor = accent,
+        activeTrackColor = accent.copy(alpha = 0.38f),
+        inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant,
+    )
+
     Column {
         Text(
             text = "${"%.1f".format(coercedValue.start)} – ${"%.1f".format(coercedValue.endInclusive)} s",
@@ -432,13 +439,49 @@ private fun BandRangeSlider(
             value = coercedValue,
             onValueChange = onValueChange,
             valueRange = 0f..safeMaxLag,
-            steps = if (safeMaxLag >= 1f) safeMaxLag.toInt() - 1 else 0,
+            steps = 0,
             modifier = Modifier.fillMaxWidth(),
-            colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.surface,
-                activeTrackColor = accent.copy(alpha = 0.38f),
-                inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant,
-            ),
+            colors = sliderColors,
+            startThumb = {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(20.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .shadow(2.dp, CircleShape)
+                            .background(accent, CircleShape)
+                    )
+                }
+            },
+            endThumb = {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(20.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .shadow(2.dp, CircleShape)
+                            .background(accent, CircleShape)
+                    )
+                }
+            },
+            track = { rangeSliderState ->
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(20.dp)
+                ) {
+                    SliderDefaults.Track(
+                        rangeSliderState = rangeSliderState,
+                        modifier = Modifier.height(2.dp),
+                        colors = sliderColors,
+                    )
+                }
+            }
         )
     }
 }
