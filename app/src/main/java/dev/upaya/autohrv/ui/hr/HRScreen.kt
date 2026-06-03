@@ -57,8 +57,7 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
         onDispose { view.keepScreenOn = false }
     }
 
-    val swing = if (uiState.rrsMsHistory.size >= 2)
-        uiState.rrsMsHistory.max() - uiState.rrsMsHistory.min() else null
+    val rmssd = uiState.stats?.beatRrsStats?.rmssd
     val currentRR = uiState.rrsMsHistory.lastOrNull()
     val hrv = uiState.stats?.beatRrsStats?.rmssd
     val cycleLengthSec = currentPattern.cycleLengthSeconds
@@ -103,8 +102,8 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
             // ② R–R interval card
             if (uiState.rrsMsHistory.size >= 2) {
                 HrvCard {
-                    RRIntervalHeader(swing = swing)
-                    Spacer(Modifier.height(8.dp))
+                    RRIntervalHeader(rmssd)
+                    //Spacer(Modifier.height(8.dp))
                     TimeSeriesChart(
                         ts = uiState.rrsMsHistory,
                         modifier = Modifier
@@ -330,7 +329,7 @@ private fun HrvCard(
 }
 
 @Composable
-private fun RRIntervalHeader(swing: Int?) {
+private fun RRIntervalHeader(rmssd: Float?) {
     val accent = MaterialTheme.colorScheme.primary
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val faint = muted.copy(alpha = 0.6f)
@@ -354,7 +353,7 @@ private fun RRIntervalHeader(swing: Int?) {
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = swing?.let { "$it" } ?: "—",
+                    text = rmssd?.let { "%.0f".format(it) } ?: "—",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.SemiBold,
                         color = accent,
@@ -367,9 +366,10 @@ private fun RRIntervalHeader(swing: Int?) {
                 )
             }
             Text(
-                text = "SWING",
+                text = "RMSSD",
                 style = MaterialTheme.typography.labelSmall.copy(
-                    letterSpacing = 0.04.em,
+                    fontSize = 10.5.sp,
+                    letterSpacing = 0.1.em,
                     color = faint,
                 ),
             )
