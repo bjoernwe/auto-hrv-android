@@ -6,7 +6,7 @@
     <uses-permission
         android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation"
-        tools:targetApi="31" />
+        tools:targetApi="35" />
 
     <!-- Polar SDK needs Bluetooth connect permission to connect for found BLE devices.-->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
