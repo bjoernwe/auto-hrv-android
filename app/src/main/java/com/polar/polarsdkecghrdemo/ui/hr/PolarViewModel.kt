@@ -52,8 +52,8 @@ class PolarViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            repository.hrFlow.collect { sample ->
-                _uiState.update { it.copy(hr = sample.hr) }
+            repository.hrResampled1Hz.collect { hr ->
+                _uiState.update { it.copy(hr = hr) }
             }
         }
         viewModelScope.launch {

@@ -56,7 +56,7 @@ class PolarRepository @Inject constructor(
     val isStreaming: StateFlow<Boolean> = _isStreaming.asStateFlow()
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val hrFlow: Flow<PolarHrData.PolarHrSample> = readyFeatures.flatMapLatest { features ->
+    private val hrFlow: Flow<PolarHrData.PolarHrSample> = readyFeatures.flatMapLatest { features ->
         if (features.contains(PolarBleApi.PolarBleSdkFeature.FEATURE_POLAR_ONLINE_STREAMING)) {
             _isStreaming.value = true
             createHrStream()
