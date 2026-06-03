@@ -1,8 +1,6 @@
 package dev.upaya.autohrv.ui.hr
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -28,9 +26,7 @@ fun TimeSeriesChart(ts: List<Int>, modifier: Modifier = Modifier) {
     val outlineColor = MaterialTheme.colorScheme.outlineVariant
 
     Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(134.dp),
+        modifier = modifier,
     ) {
         val padL = 4.dp.toPx()
         val padR = 4.dp.toPx()

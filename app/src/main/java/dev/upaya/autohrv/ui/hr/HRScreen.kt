@@ -109,7 +109,9 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
                     Spacer(Modifier.height(10.dp))
                     TimeSeriesChart(
                         ts = uiState.rrsMsHistory,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
                     )
                 }
                 Spacer(Modifier.height(12.dp))
@@ -126,7 +128,9 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
                         peakLag = uiState.stats?.resampledRrsStats?.autoCorrelationPeak,
                         bandLo = targetCycleLengthRange.start,
                         bandHi = targetCycleLengthRange.endInclusive,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(92.dp),
                     )
                     Spacer(Modifier.height(8.dp))
                     BandRangeSlider(

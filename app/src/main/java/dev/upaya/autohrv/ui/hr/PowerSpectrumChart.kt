@@ -1,8 +1,6 @@
 package dev.upaya.autohrv.ui.hr
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -14,9 +12,7 @@ import androidx.compose.ui.unit.dp
 fun PowerSpectrumChart(spectrum: List<Float>, modifier: Modifier = Modifier) {
     val barColor = Color(0xFF0078D4)
     Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(100.dp),
+        modifier = modifier,
     ) {
         if (spectrum.isEmpty()) return@Canvas
         val maxPower = spectrum.max().coerceAtLeast(1e-6f)

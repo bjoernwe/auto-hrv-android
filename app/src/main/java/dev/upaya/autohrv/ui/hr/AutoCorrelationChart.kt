@@ -1,8 +1,6 @@
 package dev.upaya.autohrv.ui.hr
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -40,9 +38,7 @@ fun AutoCorrelationChart(
     val textMeasurer = rememberTextMeasurer()
 
     Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(92.dp),
+        modifier = modifier,
     ) {
         val padL = 8.dp.toPx()
         val padR = 8.dp.toPx()
