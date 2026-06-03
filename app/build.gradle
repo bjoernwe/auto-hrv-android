@@ -9,10 +9,10 @@ plugins {
 }
 
 android {
-    namespace 'com.polar.polarsdkecghrdemo'
+    namespace 'dev.upaya.autohrv'
     compileSdk 37
     defaultConfig {
-        applicationId "com.polar.polarsdkdemo"
+        applicationId "dev.upaya.autohrv"
         minSdk 24
         targetSdk 33
         versionCode 1
