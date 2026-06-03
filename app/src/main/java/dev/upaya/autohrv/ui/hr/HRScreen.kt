@@ -106,7 +106,7 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
             if (uiState.rrsMsHistory.size >= 2) {
                 HrvCard {
                     RRIntervalHeader(swing = swing)
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(8.dp))
                     TimeSeriesChart(
                         ts = uiState.rrsMsHistory,
                         modifier = Modifier
@@ -114,7 +114,7 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
                             .height(100.dp),
                     )
                 }
-                Spacer(Modifier.height(12.dp))
+                //Spacer(Modifier.height(4.dp))
             }
 
             // ③ Autocorrelation card

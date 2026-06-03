@@ -13,13 +13,15 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 
-private const val RR_MIN = 720f
-private const val RR_MAX = 1160f
 private const val RR_BASE = 945f
 
 @Composable
 fun TimeSeriesChart(ts: List<Int>, modifier: Modifier = Modifier) {
     if (ts.size < 2) return
+
+    val minRR = ts.min().toFloat()
+    val maxRR = ts.max().toFloat()
+    val rangeRR = (maxRR - minRR).coerceAtLeast(1f)
 
     val accent = MaterialTheme.colorScheme.primary
     val surface = MaterialTheme.colorScheme.surface
@@ -38,7 +40,7 @@ fun TimeSeriesChart(ts: List<Int>, modifier: Modifier = Modifier) {
         val n = ts.size
         val xs = { i: Int -> padL + (i.toFloat() / (n - 1).coerceAtLeast(1)) * (chartW - padL - padR) }
         val ys = { rr: Int ->
-            padT + (1f - (rr.toFloat() - RR_MIN) / (RR_MAX - RR_MIN)).coerceIn(0f, 1f) * (chartH - padT - padB)
+            padT + (1f - (rr.toFloat() - minRR) / rangeRR) * (chartH - padT - padB)
         }
 
         // Baseline dashed line at resting rate
