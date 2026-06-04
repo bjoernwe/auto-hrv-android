@@ -31,8 +31,8 @@ fun BreathingPacerOrb(state: BreathingState, modifier: Modifier = Modifier) {
         BreathingPhase.Exhale -> 0.5f + 0.5f * cos(PI.toFloat() * state.progress)
     }
     val label = when (state.phase) {
-        BreathingPhase.Inhale -> "Inhale"
-        BreathingPhase.Exhale -> "Exhale"
+        BreathingPhase.Inhale -> "inhale"
+        BreathingPhase.Exhale -> "exhale"
     }
 
     val labelStyle = MaterialTheme.typography.titleLarge.copy(
