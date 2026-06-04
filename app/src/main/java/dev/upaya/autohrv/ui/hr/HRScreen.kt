@@ -104,18 +104,24 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
             Spacer(Modifier.height(12.dp))
 
             // ② R–R interval card
-            if (uiState.rrsMsHistory.size >= 2) {
-                HrvCard {
-                    RRIntervalHeader(rmssd)
+            HrvCard {
+                RRIntervalHeader(rmssd)
+                if (uiState.rrsMsHistory.size >= 2) {
                     TimeSeriesChart(
                         ts = uiState.rrsMsHistory,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(100.dp),
                     )
+                } else {
+                    ChartPlaceholder(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                    )
                 }
-                Spacer(Modifier.height(12.dp))
             }
+            Spacer(Modifier.height(12.dp))
 
             // ③ Autocorrelation card
             val acf = uiState.stats?.resampledRrsStats?.autoCorrelation
@@ -330,6 +336,21 @@ private fun HrvCard(
             .padding(16.dp),
         content = content,
     )
+}
+
+@Composable
+private fun ChartPlaceholder(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "Waiting for data …",
+            style = MaterialTheme.typography.bodySmall.copy(
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            ),
+        )
+    }
 }
 
 @Composable
