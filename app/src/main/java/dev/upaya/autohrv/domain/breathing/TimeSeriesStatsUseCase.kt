@@ -47,13 +47,14 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
     operator fun invoke(
         resampledRrsMs: Flow<List<Int>>,
         beatRrsMs: Flow<List<Int>>,
+        cycleLengthRange: ClosedFloatingPointRange<Float>,
     ): Flow<TimeSeriesStats> {
         val resampledStats = resampledRrsMs.map { ts ->
             val spectrumData = computeSpectrumData(ts)
             val acf = spectrumData?.let { computeAutoCorrelation(it.fullSpectrum) }
             ResampledRrsStats(
                 autoCorrelation = acf,
-                autoCorrelationPeak = acf?.let { findBreathingCycleLength(it) },
+                autoCorrelationPeak = acf?.let { findBreathingCycleLength(it, cycleLengthRange) },
                 peakPower = spectrumData?.oneSided?.drop(1)?.max(),
                 periodicity = computePeriodicity(spectrumData?.oneSided),
                 powerSpectrum = spectrumData?.oneSided,
@@ -67,12 +68,11 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         }
     }
 
-    // Searches for the highest ACF peak in the lag range corresponding to 6–14 s breathing cycles.
-    // The RR stream is resampled to a uniform 1 Hz grid upstream, so a lag == cycle length in
-    // seconds directly.
-    private fun findBreathingCycleLength(acf: List<Float>): Float? {
-        val minLag = MIN_CYCLE_SECONDS
-        val maxLag = MAX_CYCLE_SECONDS.coerceAtMost(acf.size - 1)
+    // Searches for the highest ACF peak within the allowed cycle-length range.
+    // The RR stream is resampled to a uniform 1 Hz grid upstream, so lag == cycle length in seconds.
+    private fun findBreathingCycleLength(acf: List<Float>, range: ClosedFloatingPointRange<Float>): Float? {
+        val minLag = range.start.toInt()
+        val maxLag = range.endInclusive.toInt().coerceAtMost(acf.size - 1)
         if (minLag > maxLag) return null
         val peakLag = (minLag..maxLag).maxByOrNull { acf[it] } ?: return null
         return peakLag.toFloat()
@@ -183,8 +183,4 @@ internal class TimeSeriesStatsUseCase @Inject constructor() {
         return p
     }
 
-    private companion object {
-        const val MIN_CYCLE_SECONDS = 5
-        const val MAX_CYCLE_SECONDS = 12
-    }
 }

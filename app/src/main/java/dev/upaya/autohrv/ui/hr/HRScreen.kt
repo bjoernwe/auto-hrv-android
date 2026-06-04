@@ -125,13 +125,14 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
 
             // ③ Autocorrelation card
             val acf = uiState.stats?.resampledRrsStats?.autoCorrelation
-            if (acf != null) {
+            if (acf != null && acf.size >= 2) {
                 HrvCard {
                     ACFHeader()
                     Spacer(Modifier.height(6.dp))
                     AutoCorrelationChart(
                         acf = acf,
-                        peakLag = uiState.stats?.resampledRrsStats?.autoCorrelationPeak,
+                        peakLag = uiState.stats?.resampledRrsStats?.autoCorrelationPeak
+                            ?.coerceIn(targetCycleLengthRange),
                         bandLo = targetCycleLengthRange.start,
                         bandHi = targetCycleLengthRange.endInclusive,
                         modifier = Modifier
@@ -142,7 +143,8 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
                     BandRangeSlider(
                         value = targetCycleLengthRange,
                         onValueChange = { breathingViewModel.setTargetCycleLengthRange(it) },
-                        maxLag = (acf.size - 1).toFloat(),
+                        valueRange = 0f..(acf.size - 1).toFloat(),
+                        allowedRange = breathingViewModel.cycleLengthAllowedRange,
                     )
                 }
                 Spacer(Modifier.height(12.dp))
@@ -438,11 +440,15 @@ private fun SectionLabel(text: String) {
 private fun BandRangeSlider(
     value: ClosedFloatingPointRange<Float>,
     onValueChange: (ClosedFloatingPointRange<Float>) -> Unit,
-    maxLag: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    allowedRange: ClosedFloatingPointRange<Float>,
 ) {
     val accent = MaterialTheme.colorScheme.primary
-    val safeMaxLag = maxOf(maxLag, 0.1f)
-    val coercedValue = value.start.coerceIn(0f, safeMaxLag)..value.endInclusive.coerceIn(0f, safeMaxLag)
+
+    // Safety: ensure valueRange is valid and coercedValue is within it to avoid crashes in RangeSliderState.
+    val safeValueRange = if (valueRange.start < valueRange.endInclusive) valueRange else 0f..1f
+    val coercedValue = value.start.coerceIn(allowedRange).coerceIn(safeValueRange)..
+            value.endInclusive.coerceIn(allowedRange).coerceIn(safeValueRange)
 
     val sliderColors = SliderDefaults.colors(
         thumbColor = accent,
@@ -453,8 +459,10 @@ private fun BandRangeSlider(
     Column {
         RangeSlider(
             value = coercedValue,
-            onValueChange = onValueChange,
-            valueRange = 0f..safeMaxLag,
+            onValueChange = { new ->
+                onValueChange(new.start.coerceIn(allowedRange)..new.endInclusive.coerceIn(allowedRange))
+            },
+            valueRange = safeValueRange,
             steps = 0,
             modifier = Modifier.fillMaxWidth()
                 .height(16.dp)

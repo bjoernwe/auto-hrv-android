@@ -24,18 +24,20 @@ class BreathingCoordinator @Inject internal constructor(
 ) {
     private val breathingConfig = BreathingConfig.DEFAULT
 
-    private val _targetOutToInRatio = MutableStateFlow(breathingConfig.outToInRatioMean)
+    private val _targetOutToInRatio = MutableStateFlow(breathingConfig.outToInRatio)
     val targetOutToInRatio: StateFlow<Float> = _targetOutToInRatio
 
     fun setTargetOutToInRatio(ratio: Float) {
         _targetOutToInRatio.value = ratio
     }
 
-    private val _cycleLengthRange = MutableStateFlow(4f..20f)
-    val cycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = _cycleLengthRange
+    val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = breathingConfig.cycleLengthRange
+
+    private val _targetCycleLengthRange = MutableStateFlow(cycleLengthAllowedRange)
+    val targetCycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = _targetCycleLengthRange
 
     fun setTargetCycleLengthRange(range: ClosedFloatingPointRange<Float>) {
-        _cycleLengthRange.value = range
+        _targetCycleLengthRange.value = range
     }
 
     private val rrsMsHistory: StateFlow<List<Int>> = hrvRepository.getRrsMsHistory(breathingConfig.evaluationLengthSeconds)
@@ -44,20 +46,20 @@ class BreathingCoordinator @Inject internal constructor(
     private val rrsMsBeatHistory: StateFlow<List<Int>> = hrvRepository.getRrsMsBeatHistory(breathingConfig.evaluationLengthSeconds)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    val stats: StateFlow<TimeSeriesStats?> = timeSeriesStatsUseCase(rrsMsHistory, rrsMsBeatHistory)
+    val stats: StateFlow<TimeSeriesStats?> = timeSeriesStatsUseCase(rrsMsHistory, rrsMsBeatHistory, cycleLengthAllowedRange)
         .stateIn(scope, SharingStarted.Eagerly, null)
 
     private val initialBreathingPattern = breathingConfig.defaultParams()
 
-    private val smoothedCycleLength: Flow<Float> = stats
-        .map { s -> s?.resampledRrsStats?.autoCorrelationPeak ?: breathingConfig.cycleLengthMean }
-        .map { s -> s.coerceIn(_cycleLengthRange.value) }
+    private val smoothedTargetCycleLength: Flow<Float> = combine(stats, _targetCycleLengthRange) {
+        s, range -> (s?.resampledRrsStats?.autoCorrelationPeak ?: breathingConfig.cycleLength).coerceIn(range)
+    }
         .scan(emptyList<Float>()) { window, cl -> (window + cl).takeLast(breathingConfig.evaluationLengthSeconds) }
         .filter { it.isNotEmpty() }
         .map { window -> window.reduce { a, b -> a + b } / window.size.toFloat() }
 
     private val targetBreathingPattern: StateFlow<BreathingPattern> =
-        combine(smoothedCycleLength, targetOutToInRatio) { cl, ratio ->
+        combine(smoothedTargetCycleLength, targetOutToInRatio) { cl, ratio ->
             BreathingPattern(ratio, cl)
         }
         .stateIn(scope, SharingStarted.Eagerly, initialBreathingPattern)

@@ -51,8 +51,8 @@ fun AutoCorrelationChart(
         val chartH = size.height
         val plotW = chartW - padL - padR
         val plotH = chartH - padT - padB
-        val maxLag = (acf.size - 1).toFloat()
 
+        val maxLag = (acf.size - 1).toFloat()
         val xs = { t: Float -> padL + (t / maxLag).coerceIn(0f, 1f) * plotW }
         val yCenter = padT + plotH / 2f
         val yHalf = plotH / 2f
