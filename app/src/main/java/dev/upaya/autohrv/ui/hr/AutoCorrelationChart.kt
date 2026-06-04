@@ -143,7 +143,7 @@ fun AutoCorrelationChart(
             drawCircle(color = accent, radius = 4.5.dp.toPx(), center = Offset(peakX, peakY))
 
             // Label above the marker
-            val peakLabel = "%.1fs".format(peakLag)
+            val peakLabel = "%.0fs".format(peakLag)
             val measured = textMeasurer.measure(peakLabel, style = labelStyle)
             drawText(
                 measured,
