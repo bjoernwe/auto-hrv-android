@@ -125,12 +125,13 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
 
             // ③ Autocorrelation card
             val acf = uiState.stats?.resampledRrsStats?.autoCorrelation
-            if (acf != null && acf.size >= 2) {
-                HrvCard {
-                    ACFHeader()
-                    Spacer(Modifier.height(6.dp))
+            val acfReady = acf != null && acf.size >= 2
+            HrvCard {
+                ACFHeader()
+                Spacer(Modifier.height(6.dp))
+                if (acfReady) {
                     AutoCorrelationChart(
-                        acf = acf,
+                        acf = acf!!,
                         peakLag = uiState.stats?.resampledRrsStats?.autoCorrelationPeak
                             ?.coerceIn(targetCycleLengthRange),
                         bandLo = targetCycleLengthRange.start,
@@ -143,12 +144,18 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
                     BandRangeSlider(
                         value = targetCycleLengthRange,
                         onValueChange = { breathingViewModel.setTargetCycleLengthRange(it) },
-                        valueRange = 0f..(acf.size - 1).toFloat(),
+                        valueRange = 0f..(acf!!.size - 1).toFloat(),
                         allowedRange = breathingViewModel.cycleLengthAllowedRange,
                     )
+                } else {
+                    ChartPlaceholder(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                    )
                 }
-                Spacer(Modifier.height(12.dp))
             }
+            Spacer(Modifier.height(12.dp))
 
             // ④ Metrics row
             MetricsRow(

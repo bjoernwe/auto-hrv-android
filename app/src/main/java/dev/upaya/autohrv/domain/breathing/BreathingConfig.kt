@@ -11,7 +11,7 @@ data class BreathingConfig(
             evaluationLengthSeconds = 16+1, // 2^n + 1 is a good value for the power spectrum
             outToInRatio = 1.5f,
             cycleLength = 10f,
-            cycleLengthRange = 2f.rangeTo(12f),
+            cycleLengthRange = 3f.rangeTo(12f),
         )
     }
 }
