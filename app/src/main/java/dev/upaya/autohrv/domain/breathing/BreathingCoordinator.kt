@@ -16,15 +16,15 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ExperimentCoordinator @Inject internal constructor(
+class BreathingCoordinator @Inject internal constructor(
     @param:ApplicationScope private val scope: CoroutineScope,
     breathingPacerUseCase: BreathingPacerUseCase,
     timeSeriesStatsUseCase: TimeSeriesStatsUseCase,
     hrvRepository: HrvRepository,
 ) {
-    private val experimentConfig = ExperimentConfig.DEFAULT
+    private val breathingConfig = BreathingConfig.DEFAULT
 
-    private val _targetOutToInRatio = MutableStateFlow(experimentConfig.outToInRatioMean)
+    private val _targetOutToInRatio = MutableStateFlow(breathingConfig.outToInRatioMean)
     val targetOutToInRatio: StateFlow<Float> = _targetOutToInRatio
 
     fun setTargetOutToInRatio(ratio: Float) {
@@ -38,21 +38,21 @@ class ExperimentCoordinator @Inject internal constructor(
         _cycleLengthRange.value = range
     }
 
-    private val rrsMsHistory: StateFlow<List<Int>> = hrvRepository.getRrsMsHistory(experimentConfig.evaluationLengthSeconds)
+    private val rrsMsHistory: StateFlow<List<Int>> = hrvRepository.getRrsMsHistory(breathingConfig.evaluationLengthSeconds)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    private val rrsMsBeatHistory: StateFlow<List<Int>> = hrvRepository.getRrsMsBeatHistory(experimentConfig.evaluationLengthSeconds)
+    private val rrsMsBeatHistory: StateFlow<List<Int>> = hrvRepository.getRrsMsBeatHistory(breathingConfig.evaluationLengthSeconds)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     val stats: StateFlow<TimeSeriesStats?> = timeSeriesStatsUseCase(rrsMsHistory, rrsMsBeatHistory)
         .stateIn(scope, SharingStarted.Eagerly, null)
 
-    private val initialBreathingPattern = experimentConfig.defaultParams()
+    private val initialBreathingPattern = breathingConfig.defaultParams()
 
     private val smoothedCycleLength: Flow<Float> = stats
-        .map { s -> s?.resampledRrsStats?.autoCorrelationPeak ?: experimentConfig.cycleLengthMean }
+        .map { s -> s?.resampledRrsStats?.autoCorrelationPeak ?: breathingConfig.cycleLengthMean }
         .map { s -> s.coerceIn(_cycleLengthRange.value) }
-        .scan(emptyList<Float>()) { window, cl -> (window + cl).takeLast(experimentConfig.experimentLengthSeconds) }
+        .scan(emptyList<Float>()) { window, cl -> (window + cl).takeLast(breathingConfig.evaluationLengthSeconds) }
         .filter { it.isNotEmpty() }
         .map { window -> window.reduce { a, b -> a + b } / window.size.toFloat() }
 

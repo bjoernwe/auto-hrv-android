@@ -21,13 +21,6 @@ data class BreathingPattern(
     val outToInRatio: Float,
     val cycleLengthSeconds: Float,
 ) {
-    companion object {
-        val DEFAULT = BreathingPattern(
-            ExperimentConfig.DEFAULT.outToInRatioMean,
-            ExperimentConfig.DEFAULT.cycleLengthMean,
-        )
-    }
-
     operator fun plus(other: BreathingPattern) = BreathingPattern(
         outToInRatio + other.outToInRatio,
         cycleLengthSeconds + other.cycleLengthSeconds
