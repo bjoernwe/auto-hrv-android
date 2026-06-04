@@ -4,9 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.upaya.autohrv.data.model.ConnectionState
 import dev.upaya.autohrv.data.repository.HrvRepository
-import dev.upaya.autohrv.domain.experiment.ExperimentConfig
-import dev.upaya.autohrv.domain.experiment.ExperimentCoordinator
-import dev.upaya.autohrv.domain.experiment.TimeSeriesStats
+import dev.upaya.autohrv.domain.breathing.ExperimentConfig
+import dev.upaya.autohrv.domain.breathing.ExperimentCoordinator
+import dev.upaya.autohrv.domain.breathing.TimeSeriesStats
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

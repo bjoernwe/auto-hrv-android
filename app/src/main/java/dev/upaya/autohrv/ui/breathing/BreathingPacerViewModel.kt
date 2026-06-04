@@ -3,7 +3,7 @@ package dev.upaya.autohrv.ui.breathing
 import androidx.lifecycle.ViewModel
 import dev.upaya.autohrv.domain.breathing.BreathingPattern
 import dev.upaya.autohrv.domain.breathing.BreathingState
-import dev.upaya.autohrv.domain.experiment.ExperimentCoordinator
+import dev.upaya.autohrv.domain.breathing.ExperimentCoordinator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject

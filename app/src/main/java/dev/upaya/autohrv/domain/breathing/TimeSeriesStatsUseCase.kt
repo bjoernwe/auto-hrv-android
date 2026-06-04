@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.domain.experiment
+package dev.upaya.autohrv.domain.breathing
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

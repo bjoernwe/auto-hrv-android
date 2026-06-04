@@ -1,10 +1,7 @@
-package dev.upaya.autohrv.domain.experiment
+package dev.upaya.autohrv.domain.breathing
 
 import dev.upaya.autohrv.data.repository.HrvRepository
 import dev.upaya.autohrv.di.ApplicationScope
-import dev.upaya.autohrv.domain.breathing.BreathingPacerUseCase
-import dev.upaya.autohrv.domain.breathing.BreathingPattern
-import dev.upaya.autohrv.domain.breathing.BreathingState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

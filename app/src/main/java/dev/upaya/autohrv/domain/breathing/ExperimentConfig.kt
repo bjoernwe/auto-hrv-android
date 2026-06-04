@@ -1,6 +1,4 @@
-package dev.upaya.autohrv.domain.experiment
-
-import dev.upaya.autohrv.domain.breathing.BreathingPattern
+package dev.upaya.autohrv.domain.breathing
 
 data class ExperimentConfig(
     val experimentLengthSeconds: Int,
