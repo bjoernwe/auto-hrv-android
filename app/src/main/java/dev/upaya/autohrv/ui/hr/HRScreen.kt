@@ -43,10 +43,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.polar.sdk.api.model.PolarDeviceInfo
 import dev.upaya.autohrv.data.model.ConnectionState
 import dev.upaya.autohrv.ui.breathing.BreathingPacerOrb
 import dev.upaya.autohrv.ui.breathing.BreathingPacerViewModel
+import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 @Composable
 fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewModel) {
@@ -140,7 +143,6 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
                             .fillMaxWidth()
                             .height(100.dp),
                     )
-                    //Spacer(Modifier.height(4.dp))
                     BandRangeSlider(
                         value = targetCycleLengthRange,
                         onValueChange = { breathingViewModel.setTargetCycleLengthRange(it) },
@@ -538,5 +540,112 @@ private fun ThumbWithLabel(
                     .background(accent, CircleShape)
             )
         }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "TopBar — connected")
+@Composable
+private fun AutoHrvTopBarConnectedPreview() {
+    AutoHrvTheme {
+        AutoHrvTopBar(
+            deviceId = "E7A9AB27",
+            connectionState = ConnectionState.Connected(
+                PolarDeviceInfo("E7A9AB27", "AA:BB:CC:DD:EE:FF", -60, "Polar H10", true)
+            ),
+            batteryLevel = 82,
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "TopBar — disconnected")
+@Composable
+private fun AutoHrvTopBarDisconnectedPreview() {
+    AutoHrvTheme {
+        AutoHrvTopBar(
+            deviceId = "E7A9AB27",
+            connectionState = ConnectionState.Disconnected("E7A9AB27"),
+            batteryLevel = null,
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
+@Composable
+private fun ResonancePillPreview() {
+    AutoHrvTheme {
+        ResonancePill(cycleLengthSec = 10.0f, breathsPerMin = 6.0f)
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
+@Composable
+private fun HrvCardPreview() {
+    AutoHrvTheme {
+        HrvCard {
+            RRIntervalHeader(rmssd = 42.3f)
+            ChartPlaceholder(modifier = Modifier.fillMaxWidth().height(100.dp))
+        }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
+@Composable
+private fun ChartPlaceholderPreview() {
+    AutoHrvTheme {
+        ChartPlaceholder(modifier = Modifier.fillMaxWidth().height(100.dp))
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "RRIntervalHeader — with data")
+@Composable
+private fun RRIntervalHeaderWithDataPreview() {
+    AutoHrvTheme {
+        RRIntervalHeader(rmssd = 42.3f)
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "RRIntervalHeader — no data")
+@Composable
+private fun RRIntervalHeaderNoDataPreview() {
+    AutoHrvTheme {
+        RRIntervalHeader(rmssd = null)
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
+@Composable
+private fun ACFHeaderPreview() {
+    AutoHrvTheme {
+        ACFHeader()
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
+@Composable
+private fun SectionLabelPreview() {
+    AutoHrvTheme {
+        SectionLabel(text = "R–R INTERVAL")
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
+@Composable
+private fun BandRangeSliderPreview() {
+    AutoHrvTheme {
+        BandRangeSlider(
+            value = 7f..13f,
+            onValueChange = {},
+            valueRange = 0f..60f,
+            allowedRange = 4f..16f,
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
+@Composable
+private fun ThumbWithLabelPreview() {
+    AutoHrvTheme {
+        ThumbWithLabel(label = "10", accent = MaterialTheme.colorScheme.primary)
     }
 }

@@ -1,9 +1,16 @@
 package dev.upaya.autohrv.ui.hr
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import dev.upaya.autohrv.ui.theme.AutoHrvTheme
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.exp
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
@@ -15,15 +22,14 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 @Composable
 fun AutoCorrelationChart(
     acf: List<Float>,
+    modifier: Modifier = Modifier,
     peakLag: Float? = null,
     bandLo: Float = 0f,
     bandHi: Float = Float.MAX_VALUE,
-    modifier: Modifier = Modifier,
 ) {
     if (acf.size < 2) return
 
@@ -31,15 +37,12 @@ fun AutoCorrelationChart(
     val surface = MaterialTheme.colorScheme.surface
     val outlineColor = MaterialTheme.colorScheme.outlineVariant
     val bgColor = MaterialTheme.colorScheme.background
-    val faint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
     val textMeasurer = rememberTextMeasurer()
 
     val labelStyle = MaterialTheme.typography.labelSmall.copy(
         fontWeight = FontWeight.SemiBold,
         color = accent,
     )
-    val axisStyle = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = faint)
-
     Canvas(
         modifier = modifier,
     ) {
@@ -162,5 +165,24 @@ fun AutoCorrelationChart(
             lagLabel,
             topLeft = Offset(chartW - padR - lagLabel.size.width, chartH - padB + 4.dp.toPx()),
         )*/
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
+@Composable
+private fun AutoCorrelationChartPreview() {
+    AutoHrvTheme {
+        val acf = (0..60).map { i ->
+            (cos(2 * PI * i / 10.0) * exp(-i * 0.05)).toFloat()
+        }
+        AutoCorrelationChart(
+            acf = acf,
+            peakLag = 10f,
+            bandLo = 7f,
+            bandHi = 13f,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp),
+        )
     }
 }

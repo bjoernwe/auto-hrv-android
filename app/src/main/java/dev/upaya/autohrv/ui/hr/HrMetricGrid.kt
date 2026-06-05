@@ -22,9 +22,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 @Composable
 fun MetricsRow(hr: Int?, hrv: String?, rr: Int?, modifier: Modifier = Modifier) {
@@ -134,5 +136,21 @@ private fun MetricCell(
                 modifier = Modifier.padding(bottom = 3.dp),
             )
         }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
+@Composable
+private fun MetricsRowPreview() {
+    AutoHrvTheme {
+        MetricsRow(hr = 72, hrv = "42", rr = 833)
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "MetricsRow — no data")
+@Composable
+private fun MetricsRowNoDataPreview() {
+    AutoHrvTheme {
+        MetricsRow(hr = null, hrv = null, rr = null)
     }
 }

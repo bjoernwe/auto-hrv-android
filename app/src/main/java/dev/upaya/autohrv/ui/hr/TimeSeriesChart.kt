@@ -1,9 +1,14 @@
 package dev.upaya.autohrv.ui.hr
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import dev.upaya.autohrv.ui.theme.AutoHrvTheme
+import kotlin.math.sin
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
@@ -112,5 +117,19 @@ fun TimeSeriesChart(ts: List<Int>, modifier: Modifier = Modifier) {
         drawCircle(color = accent.copy(alpha = 0.16f), radius = 10.dp.toPx(), center = nowCenter)
         drawCircle(color = surface, radius = 6.dp.toPx(), center = nowCenter)
         drawCircle(color = accent, radius = 4.2.dp.toPx(), center = nowCenter)
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
+@Composable
+private fun TimeSeriesChartPreview() {
+    AutoHrvTheme {
+        val ts = (0 until 30).map { i -> (900 + (sin(i * 0.8) * 60).toInt()) }
+        TimeSeriesChart(
+            ts = ts,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp),
+        )
     }
 }
