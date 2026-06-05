@@ -46,7 +46,7 @@ class BreathingCoordinator @Inject internal constructor(
     private val rrsMsBeatHistory: StateFlow<List<Int>> = hrvRepository.getRrsMsBeatHistory(breathingConfig.evaluationLengthSeconds)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    val stats: StateFlow<TimeSeriesStats?> = timeSeriesStatsUseCase(rrsMsHistory, rrsMsBeatHistory, cycleLengthAllowedRange)
+    val stats: StateFlow<TimeSeriesStats?> = timeSeriesStatsUseCase(rrsMsHistory, rrsMsBeatHistory, targetCycleLengthRange.value)
         .stateIn(scope, SharingStarted.Eagerly, null)
 
     private val initialBreathingPattern = breathingConfig.defaultParams()
