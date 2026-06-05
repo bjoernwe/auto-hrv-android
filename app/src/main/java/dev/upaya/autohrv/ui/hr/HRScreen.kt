@@ -131,7 +131,7 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
                 Spacer(Modifier.height(6.dp))
                 if (acfReady) {
                     AutoCorrelationChart(
-                        acf = acf!!,
+                        acf = acf,
                         peakLag = uiState.stats?.resampledRrsStats?.autoCorrelationPeak
                             ?.coerceIn(targetCycleLengthRange),
                         bandLo = targetCycleLengthRange.start,
@@ -144,7 +144,7 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
                     BandRangeSlider(
                         value = targetCycleLengthRange,
                         onValueChange = { breathingViewModel.setTargetCycleLengthRange(it) },
-                        valueRange = 0f..(acf!!.size - 1).toFloat(),
+                        valueRange = 0f..(acf.size - 1).toFloat(),
                         allowedRange = breathingViewModel.cycleLengthAllowedRange,
                     )
                 } else {
@@ -464,13 +464,15 @@ private fun BandRangeSlider(
     )
 
     Column {
+        val intSteps = maxOf(0, (safeValueRange.endInclusive - safeValueRange.start).toInt() - 1)
+
         RangeSlider(
             value = coercedValue,
             onValueChange = { new ->
                 onValueChange(new.start.coerceIn(allowedRange)..new.endInclusive.coerceIn(allowedRange))
             },
             valueRange = safeValueRange,
-            steps = 0,
+            steps = intSteps,
             modifier = Modifier.fillMaxWidth()
                 .height(16.dp)
                 .padding(top = 2.dp),
@@ -498,6 +500,7 @@ private fun BandRangeSlider(
                         rangeSliderState = rangeSliderState,
                         modifier = Modifier.height(2.dp),
                         colors = sliderColors,
+                        drawTick = { _, _ -> },
                     )
                 }
             }
