@@ -1,6 +1,5 @@
 package dev.upaya.autohrv.domain.breathing
 
-import dev.upaya.autohrv.domain.experiment.ExperimentConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -22,13 +21,6 @@ data class BreathingPattern(
     val outToInRatio: Float,
     val cycleLengthSeconds: Float,
 ) {
-    companion object {
-        val DEFAULT = BreathingPattern(
-            ExperimentConfig.DEFAULT.outToInRatioMean,
-            ExperimentConfig.DEFAULT.cycleLengthMean,
-        )
-    }
-
     operator fun plus(other: BreathingPattern) = BreathingPattern(
         outToInRatio + other.outToInRatio,
         cycleLengthSeconds + other.cycleLengthSeconds

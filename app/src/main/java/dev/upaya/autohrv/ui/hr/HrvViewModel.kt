@@ -4,9 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.upaya.autohrv.data.model.ConnectionState
 import dev.upaya.autohrv.data.repository.HrvRepository
-import dev.upaya.autohrv.domain.experiment.ExperimentConfig
-import dev.upaya.autohrv.domain.experiment.ExperimentCoordinator
-import dev.upaya.autohrv.domain.experiment.TimeSeriesStats
+import dev.upaya.autohrv.domain.breathing.BreathingConfig
+import dev.upaya.autohrv.domain.breathing.BreathingBusiness
+import dev.upaya.autohrv.domain.breathing.TimeSeriesStats
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,11 +27,11 @@ data class HrUiState(
 @HiltViewModel
 class HrvViewModel @Inject constructor(
     private val repository: HrvRepository,
-    private val coordinator: ExperimentCoordinator,
+    private val coordinator: BreathingBusiness,
     polarRepository: HrvRepository,
 ) : ViewModel() {
 
-    private val experimentConfig = ExperimentConfig.DEFAULT
+    private val breathingConfig = BreathingConfig.DEFAULT
 
     val deviceId: String = HrvRepository.DEVICE_ID
 
@@ -39,7 +39,7 @@ class HrvViewModel @Inject constructor(
     val uiState: StateFlow<HrUiState> = _uiState.asStateFlow()
 
     init {
-        val rrsMsHistory: Flow<List<Int>> = polarRepository.getRrsMsHistory(experimentConfig.experimentLengthSeconds)
+        val rrsMsHistory: Flow<List<Int>> = polarRepository.getRrsMsHistory(breathingConfig.evaluationLengthSeconds)
 
         viewModelScope.launch {
             repository.connectionState.collect { state ->
