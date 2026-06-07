@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dev.upaya.autohrv.data.model.ConnectionState
 import dev.upaya.autohrv.data.repository.HrvRepository
 import dev.upaya.autohrv.domain.breathing.BreathingConfig
-import dev.upaya.autohrv.domain.breathing.BreathingCoordinator
+import dev.upaya.autohrv.domain.breathing.BreathingBusiness
 import dev.upaya.autohrv.domain.breathing.TimeSeriesStats
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -27,7 +27,7 @@ data class HrUiState(
 @HiltViewModel
 class HrvViewModel @Inject constructor(
     private val repository: HrvRepository,
-    private val coordinator: BreathingCoordinator,
+    private val coordinator: BreathingBusiness,
     polarRepository: HrvRepository,
 ) : ViewModel() {
 

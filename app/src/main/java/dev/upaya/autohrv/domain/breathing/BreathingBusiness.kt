@@ -16,7 +16,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class BreathingCoordinator @Inject internal constructor(
+class BreathingBusiness @Inject internal constructor(
     @param:ApplicationScope private val scope: CoroutineScope,
     breathingPacerUseCase: BreathingPacerUseCase,
     timeSeriesStatsUseCase: TimeSeriesStatsUseCase,

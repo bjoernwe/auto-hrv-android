@@ -3,14 +3,14 @@ package dev.upaya.autohrv.ui.breathing
 import androidx.lifecycle.ViewModel
 import dev.upaya.autohrv.domain.breathing.BreathingPattern
 import dev.upaya.autohrv.domain.breathing.BreathingState
-import dev.upaya.autohrv.domain.breathing.BreathingCoordinator
+import dev.upaya.autohrv.domain.breathing.BreathingBusiness
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
 @HiltViewModel
 class BreathingPacerViewModel @Inject constructor(
-    private val coordinator: BreathingCoordinator,
+    private val coordinator: BreathingBusiness,
 ) : ViewModel() {
     val breathingState: StateFlow<BreathingState> = coordinator.currentBreathingState
     val currentPattern: StateFlow<BreathingPattern> = coordinator.currentBreathingPattern
