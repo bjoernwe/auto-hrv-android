@@ -9,9 +9,9 @@ data class BreathingConfig(
     companion object {
         val DEFAULT = BreathingConfig(
             evaluationLengthSeconds = 32+1, // 2^n + 1 is a good value for the power spectrum
-            outToInRatio = 2f,
-            cycleLength = 10f,
-            cycleLengthRange = 4f.rangeTo(12f),
+            outToInRatio = 1f,
+            cycleLength = 8f,
+            cycleLengthRange = 5f.rangeTo(11f),
         )
     }
 }
