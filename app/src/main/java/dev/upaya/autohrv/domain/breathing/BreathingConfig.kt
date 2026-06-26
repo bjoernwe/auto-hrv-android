@@ -6,6 +6,8 @@ data class BreathingConfig(
     val cycleLength: Float,
     val initialCycleLengthRange: ClosedFloatingPointRange<Float>,
     val maxCycleLengthRange: ClosedFloatingPointRange<Float>,
+    val resonancePeakToleranceSeconds: Float,
+    val resonanceMinPeakValue: Float,
 ) {
     companion object {
         val DEFAULT = BreathingConfig(
@@ -14,6 +16,8 @@ data class BreathingConfig(
             cycleLength = 8f,
             initialCycleLengthRange = 6f..10f,
             maxCycleLengthRange = 4f..20f,
+            resonancePeakToleranceSeconds = 1f,
+            resonanceMinPeakValue = 0.4f,
         )
     }
 }

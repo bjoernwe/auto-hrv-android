@@ -78,6 +78,6 @@ class BreathingBusiness @Inject internal constructor(
         val rrsStats = stats?.resampledRrsStats ?: return@combine false
         val peak = rrsStats.autoCorrelationPeak ?: return@combine false
         val peakValue = rrsStats.autoCorrelation?.getOrNull(peak.toInt()) ?: return@combine false
-        abs(peak - breathingPattern.cycleLengthSeconds) <= 1f && peakValue > 0.4f
+        abs(peak - breathingPattern.cycleLengthSeconds) <= breathingConfig.resonancePeakToleranceSeconds && peakValue > breathingConfig.resonanceMinPeakValue
     }.stateIn(scope, SharingStarted.Eagerly, false)
 }
