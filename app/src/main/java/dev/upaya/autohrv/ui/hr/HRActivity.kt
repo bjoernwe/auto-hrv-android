@@ -30,7 +30,7 @@ class HRActivity : ComponentActivity() {
             AutoHrvTheme {
                 HRScreen(
                     hrViewModel = hrViewModel,
-                    breathingViewModel = breathingViewModel,
+                    breathingPacerViewModel = breathingViewModel,
                 )
             }
         }

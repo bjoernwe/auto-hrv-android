@@ -52,11 +52,11 @@ import dev.upaya.autohrv.ui.breathing.BreathingPacerViewModel
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 @Composable
-fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewModel) {
+fun HRScreen(hrViewModel: HrvViewModel, breathingPacerViewModel: BreathingPacerViewModel) {
     val uiState by hrViewModel.uiState.collectAsStateWithLifecycle()
-    val breathingState by breathingViewModel.breathingState.collectAsStateWithLifecycle()
-    val currentPattern by breathingViewModel.currentPattern.collectAsStateWithLifecycle()
-    val targetCycleLengthRange by breathingViewModel.targetCycleLengthRange.collectAsStateWithLifecycle()
+    val breathingState by breathingPacerViewModel.breathingState.collectAsStateWithLifecycle()
+    val currentPattern by breathingPacerViewModel.currentPattern.collectAsStateWithLifecycle()
+    val targetCycleLengthRange by breathingPacerViewModel.targetCycleLengthRange.collectAsStateWithLifecycle()
 
     val view = LocalView.current
     DisposableEffect(Unit) {
@@ -146,9 +146,9 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
                     )
                     BandRangeSlider(
                         value = targetCycleLengthRange,
-                        onValueChange = { breathingViewModel.setTargetCycleLengthRange(it) },
+                        onValueChange = { breathingPacerViewModel.setTargetCycleLengthRange(it) },
                         valueRange = 0f..(acf.size - 1).toFloat(),
-                        allowedRange = breathingViewModel.cycleLengthAllowedRange,
+                        allowedRange = breathingPacerViewModel.cycleLengthAllowedRange,
                     )
                 } else {
                     ChartPlaceholder(

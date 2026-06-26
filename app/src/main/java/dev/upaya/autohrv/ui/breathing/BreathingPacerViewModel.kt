@@ -10,19 +10,19 @@ import javax.inject.Inject
 
 @HiltViewModel
 class BreathingPacerViewModel @Inject constructor(
-    private val coordinator: BreathingBusiness,
+    private val breathingBusiness: BreathingBusiness,
 ) : ViewModel() {
-    val breathingState: StateFlow<BreathingState> = coordinator.currentBreathingState
-    val currentPattern: StateFlow<BreathingPattern> = coordinator.currentBreathingPattern
-    val targetOutToInRatio: StateFlow<Float> = coordinator.targetOutToInRatio
-    val targetCycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = coordinator.targetCycleLengthRange
-    val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = coordinator.cycleLengthAllowedRange
+    val breathingState: StateFlow<BreathingState> = breathingBusiness.currentBreathingState
+    val currentPattern: StateFlow<BreathingPattern> = breathingBusiness.currentBreathingPattern
+    val targetOutToInRatio: StateFlow<Float> = breathingBusiness.targetOutToInRatio
+    val targetCycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = breathingBusiness.targetCycleLengthRange
+    val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = breathingBusiness.cycleLengthAllowedRange
 
     fun setTargetOutToInRatio(ratio: Float) {
-        coordinator.setTargetOutToInRatio(ratio)
+        breathingBusiness.setTargetOutToInRatio(ratio)
     }
 
     fun setTargetCycleLengthRange(range: ClosedFloatingPointRange<Float>) {
-        coordinator.setTargetCycleLengthRange(range)
+        breathingBusiness.setTargetCycleLengthRange(range)
     }
 }
