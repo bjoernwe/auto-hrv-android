@@ -64,9 +64,9 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
         onDispose { view.keepScreenOn = false }
     }
 
-    val rmssd = uiState.stats?.beatRrsStats?.rmssd
+    val rmssd = uiState.rmssd
     val currentRR = uiState.rrsMsHistory.lastOrNull()
-    val hrv = uiState.stats?.beatRrsStats?.rmssd
+    val hrv = uiState.rmssd
     val cycleLengthSec = currentPattern.cycleLengthSeconds
     val breathsPerMin = if (cycleLengthSec > 0f) 60f / cycleLengthSec else null
 
@@ -127,15 +127,15 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
             Spacer(Modifier.height(12.dp))
 
             // ③ Autocorrelation card
-            val acf = uiState.stats?.resampledRrsStats?.autoCorrelation
-            val acfReady = acf != null && acf.size >= 2
+            val acf = uiState.autoCorrelation
+            val acfReady = acf != null && acf.size >= 20
             HrvCard {
                 ACFHeader()
                 Spacer(Modifier.height(6.dp))
                 if (acfReady) {
                     AutoCorrelationChart(
                         acf = acf,
-                        peakLag = uiState.stats?.resampledRrsStats?.autoCorrelationPeak
+                        peakLag = uiState.autoCorrelationPeak
                             ?.coerceIn(targetCycleLengthRange),
                         bandLo = targetCycleLengthRange.start,
                         bandHi = targetCycleLengthRange.endInclusive,

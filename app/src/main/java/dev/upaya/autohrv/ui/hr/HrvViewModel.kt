@@ -6,7 +6,6 @@ import dev.upaya.autohrv.data.model.ConnectionState
 import dev.upaya.autohrv.data.repository.HrvRepository
 import dev.upaya.autohrv.domain.breathing.BreathingConfig
 import dev.upaya.autohrv.domain.breathing.BreathingBusiness
-import dev.upaya.autohrv.domain.breathing.TimeSeriesStats
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,7 +20,9 @@ data class HrUiState(
     val hr: Int? = null,
     val rrsMsHistory: List<Int> = emptyList(),
     val batteryLevel: Int? = null,
-    val stats: TimeSeriesStats? = null,
+    val rmssd: Float? = null,
+    val autoCorrelation: List<Float>? = null,
+    val autoCorrelationPeak: Float? = null,
 )
 
 @HiltViewModel
@@ -63,7 +64,11 @@ class HrvViewModel @Inject constructor(
         }
         viewModelScope.launch {
             coordinator.stats.collect { stats ->
-                _uiState.update { it.copy(stats = stats) }
+                _uiState.update { it.copy(
+                    rmssd = stats?.beatRrsStats?.rmssd,
+                    autoCorrelation = stats?.resampledRrsStats?.autoCorrelation,
+                    autoCorrelationPeak = stats?.resampledRrsStats?.autoCorrelationPeak,
+                ) }
             }
         }
     }
