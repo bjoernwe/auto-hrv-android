@@ -25,7 +25,7 @@ data class HrUiState(
     val rmssd: Float? = null,
     val autoCorrelation: List<Float>? = null,
     val autoCorrelationPeak: Float? = null,
-    val inResonance: Boolean = false,
+    val isInResonance: Boolean = false,
 )
 
 const val AUTO_CORRELATION_SIZE = 20
@@ -77,8 +77,8 @@ class HrvViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            breathingBusiness.inResonance.collect { inResonance ->
-                _uiState.update { it.copy(inResonance = inResonance) }
+            breathingBusiness.isInResonance.collect { isInResonance ->
+                _uiState.update { it.copy(isInResonance = isInResonance) }
             }
         }
     }

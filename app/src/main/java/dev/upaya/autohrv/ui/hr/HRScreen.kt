@@ -101,7 +101,7 @@ fun HRScreen(viewModel: HrvViewModel) {
             ResonancePill(
                 cycleLengthSec = cycleLengthSec,
                 breathsPerMin = breathsPerMin,
-                inResonance = uiState.inResonance,
+                isInResonance = uiState.isInResonance,
             )
 
             Spacer(Modifier.height(12.dp))
@@ -255,7 +255,7 @@ private fun AutoHrvTopBar(
 }
 
 @Composable
-private fun ResonancePill(cycleLengthSec: Float, breathsPerMin: Float?, inResonance: Boolean) {
+private fun ResonancePill(cycleLengthSec: Float, breathsPerMin: Float?, isInResonance: Boolean) {
     val surface = MaterialTheme.colorScheme.surface
     val outline = MaterialTheme.colorScheme.outlineVariant
     val onSurface = MaterialTheme.colorScheme.onSurface
@@ -310,14 +310,14 @@ private fun ResonancePill(cycleLengthSec: Float, breathsPerMin: Float?, inResona
 
         Spacer(Modifier.width(11.dp))
 
-        ResonanceChip(inResonance = inResonance)
+        ResonanceChip(isInResonance = isInResonance)
     }
 }
 
 @Composable
-private fun ResonanceChip(inResonance: Boolean) {
-    val accent = if (inResonance) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    val background = if (inResonance) accent.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surfaceVariant
+private fun ResonanceChip(isInResonance: Boolean) {
+    val accent = if (isInResonance) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val background = if (isInResonance) accent.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surfaceVariant
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
@@ -328,7 +328,7 @@ private fun ResonanceChip(inResonance: Boolean) {
     ) {
         Box(Modifier.size(7.dp).background(accent, CircleShape))
         Text(
-            text = if (inResonance) "resonance" else "tuning ...",
+            text = if (isInResonance) "resonance" else "tuning ...",
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.SemiBold,
                 color = accent,
@@ -578,7 +578,7 @@ private fun AutoHrvTopBarDisconnectedPreview() {
 @Composable
 private fun ResonancePillPreview() {
     AutoHrvTheme {
-        ResonancePill(cycleLengthSec = 10.0f, breathsPerMin = 6.0f, inResonance = true)
+        ResonancePill(cycleLengthSec = 10.0f, breathsPerMin = 6.0f, isInResonance = true)
     }
 }
 
@@ -586,7 +586,7 @@ private fun ResonancePillPreview() {
 @Composable
 private fun ResonanceChipInResonancePreview() {
     AutoHrvTheme {
-        ResonanceChip(inResonance = true)
+        ResonanceChip(isInResonance = true)
     }
 }
 
@@ -594,7 +594,7 @@ private fun ResonanceChipInResonancePreview() {
 @Composable
 private fun ResonanceChipNotInResonancePreview() {
     AutoHrvTheme {
-        ResonanceChip(inResonance = false)
+        ResonanceChip(isInResonance = false)
     }
 }
 
