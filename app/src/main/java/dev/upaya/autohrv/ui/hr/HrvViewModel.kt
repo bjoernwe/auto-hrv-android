@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -68,15 +67,19 @@ class HrvViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            combine(breathingBusiness.stats, breathingBusiness.targetCycleLengthRange) { stats, range ->
+            breathingBusiness.stats.collect { stats ->
                 val peak = stats?.resampledRrsStats?.autoCorrelationPeak
                 _uiState.update { it.copy(
                     rmssd = stats?.beatRrsStats?.rmssd,
                     autoCorrelation = stats?.resampledRrsStats?.autoCorrelation?.takeIf { it.size >= AUTO_CORRELATION_SIZE }?.take(AUTO_CORRELATION_SIZE),
                     autoCorrelationPeak = peak,
-                    inResonance = peak?.let { it in range } ?: false,
                 ) }
-            }.collect {}
+            }
+        }
+        viewModelScope.launch {
+            breathingBusiness.inResonance.collect { inResonance ->
+                _uiState.update { it.copy(inResonance = inResonance) }
+            }
         }
     }
 
