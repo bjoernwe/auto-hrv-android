@@ -310,24 +310,25 @@ private fun ResonancePill(cycleLengthSec: Float, breathsPerMin: Float?) {
 
         Spacer(Modifier.width(11.dp))
 
-        ResonanceChip()
+        ResonanceChip(inResonance = true)
     }
 }
 
 @Composable
-private fun ResonanceChip() {
-    val accent = MaterialTheme.colorScheme.primary
+private fun ResonanceChip(inResonance: Boolean) {
+    val accent = if (inResonance) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val background = if (inResonance) accent.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surfaceVariant
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(accent.copy(alpha = 0.10f))
+            .background(background)
             .padding(horizontal = 11.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(Modifier.size(7.dp).background(accent, CircleShape))
         Text(
-            text = "In resonance",
+            text = if (inResonance) "in resonance" else "tuning ...",
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.SemiBold,
                 color = accent,
@@ -583,9 +584,17 @@ private fun ResonancePillPreview() {
 
 @Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
 @Composable
-private fun ResonanceChipPreview() {
+private fun ResonanceChipInResonancePreview() {
     AutoHrvTheme {
-        ResonanceChip()
+        ResonanceChip(inResonance = true)
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
+@Composable
+private fun ResonanceChipNotInResonancePreview() {
+    AutoHrvTheme {
+        ResonanceChip(inResonance = false)
     }
 }
 
