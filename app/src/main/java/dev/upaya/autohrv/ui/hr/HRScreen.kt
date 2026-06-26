@@ -1,6 +1,8 @@
 package dev.upaya.autohrv.ui.hr
 
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.StartOffset
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -375,7 +377,7 @@ private fun ResonanceBeacon(accent: Color, pulsing: Boolean) {
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1600),
+            animation = tween(durationMillis = 2400),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "glow",
@@ -385,10 +387,31 @@ private fun ResonanceBeacon(accent: Color, pulsing: Boolean) {
         initialValue = 0.82f,
         targetValue = 1.1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1600),
+            animation = tween(durationMillis = 2400),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "dot",
+    )
+    // Ring expands outward and fades, staggered against the glow cycle.
+    val ringScale by transition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+            initialStartOffset = StartOffset(1200),
+        ),
+        label = "ring-scale",
+    )
+    val ringAlpha by transition.animateFloat(
+        initialValue = 0.65f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2400, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+            initialStartOffset = StartOffset(1200),
+        ),
+        label = "ring-alpha",
     )
 
     Box(
@@ -410,11 +433,19 @@ private fun ResonanceBeacon(accent: Color, pulsing: Boolean) {
                     CircleShape,
                 ),
         )
-        // Pulsing dot.
+        // Expanding ripple ring.
         Box(
             Modifier
-                .size(dotSize)
-                .scale(dotScale)
+                .size(beaconSize)
+                .scale(ringScale)
+                .border(1.dp, accent.copy(alpha = ringAlpha), CircleShape),
+        )
+        // Pulsing dot — same node size as the ring/glow so all three stay
+        // perfectly concentric (no half-pixel centering offset).
+        Box(
+            Modifier
+                .size(beaconSize)
+                .scale(dotScale * (dotSize.value / beaconSize.value))
                 .background(accent, CircleShape),
         )
     }
