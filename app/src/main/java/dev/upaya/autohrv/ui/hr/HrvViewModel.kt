@@ -25,6 +25,8 @@ data class HrUiState(
     val autoCorrelationPeak: Float? = null,
 )
 
+const val AUTO_CORRELATION_SIZE = 20
+
 @HiltViewModel
 class HrvViewModel @Inject constructor(
     private val repository: HrvRepository,
@@ -66,7 +68,7 @@ class HrvViewModel @Inject constructor(
             coordinator.stats.collect { stats ->
                 _uiState.update { it.copy(
                     rmssd = stats?.beatRrsStats?.rmssd,
-                    autoCorrelation = stats?.resampledRrsStats?.autoCorrelation,
+                    autoCorrelation = stats?.resampledRrsStats?.autoCorrelation?.takeIf { it.size >= AUTO_CORRELATION_SIZE }?.take(AUTO_CORRELATION_SIZE),
                     autoCorrelationPeak = stats?.resampledRrsStats?.autoCorrelationPeak,
                 ) }
             }

@@ -128,7 +128,7 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
 
             // ③ Autocorrelation card
             val acf = uiState.autoCorrelation
-            val acfReady = acf != null && acf.size >= 20
+            val acfReady = acf != null && acf.size >= 2
             HrvCard {
                 ACFHeader()
                 Spacer(Modifier.height(6.dp))
