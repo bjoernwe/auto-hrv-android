@@ -3,12 +3,14 @@ package dev.upaya.autohrv.domain.breathing
 import dev.upaya.autohrv.data.repository.HrvRepository
 import dev.upaya.autohrv.di.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
@@ -31,9 +33,9 @@ class BreathingBusiness @Inject internal constructor(
         _targetOutToInRatio.value = ratio
     }
 
-    val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = breathingConfig.cycleLengthRange
+    val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = breathingConfig.maxCycleLengthRange
 
-    private val _targetCycleLengthRange = MutableStateFlow(cycleLengthAllowedRange)
+    private val _targetCycleLengthRange = MutableStateFlow(breathingConfig.initialCycleLengthRange)
     val targetCycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = _targetCycleLengthRange
 
     fun setTargetCycleLengthRange(range: ClosedFloatingPointRange<Float>) {
@@ -46,8 +48,10 @@ class BreathingBusiness @Inject internal constructor(
     private val rrsMsBeatHistory: StateFlow<List<Int>> = hrvRepository.getRrsMsBeatHistory(breathingConfig.evaluationLengthSeconds)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    val stats: StateFlow<TimeSeriesStats?> = timeSeriesStatsUseCase(rrsMsHistory, rrsMsBeatHistory, targetCycleLengthRange.value)
-        .stateIn(scope, SharingStarted.Eagerly, null)
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val stats: StateFlow<TimeSeriesStats?> = _targetCycleLengthRange.flatMapLatest { range ->
+        timeSeriesStatsUseCase(rrsMsHistory, rrsMsBeatHistory, range)
+    }.stateIn(scope, SharingStarted.Eagerly, null)
 
     private val initialBreathingPattern = breathingConfig.defaultParams()
 

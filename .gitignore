@@ -8,6 +8,7 @@ build/
 .gradle/
 
 # IDE settings
+.idea/misc.xml
 .idea/workspace.xml
 .idea/libraries/
 .idea/shelf/
