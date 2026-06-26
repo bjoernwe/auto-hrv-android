@@ -258,7 +258,6 @@ private fun AutoHrvTopBar(
 private fun ResonancePill(cycleLengthSec: Float, breathsPerMin: Float?) {
     val surface = MaterialTheme.colorScheme.surface
     val outline = MaterialTheme.colorScheme.outlineVariant
-    val accent = MaterialTheme.colorScheme.primary
     val onSurface = MaterialTheme.colorScheme.onSurface
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val shape = RoundedCornerShape(999.dp)
@@ -311,24 +310,29 @@ private fun ResonancePill(cycleLengthSec: Float, breathsPerMin: Float?) {
 
         Spacer(Modifier.width(11.dp))
 
-        // "In resonance" chip
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(accent.copy(alpha = 0.10f))
-                .padding(horizontal = 11.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Box(Modifier.size(7.dp).background(accent, CircleShape))
-            Text(
-                text = "In resonance",
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    color = accent,
-                ),
-            )
-        }
+        ResonanceChip()
+    }
+}
+
+@Composable
+private fun ResonanceChip() {
+    val accent = MaterialTheme.colorScheme.primary
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(accent.copy(alpha = 0.10f))
+            .padding(horizontal = 11.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(Modifier.size(7.dp).background(accent, CircleShape))
+        Text(
+            text = "In resonance",
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                color = accent,
+            ),
+        )
     }
 }
 
@@ -574,6 +578,14 @@ private fun AutoHrvTopBarDisconnectedPreview() {
 private fun ResonancePillPreview() {
     AutoHrvTheme {
         ResonancePill(cycleLengthSec = 10.0f, breathsPerMin = 6.0f)
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
+@Composable
+private fun ResonanceChipPreview() {
+    AutoHrvTheme {
+        ResonanceChip()
     }
 }
 
