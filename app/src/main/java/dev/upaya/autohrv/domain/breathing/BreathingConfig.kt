@@ -16,8 +16,8 @@ data class BreathingConfig(
             cycleLength = 8f,
             initialCycleLengthRange = 6f..10f,
             maxCycleLengthRange = 4f..20f,
-            resonancePeakToleranceSeconds = 1f,
-            resonanceMinPeakValue = 0.4f,
+            resonancePeakToleranceSeconds = 1.5f,
+            resonanceMinPeakValue = 0.35f,
         )
     }
 }
