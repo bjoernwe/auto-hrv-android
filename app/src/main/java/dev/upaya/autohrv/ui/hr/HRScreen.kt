@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -102,14 +103,22 @@ fun HRScreen(viewModel: HrvViewModel) {
                 modifier = Modifier.size(188.dp),
             )
 
-            Spacer(Modifier.height(12.dp))
-
-            // Resonance readout pill
-            ResonancePill(
-                cycleLengthSec = cycleLengthSec,
-                breathsPerMin = breathsPerMin,
-                isInResonance = uiState.isInResonance,
-            )
+            // Resonance readout pill — pulled up to overlap the orb bottom
+            Box(
+                modifier = Modifier.layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    val pullUp = 28.dp.roundToPx()
+                    layout(placeable.width, (placeable.height - pullUp).coerceAtLeast(0)) {
+                        placeable.placeRelative(0, -pullUp)
+                    }
+                }
+            ) {
+                ResonancePill(
+                    cycleLengthSec = cycleLengthSec,
+                    breathsPerMin = breathsPerMin,
+                    isInResonance = uiState.isInResonance,
+                )
+            }
 
             Spacer(Modifier.height(12.dp))
 
