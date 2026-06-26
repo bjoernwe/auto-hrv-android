@@ -1,5 +1,10 @@
 package dev.upaya.autohrv.ui.hr
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +41,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
@@ -326,13 +333,79 @@ private fun ResonanceChip(isInResonance: Boolean) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Box(Modifier.size(7.dp).background(accent, CircleShape))
+        ResonanceBeacon(accent = accent, pulsing = isInResonance)
         Text(
             text = if (isInResonance) "resonance" else "tuning ...",
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.SemiBold,
                 color = accent,
             ),
+        )
+    }
+}
+
+@Composable
+private fun ResonanceBeacon(accent: Color, pulsing: Boolean) {
+    val dotSize = 7.dp
+    val beaconSize = 18.dp
+
+    if (!pulsing) {
+        Box(
+            Modifier.size(beaconSize),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(Modifier.size(dotSize).background(accent, CircleShape))
+        }
+        return
+    }
+
+    val transition = rememberInfiniteTransition(label = "resonance-beacon")
+    // Breathing glow: the halo expands and fades, like a slow exhale.
+    val glowProgress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1600),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "glow",
+    )
+    // The dot itself gently pulses in sync with the glow.
+    val dotScale by transition.animateFloat(
+        initialValue = 0.82f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1600),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "dot",
+    )
+
+    Box(
+        Modifier.size(beaconSize),
+        contentAlignment = Alignment.Center,
+    ) {
+        // Soft breathing glow halo.
+        Box(
+            Modifier
+                .size(beaconSize)
+                .scale(0.7f + glowProgress * 0.6f)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            accent.copy(alpha = 0.45f * (1f - glowProgress * 0.7f)),
+                            Color.Transparent,
+                        ),
+                    ),
+                    CircleShape,
+                ),
+        )
+        // Pulsing dot.
+        Box(
+            Modifier
+                .size(dotSize)
+                .scale(dotScale)
+                .background(accent, CircleShape),
         )
     }
 }
