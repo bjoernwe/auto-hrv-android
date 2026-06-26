@@ -328,7 +328,7 @@ private fun ResonanceChip(inResonance: Boolean) {
     ) {
         Box(Modifier.size(7.dp).background(accent, CircleShape))
         Text(
-            text = if (inResonance) "in resonance" else "tuning ...",
+            text = if (inResonance) "resonance" else "tuning ...",
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.SemiBold,
                 color = accent,
