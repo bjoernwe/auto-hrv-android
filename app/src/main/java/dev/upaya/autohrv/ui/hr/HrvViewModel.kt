@@ -33,9 +33,8 @@ const val AUTO_CORRELATION_SIZE = 20
 
 @HiltViewModel
 class HrvViewModel @Inject constructor(
-    private val repository: HrvRepository,
-    private val coordinator: BreathingBusiness,
-    polarRepository: HrvRepository,
+    private val hrvRepository: HrvRepository,
+    private val breathingBusiness: BreathingBusiness,
 ) : ViewModel() {
 
     private val breathingConfig = BreathingConfig.DEFAULT
@@ -46,20 +45,20 @@ class HrvViewModel @Inject constructor(
     val uiState: StateFlow<HrUiState> = _uiState.asStateFlow()
 
     init {
-        val rrsMsHistory: Flow<List<Int>> = polarRepository.getRrsMsHistory(breathingConfig.evaluationLengthSeconds)
+        val rrsMsHistory: Flow<List<Int>> = hrvRepository.getRrsMsHistory(breathingConfig.evaluationLengthSeconds)
 
         viewModelScope.launch {
-            repository.connectionState.collect { state ->
+            hrvRepository.connectionState.collect { state ->
                 _uiState.update { it.copy(connectionState = state) }
             }
         }
         viewModelScope.launch {
-            repository.batteryLevel.collect { level ->
+            hrvRepository.batteryLevel.collect { level ->
                 _uiState.update { it.copy(batteryLevel = level) }
             }
         }
         viewModelScope.launch {
-            repository.hrResampled1Hz.collect { hr ->
+            hrvRepository.hrResampled1Hz.collect { hr ->
                 _uiState.update { it.copy(hr = hr) }
             }
         }
@@ -69,7 +68,7 @@ class HrvViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            combine(coordinator.stats, coordinator.targetCycleLengthRange) { stats, range ->
+            combine(breathingBusiness.stats, breathingBusiness.targetCycleLengthRange) { stats, range ->
                 val peak = stats?.resampledRrsStats?.autoCorrelationPeak
                 _uiState.update { it.copy(
                     rmssd = stats?.beatRrsStats?.rmssd,
@@ -81,17 +80,17 @@ class HrvViewModel @Inject constructor(
         }
     }
 
-    val breathingState: StateFlow<BreathingState> = coordinator.currentBreathingState
-    val currentPattern: StateFlow<BreathingPattern> = coordinator.currentBreathingPattern
-    val targetOutToInRatio: StateFlow<Float> = coordinator.targetOutToInRatio
-    val targetCycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = coordinator.targetCycleLengthRange
-    val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = coordinator.cycleLengthAllowedRange
+    val breathingState: StateFlow<BreathingState> = breathingBusiness.currentBreathingState
+    val currentPattern: StateFlow<BreathingPattern> = breathingBusiness.currentBreathingPattern
+    val targetOutToInRatio: StateFlow<Float> = breathingBusiness.targetOutToInRatio
+    val targetCycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = breathingBusiness.targetCycleLengthRange
+    val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = breathingBusiness.cycleLengthAllowedRange
 
-    fun connect() = repository.connect()
+    fun connect() = hrvRepository.connect()
 
-    fun disconnect() = repository.disconnect()
+    fun disconnect() = hrvRepository.disconnect()
 
-    fun setTargetOutToInRatio(ratio: Float) = coordinator.setTargetOutToInRatio(ratio)
+    fun setTargetOutToInRatio(ratio: Float) = breathingBusiness.setTargetOutToInRatio(ratio)
 
-    fun setTargetCycleLengthRange(range: ClosedFloatingPointRange<Float>) = coordinator.setTargetCycleLengthRange(range)
+    fun setTargetCycleLengthRange(range: ClosedFloatingPointRange<Float>) = breathingBusiness.setTargetCycleLengthRange(range)
 }
