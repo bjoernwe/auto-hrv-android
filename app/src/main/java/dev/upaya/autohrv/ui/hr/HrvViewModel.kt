@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,6 +24,7 @@ data class HrUiState(
     val rmssd: Float? = null,
     val autoCorrelation: List<Float>? = null,
     val autoCorrelationPeak: Float? = null,
+    val inResonance: Boolean = false,
 )
 
 const val AUTO_CORRELATION_SIZE = 20
@@ -65,13 +67,15 @@ class HrvViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            coordinator.stats.collect { stats ->
+            combine(coordinator.stats, coordinator.targetCycleLengthRange) { stats, range ->
+                val peak = stats?.resampledRrsStats?.autoCorrelationPeak
                 _uiState.update { it.copy(
                     rmssd = stats?.beatRrsStats?.rmssd,
                     autoCorrelation = stats?.resampledRrsStats?.autoCorrelation?.takeIf { it.size >= AUTO_CORRELATION_SIZE }?.take(AUTO_CORRELATION_SIZE),
-                    autoCorrelationPeak = stats?.resampledRrsStats?.autoCorrelationPeak,
+                    autoCorrelationPeak = peak,
+                    inResonance = peak?.let { it in range } ?: false,
                 ) }
-            }
+            }.collect {}
         }
     }
 

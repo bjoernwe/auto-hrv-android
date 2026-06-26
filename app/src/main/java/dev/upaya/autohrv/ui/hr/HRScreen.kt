@@ -102,6 +102,7 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingViewModel: BreathingPacerViewMo
             ResonancePill(
                 cycleLengthSec = cycleLengthSec,
                 breathsPerMin = breathsPerMin,
+                inResonance = uiState.inResonance,
             )
 
             Spacer(Modifier.height(12.dp))
@@ -255,7 +256,7 @@ private fun AutoHrvTopBar(
 }
 
 @Composable
-private fun ResonancePill(cycleLengthSec: Float, breathsPerMin: Float?) {
+private fun ResonancePill(cycleLengthSec: Float, breathsPerMin: Float?, inResonance: Boolean) {
     val surface = MaterialTheme.colorScheme.surface
     val outline = MaterialTheme.colorScheme.outlineVariant
     val onSurface = MaterialTheme.colorScheme.onSurface
@@ -310,7 +311,7 @@ private fun ResonancePill(cycleLengthSec: Float, breathsPerMin: Float?) {
 
         Spacer(Modifier.width(11.dp))
 
-        ResonanceChip(inResonance = true)
+        ResonanceChip(inResonance = inResonance)
     }
 }
 
@@ -578,7 +579,7 @@ private fun AutoHrvTopBarDisconnectedPreview() {
 @Composable
 private fun ResonancePillPreview() {
     AutoHrvTheme {
-        ResonancePill(cycleLengthSec = 10.0f, breathsPerMin = 6.0f)
+        ResonancePill(cycleLengthSec = 10.0f, breathsPerMin = 6.0f, inResonance = true)
     }
 }
 
