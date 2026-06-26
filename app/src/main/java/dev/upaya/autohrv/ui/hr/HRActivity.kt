@@ -6,7 +6,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import dev.upaya.autohrv.domain.bluetooth.GetBluetoothPermissionUseCase
-import dev.upaya.autohrv.ui.breathing.BreathingPacerViewModel
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -14,7 +13,6 @@ import dagger.hilt.android.AndroidEntryPoint
 class HRActivity : ComponentActivity() {
 
     private val hrViewModel: HrvViewModel by viewModels()
-    private val breathingViewModel: BreathingPacerViewModel by viewModels()
 
     private val getBluetoothPermissions = GetBluetoothPermissionUseCase(
         activity = this,
@@ -28,10 +26,7 @@ class HRActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AutoHrvTheme {
-                HRScreen(
-                    hrViewModel = hrViewModel,
-                    breathingPacerViewModel = breathingViewModel,
-                )
+                HRScreen(viewModel = hrViewModel)
             }
         }
         getBluetoothPermissions()

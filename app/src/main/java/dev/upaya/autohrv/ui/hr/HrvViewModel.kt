@@ -6,6 +6,8 @@ import dev.upaya.autohrv.data.model.ConnectionState
 import dev.upaya.autohrv.data.repository.HrvRepository
 import dev.upaya.autohrv.domain.breathing.BreathingConfig
 import dev.upaya.autohrv.domain.breathing.BreathingBusiness
+import dev.upaya.autohrv.domain.breathing.BreathingPattern
+import dev.upaya.autohrv.domain.breathing.BreathingState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -79,7 +81,17 @@ class HrvViewModel @Inject constructor(
         }
     }
 
+    val breathingState: StateFlow<BreathingState> = coordinator.currentBreathingState
+    val currentPattern: StateFlow<BreathingPattern> = coordinator.currentBreathingPattern
+    val targetOutToInRatio: StateFlow<Float> = coordinator.targetOutToInRatio
+    val targetCycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = coordinator.targetCycleLengthRange
+    val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = coordinator.cycleLengthAllowedRange
+
     fun connect() = repository.connect()
 
     fun disconnect() = repository.disconnect()
+
+    fun setTargetOutToInRatio(ratio: Float) = coordinator.setTargetOutToInRatio(ratio)
+
+    fun setTargetCycleLengthRange(range: ClosedFloatingPointRange<Float>) = coordinator.setTargetCycleLengthRange(range)
 }

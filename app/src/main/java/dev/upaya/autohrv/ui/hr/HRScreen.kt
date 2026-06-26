@@ -48,15 +48,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.polar.sdk.api.model.PolarDeviceInfo
 import dev.upaya.autohrv.data.model.ConnectionState
 import dev.upaya.autohrv.ui.breathing.BreathingPacerOrb
-import dev.upaya.autohrv.ui.breathing.BreathingPacerViewModel
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 @Composable
-fun HRScreen(hrViewModel: HrvViewModel, breathingPacerViewModel: BreathingPacerViewModel) {
-    val uiState by hrViewModel.uiState.collectAsStateWithLifecycle()
-    val breathingState by breathingPacerViewModel.breathingState.collectAsStateWithLifecycle()
-    val currentPattern by breathingPacerViewModel.currentPattern.collectAsStateWithLifecycle()
-    val targetCycleLengthRange by breathingPacerViewModel.targetCycleLengthRange.collectAsStateWithLifecycle()
+fun HRScreen(viewModel: HrvViewModel) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val breathingState by viewModel.breathingState.collectAsStateWithLifecycle()
+    val currentPattern by viewModel.currentPattern.collectAsStateWithLifecycle()
+    val targetCycleLengthRange by viewModel.targetCycleLengthRange.collectAsStateWithLifecycle()
 
     val view = LocalView.current
     DisposableEffect(Unit) {
@@ -74,7 +73,7 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingPacerViewModel: BreathingPacerV
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AutoHrvTopBar(
-                deviceId = hrViewModel.deviceId,
+                deviceId = viewModel.deviceId,
                 connectionState = uiState.connectionState,
                 batteryLevel = uiState.batteryLevel,
             )
@@ -146,9 +145,9 @@ fun HRScreen(hrViewModel: HrvViewModel, breathingPacerViewModel: BreathingPacerV
                     )
                     BandRangeSlider(
                         value = targetCycleLengthRange,
-                        onValueChange = { breathingPacerViewModel.setTargetCycleLengthRange(it) },
+                        onValueChange = { viewModel.setTargetCycleLengthRange(it) },
                         valueRange = 0f..(acf.size - 1).toFloat(),
-                        allowedRange = breathingPacerViewModel.cycleLengthAllowedRange,
+                        allowedRange = viewModel.cycleLengthAllowedRange,
                     )
                 } else {
                     ChartPlaceholder(
