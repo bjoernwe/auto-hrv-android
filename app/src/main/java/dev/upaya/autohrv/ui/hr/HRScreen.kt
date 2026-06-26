@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -48,6 +47,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -79,6 +80,9 @@ fun HRScreen(viewModel: HrvViewModel) {
     val cycleLengthSec = currentPattern.cycleLengthSeconds
     val breathsPerMin = if (cycleLengthSec > 0f) 60f / cycleLengthSec else null
 
+    val scrollState = rememberScrollState()
+    val density = LocalDensity.current
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -89,103 +93,130 @@ fun HRScreen(viewModel: HrvViewModel) {
             )
         },
     ) { innerPadding ->
-        Column(
+        // We use Box to overlay the Orb (background) and the Content (scrollable foreground)
+        // We ignore innerPadding.top to allow content to scroll underneath the transparent top bar
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(innerPadding)
-                .padding(horizontal = 18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .padding(bottom = innerPadding.calculateBottomPadding())
         ) {
-            Spacer(Modifier.height(8.dp))
+            // Dimensions for the two-phase scrolling header
+            val maxHeaderHeight = 300.dp
+            val minHeaderHeightPx = with(density) { innerPadding.calculateTopPadding().toPx() }
+            val maxHeaderHeightPx = with(density) { maxHeaderHeight.toPx() }
+            val collapseRangePx = maxHeaderHeightPx - minHeaderHeightPx
 
-            // ① Breathing pacer — hero
+            // ① Breathing pacer orb — Hero animation
+            val orbSize = 188.dp
+            val orbSizePx = with(density) { orbSize.toPx() }
+            val orbShiftPx = with(density) { 10.dp.toPx() }
+
             BreathingPacerOrb(
                 state = breathingState,
-                modifier = Modifier.size(188.dp),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .size(orbSize)
+                    .graphicsLayer {
+                        val scrollOffset = scrollState.value.toFloat()
+
+                        // Calculate translation to keep orb centered in the "available" space at the top
+                        translationY = if (scrollOffset < collapseRangePx) {
+                            // Phase 1: Space shrinks; orb stays centered between top bar and content
+                            val currentContentTop = maxHeaderHeightPx - scrollOffset
+                            val topBoundary = minHeaderHeightPx
+                            val availableSpace = currentContentTop - topBoundary
+                            topBoundary + (availableSpace / 2) - (orbSizePx / 2) - orbShiftPx
+                        } else {
+                            // Phase 2: Content has reached top bar; orb moves up with content
+                            val finalCenterY = minHeaderHeightPx - (orbSizePx / 2) - orbShiftPx
+                            finalCenterY - (scrollOffset - collapseRangePx)
+                        }
+                    },
             )
 
-            // Resonance readout pill — pulled up to overlap the orb bottom
-            Box(
-                modifier = Modifier.layout { measurable, constraints ->
-                    val placeable = measurable.measure(constraints)
-                    val pullUp = 28.dp.roundToPx()
-                    layout(placeable.width, (placeable.height - pullUp).coerceAtLeast(0)) {
-                        placeable.placeRelative(0, -pullUp)
-                    }
-                }
+            // Scrollable Content Layer
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                // Transparent space at the top of the column to allow the Orb to be seen behind
+                Spacer(Modifier.height(maxHeaderHeight))
+
+                // Resonance readout pill — Now follows the orb, no longer pulled up by default
                 ResonancePill(
                     cycleLengthSec = cycleLengthSec,
                     breathsPerMin = breathsPerMin,
                     isInResonance = uiState.isInResonance,
                 )
-            }
 
-            Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(12.dp))
 
-            // ② R–R interval card
-            HrvCard {
-                RRIntervalHeader(rmssd)
-                if (uiState.rrsMsHistory.size >= 2) {
-                    TimeSeriesChart(
-                        ts = uiState.rrsMsHistory,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                    )
-                } else {
-                    ChartPlaceholder(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                    )
+                // ② R–R interval card
+                HrvCard {
+                    RRIntervalHeader(rmssd)
+                    if (uiState.rrsMsHistory.size >= 2) {
+                        TimeSeriesChart(
+                            ts = uiState.rrsMsHistory,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp),
+                        )
+                    } else {
+                        ChartPlaceholder(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp),
+                        )
+                    }
                 }
-            }
-            Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(12.dp))
 
-            // ③ Autocorrelation card
-            val acf = uiState.autoCorrelation
-            val acfReady = acf != null && acf.size >= 2
-            HrvCard {
-                ACFHeader()
-                Spacer(Modifier.height(6.dp))
-                if (acfReady) {
-                    AutoCorrelationChart(
-                        acf = acf,
-                        peakLag = uiState.autoCorrelationPeak
-                            ?.coerceIn(targetCycleLengthRange),
-                        bandLo = targetCycleLengthRange.start,
-                        bandHi = targetCycleLengthRange.endInclusive,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                    )
-                    BandRangeSlider(
-                        value = targetCycleLengthRange,
-                        onValueChange = { viewModel.setTargetCycleLengthRange(it) },
-                        valueRange = 0f..(acf.size - 1).toFloat(),
-                        allowedRange = viewModel.cycleLengthAllowedRange,
-                    )
-                } else {
-                    ChartPlaceholder(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                    )
+                // ③ Autocorrelation card
+                val acf = uiState.autoCorrelation
+                val acfReady = acf != null && acf.size >= 2
+                HrvCard {
+                    ACFHeader()
+                    Spacer(Modifier.height(6.dp))
+                    if (acfReady) {
+                        AutoCorrelationChart(
+                            acf = acf,
+                            peakLag = uiState.autoCorrelationPeak
+                                ?.coerceIn(targetCycleLengthRange),
+                            bandLo = targetCycleLengthRange.start,
+                            bandHi = targetCycleLengthRange.endInclusive,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp),
+                        )
+                        BandRangeSlider(
+                            value = targetCycleLengthRange,
+                            onValueChange = { viewModel.setTargetCycleLengthRange(it) },
+                            valueRange = 0f..(acf.size - 1).toFloat(),
+                            allowedRange = viewModel.cycleLengthAllowedRange,
+                        )
+                    } else {
+                        ChartPlaceholder(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp),
+                        )
+                    }
                 }
+                Spacer(Modifier.height(12.dp))
+
+                // ④ Metrics row
+                MetricsRow(
+                    hr = uiState.hr,
+                    hrv = hrv?.let { "%.0f".format(it) },
+                    rr = currentRR,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Spacer(Modifier.height(16.dp))
             }
-            Spacer(Modifier.height(12.dp))
-
-            // ④ Metrics row
-            MetricsRow(
-                hr = uiState.hr,
-                hrv = hrv?.let { "%.0f".format(it) },
-                rr = currentRR,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(16.dp))
         }
     }
 }
