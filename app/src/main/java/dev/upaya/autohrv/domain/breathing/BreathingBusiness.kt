@@ -74,8 +74,10 @@ class BreathingBusiness @Inject internal constructor(
     val currentBreathingState: StateFlow<BreathingState> = pacerOutput.breathingState
     val currentBreathingPattern: StateFlow<BreathingPattern> = pacerOutput.currentPattern
 
-    val isInResonance: StateFlow<Boolean> = combine(stats, currentBreathingPattern) { s, pattern ->
-        val peak = s?.resampledRrsStats?.autoCorrelationPeak
-        peak != null && abs(peak - pattern.cycleLengthSeconds) <= 1f
+    val isInResonance: StateFlow<Boolean> = combine(stats, currentBreathingPattern) { stats, breathingPattern ->
+        val rrsStats = stats?.resampledRrsStats ?: return@combine false
+        val peak = rrsStats.autoCorrelationPeak ?: return@combine false
+        val peakValue = rrsStats.autoCorrelation?.getOrNull(peak.toInt()) ?: return@combine false
+        abs(peak - breathingPattern.cycleLengthSeconds) <= 1f && peakValue > 0.4f
     }.stateIn(scope, SharingStarted.Eagerly, false)
 }
