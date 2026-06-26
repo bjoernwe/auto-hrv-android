@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.abs
 
 @Singleton
 class BreathingBusiness @Inject internal constructor(
@@ -72,4 +73,11 @@ class BreathingBusiness @Inject internal constructor(
 
     val currentBreathingState: StateFlow<BreathingState> = pacerOutput.breathingState
     val currentBreathingPattern: StateFlow<BreathingPattern> = pacerOutput.currentPattern
+
+    val isInResonance: StateFlow<Boolean> = combine(stats, currentBreathingPattern) { stats, breathingPattern ->
+        val rrsStats = stats?.resampledRrsStats ?: return@combine false
+        val peak = rrsStats.autoCorrelationPeak ?: return@combine false
+        val peakValue = rrsStats.autoCorrelation?.getOrNull(peak.toInt()) ?: return@combine false
+        abs(peak - breathingPattern.cycleLengthSeconds) <= breathingConfig.resonancePeakToleranceSeconds && peakValue > breathingConfig.resonanceMinPeakValue
+    }.stateIn(scope, SharingStarted.Eagerly, false)
 }

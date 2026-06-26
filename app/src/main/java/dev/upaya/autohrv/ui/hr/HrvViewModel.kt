@@ -6,7 +6,8 @@ import dev.upaya.autohrv.data.model.ConnectionState
 import dev.upaya.autohrv.data.repository.HrvRepository
 import dev.upaya.autohrv.domain.breathing.BreathingConfig
 import dev.upaya.autohrv.domain.breathing.BreathingBusiness
-import dev.upaya.autohrv.domain.breathing.TimeSeriesStats
+import dev.upaya.autohrv.domain.breathing.BreathingPattern
+import dev.upaya.autohrv.domain.breathing.BreathingState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,14 +22,18 @@ data class HrUiState(
     val hr: Int? = null,
     val rrsMsHistory: List<Int> = emptyList(),
     val batteryLevel: Int? = null,
-    val stats: TimeSeriesStats? = null,
+    val rmssd: Float? = null,
+    val autoCorrelation: List<Float>? = null,
+    val autoCorrelationPeak: Float? = null,
+    val isInResonance: Boolean = false,
 )
+
+const val AUTO_CORRELATION_SIZE = 20
 
 @HiltViewModel
 class HrvViewModel @Inject constructor(
-    private val repository: HrvRepository,
-    private val coordinator: BreathingBusiness,
-    polarRepository: HrvRepository,
+    private val hrvRepository: HrvRepository,
+    private val breathingBusiness: BreathingBusiness,
 ) : ViewModel() {
 
     private val breathingConfig = BreathingConfig.DEFAULT
@@ -39,20 +44,20 @@ class HrvViewModel @Inject constructor(
     val uiState: StateFlow<HrUiState> = _uiState.asStateFlow()
 
     init {
-        val rrsMsHistory: Flow<List<Int>> = polarRepository.getRrsMsHistory(breathingConfig.evaluationLengthSeconds)
+        val rrsMsHistory: Flow<List<Int>> = hrvRepository.getRrsMsHistory(breathingConfig.evaluationLengthSeconds)
 
         viewModelScope.launch {
-            repository.connectionState.collect { state ->
+            hrvRepository.connectionState.collect { state ->
                 _uiState.update { it.copy(connectionState = state) }
             }
         }
         viewModelScope.launch {
-            repository.batteryLevel.collect { level ->
+            hrvRepository.batteryLevel.collect { level ->
                 _uiState.update { it.copy(batteryLevel = level) }
             }
         }
         viewModelScope.launch {
-            repository.hrResampled1Hz.collect { hr ->
+            hrvRepository.hrResampled1Hz.collect { hr ->
                 _uiState.update { it.copy(hr = hr) }
             }
         }
@@ -62,13 +67,33 @@ class HrvViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            coordinator.stats.collect { stats ->
-                _uiState.update { it.copy(stats = stats) }
+            breathingBusiness.stats.collect { stats ->
+                val peak = stats?.resampledRrsStats?.autoCorrelationPeak
+                _uiState.update { it.copy(
+                    rmssd = stats?.beatRrsStats?.rmssd,
+                    autoCorrelation = stats?.resampledRrsStats?.autoCorrelation?.takeIf { it.size >= AUTO_CORRELATION_SIZE }?.take(AUTO_CORRELATION_SIZE),
+                    autoCorrelationPeak = peak,
+                ) }
+            }
+        }
+        viewModelScope.launch {
+            breathingBusiness.isInResonance.collect { isInResonance ->
+                _uiState.update { it.copy(isInResonance = isInResonance) }
             }
         }
     }
 
-    fun connect() = repository.connect()
+    val breathingState: StateFlow<BreathingState> = breathingBusiness.currentBreathingState
+    val currentPattern: StateFlow<BreathingPattern> = breathingBusiness.currentBreathingPattern
+    val targetOutToInRatio: StateFlow<Float> = breathingBusiness.targetOutToInRatio
+    val targetCycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = breathingBusiness.targetCycleLengthRange
+    val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = breathingBusiness.cycleLengthAllowedRange
 
-    fun disconnect() = repository.disconnect()
+    fun connect() = hrvRepository.connect()
+
+    fun disconnect() = hrvRepository.disconnect()
+
+    fun setTargetOutToInRatio(ratio: Float) = breathingBusiness.setTargetOutToInRatio(ratio)
+
+    fun setTargetCycleLengthRange(range: ClosedFloatingPointRange<Float>) = breathingBusiness.setTargetCycleLengthRange(range)
 }
