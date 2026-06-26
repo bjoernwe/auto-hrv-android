@@ -329,7 +329,8 @@ private fun ResonanceChip(isInResonance: Boolean) {
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(background)
-            .padding(horizontal = 11.dp, vertical = 6.dp),
+            .padding(6.dp)
+            .padding(end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
