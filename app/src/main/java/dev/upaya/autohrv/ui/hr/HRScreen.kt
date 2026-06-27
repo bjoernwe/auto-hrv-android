@@ -300,24 +300,26 @@ private fun CouplingHeroCard(
             // Map to signed amplitude: +1 = inhale peak, -1 = exhale trough
             fun breathNorm(secondsAgo: Float) = breathAt(secondsAgo) * 2f - 1f
 
-            // Breath path
+            // Breath stroke + area fill — built in one pass so the area path closes correctly
             val steps = (plotW / 2).toInt().coerceAtLeast(4)
             val breathPath = Path()
+            val breathAreaPath = Path()
             for (i in 0..steps) {
                 val frac = i.toFloat() / steps
                 val x = padL + frac * plotW
                 val sAgo = COUPLING_WIN_SEC * (1f - frac)
                 val y = midY - breathNorm(sAgo) * breathAmp
-                if (i == 0) breathPath.moveTo(x, y) else breathPath.lineTo(x, y)
+                if (i == 0) {
+                    breathPath.moveTo(x, y)
+                    breathAreaPath.moveTo(x, y)
+                } else {
+                    breathPath.lineTo(x, y)
+                    breathAreaPath.lineTo(x, y)
+                }
             }
-
-            // Breath area fill
-            val breathAreaPath = Path().apply {
-                addPath(breathPath)
-                lineTo(padL + plotW, padT + plotH)
-                lineTo(padL, padT + plotH)
-                close()
-            }
+            breathAreaPath.lineTo(padL + plotW, padT + plotH)
+            breathAreaPath.lineTo(padL, padT + plotH)
+            breathAreaPath.close()
             drawPath(
                 path = breathAreaPath,
                 brush = Brush.verticalGradient(
