@@ -113,6 +113,7 @@ fun HRScreen(viewModel: HrvViewModel) {
 
             BreathingPacerOrb(
                 state = breathingState,
+                inResonance = uiState.isInResonance,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .size(orbSize)
