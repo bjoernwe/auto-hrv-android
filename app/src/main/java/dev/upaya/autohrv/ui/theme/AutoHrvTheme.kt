@@ -9,8 +9,8 @@ import androidx.compose.ui.graphics.Color
 // and a warm tone for the heart side (R–R trace, RMSSD, heart rate).
 val AutoHrvBreath = Color(0xFF1FD3E0)
 val AutoHrvOnBreath = Color(0xFF06181B)
-val AutoHrvHeart = Color(0xFFFF6B7D)
-val AutoHrvOnHeart = Color(0xFF2A080C)
+val AutoHrvHeart = Color(0xFFFF7A6B)
+val AutoHrvOnHeart = Color(0xFF2A0C06)
 val AutoHrvBg = Color(0xFF0A0B0E)
 val AutoHrvSurface = Color(0xFF131519)
 val AutoHrvSurface2 = Color(0xFF1A1D23)
