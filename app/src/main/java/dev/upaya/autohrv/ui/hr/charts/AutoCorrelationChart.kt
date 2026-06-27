@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.hr
+package dev.upaya.autohrv.ui.hr.charts
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -6,11 +6,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import dev.upaya.autohrv.ui.theme.AutoHrvTheme
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.exp
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
@@ -21,7 +16,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import dev.upaya.autohrv.ui.theme.AutoHrvTheme
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.exp
 
 @Composable
 fun AutoCorrelationChart(
@@ -159,15 +159,6 @@ fun AutoCorrelationChart(
                 ),
             )
         }
-
-        // Axis labels
-        //val zeroLabel = textMeasurer.measure("0s", style = axisStyle)
-        //drawText(zeroLabel, topLeft = Offset(padL, chartH - padB + 4.dp.toPx()))
-        //val lagLabel = textMeasurer.measure("${acf.size - 1}s lag", style = axisStyle)
-        /*drawText(
-            lagLabel,
-            topLeft = Offset(chartW - padR - lagLabel.size.width, chartH - padB + 4.dp.toPx()),
-        )*/
     }
 }
 
