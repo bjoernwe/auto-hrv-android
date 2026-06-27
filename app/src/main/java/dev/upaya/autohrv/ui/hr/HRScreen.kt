@@ -300,26 +300,22 @@ private fun CouplingHeroCard(
             // Map to signed amplitude: +1 = inhale peak, -1 = exhale trough
             fun breathNorm(secondsAgo: Float) = breathAt(secondsAgo) * 2f - 1f
 
-            // Breath stroke + area fill — built in one pass so the area path closes correctly
+            // Breath stroke + area fill
             val steps = (plotW / 2).toInt().coerceAtLeast(4)
             val breathPath = Path()
-            val breathAreaPath = Path()
             for (i in 0..steps) {
                 val frac = i.toFloat() / steps
                 val x = padL + frac * plotW
                 val sAgo = COUPLING_WIN_SEC * (1f - frac)
                 val y = midY - breathNorm(sAgo) * breathAmp
-                if (i == 0) {
-                    breathPath.moveTo(x, y)
-                    breathAreaPath.moveTo(x, y)
-                } else {
-                    breathPath.lineTo(x, y)
-                    breathAreaPath.lineTo(x, y)
-                }
+                if (i == 0) breathPath.moveTo(x, y) else breathPath.lineTo(x, y)
             }
-            breathAreaPath.lineTo(padL + plotW, padT + plotH)
-            breathAreaPath.lineTo(padL, padT + plotH)
-            breathAreaPath.close()
+            val breathAreaPath = Path().apply {
+                addPath(breathPath)
+                lineTo(padL + plotW, padT + plotH)
+                lineTo(padL, padT + plotH)
+                close()
+            }
             drawPath(
                 path = breathAreaPath,
                 brush = Brush.verticalGradient(
@@ -360,28 +356,27 @@ private fun CouplingHeroCard(
                 fun norm(rr: Int) = -(rr - rrMean) / halfRange
 
                 val heartBright = lerp(heartColor, Color.White, lockStrength * 0.35f)
-                val ghostPath = Path()
                 val heartPath = Path()
-                var started = false
+                // Collect visible points (sAgo, center) in one pass for reuse in dot drawing.
+                val heartPoints = mutableListOf<Pair<Float, Offset>>()
 
                 rrsMsHistory.forEachIndexed { i, rr ->
                     val sAgo = (n - 1 - i).toFloat()   // 1 Hz: sample spacing = 1 s
                     if (sAgo > COUPLING_WIN_SEC) return@forEachIndexed
-                    val x = hx(sAgo)
-                    val y = hy(norm(rr))
-                    if (!started) {
-                        ghostPath.moveTo(x, y); heartPath.moveTo(x, y); started = true
-                    } else {
-                        ghostPath.lineTo(x, y); heartPath.lineTo(x, y)
-                    }
+                    val pt = Offset(hx(sAgo), hy(norm(rr)))
+                    if (heartPoints.isEmpty()) heartPath.moveTo(pt.x, pt.y)
+                    else heartPath.lineTo(pt.x, pt.y)
+                    heartPoints.add(sAgo to pt)
                 }
 
-                if (started) {
+                if (heartPoints.isNotEmpty()) {
+                    // Ghost pass: same geometry, flat low-alpha color
                     drawPath(
-                        path = ghostPath,
+                        path = heartPath,
                         color = heartColor.copy(alpha = 0.20f),
                         style = Stroke(width = 1.2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
                     )
+                    // Bright pass: horizontal gradient fading in from left
                     drawPath(
                         path = heartPath,
                         brush = Brush.horizontalGradient(
@@ -399,14 +394,12 @@ private fun CouplingHeroCard(
                             join = StrokeJoin.Round,
                         ),
                     )
-                    rrsMsHistory.forEachIndexed { i, rr ->
-                        val sAgo = (n - 1 - i).toFloat()
-                        if (sAgo > COUPLING_WIN_SEC) return@forEachIndexed
+                    for ((sAgo, pt) in heartPoints) {
                         val alpha = (0.15f + 0.65f * (1f - sAgo / COUPLING_WIN_SEC)).coerceIn(0f, 1f)
                         drawCircle(
                             color = heartBright.copy(alpha = alpha),
                             radius = 1.6.dp.toPx(),
-                            center = Offset(hx(sAgo), hy(norm(rr))),
+                            center = pt,
                         )
                     }
                 }
@@ -592,24 +585,13 @@ private fun ResonancePill(
         PillDivider(outline)
 
         // τ lag readout — shown in heart color; "—" until cross-correlation is implemented
-        Row(
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = lagSeconds?.let { "%.1f".format(it) } ?: "—",
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontSize = 21.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = heart,
-                ),
-            )
-            Text(
-                text = "s lag",
-                style = MaterialTheme.typography.labelMedium.copy(color = muted),
-                modifier = Modifier.padding(bottom = 3.dp),
-            )
-        }
+        PillNumber(
+            value = lagSeconds?.let { "%.1f".format(it) } ?: "—",
+            unit = "s lag",
+            onSurface = onSurface,
+            muted = muted,
+            valueColor = heart,
+        )
 
         Spacer(Modifier.width(11.dp))
 
@@ -618,14 +600,20 @@ private fun ResonancePill(
 }
 
 @Composable
-private fun PillNumber(value: String, unit: String, onSurface: Color, muted: Color) {
+private fun PillNumber(
+    value: String,
+    unit: String,
+    onSurface: Color,
+    muted: Color,
+    valueColor: Color = onSurface,
+) {
     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = value,
             style = MaterialTheme.typography.headlineSmall.copy(
                 fontSize = 21.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = onSurface,
+                color = valueColor,
             ),
         )
         Text(
