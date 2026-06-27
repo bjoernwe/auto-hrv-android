@@ -1,9 +1,13 @@
 package dev.upaya.autohrv.ui.breathing
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
@@ -23,9 +27,23 @@ import kotlin.math.PI
 import kotlin.math.cos
 
 @Composable
-fun BreathingPacerOrb(state: BreathingState, modifier: Modifier = Modifier) {
+fun BreathingPacerOrb(
+    state: BreathingState,
+    modifier: Modifier = Modifier,
+    inResonance: Boolean = false,
+) {
     val colorScheme = MaterialTheme.colorScheme
     val textMeasurer = rememberTextMeasurer()
+
+    // Convergence: when heart and breath lock into resonance, the warm heart
+    // tone rises into the cool breath orb — the two systems meeting at its edge.
+    val convergence by animateFloatAsState(
+        targetValue = if (inResonance) 1f else 0f,
+        animationSpec = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
+        label = "orb-convergence",
+    )
+    val breath = colorScheme.primary
+    val heart = colorScheme.secondary
 
     val scale = when (state.phase) {
         BreathingPhase.Inhale -> 0.5f - 0.5f * cos(PI.toFloat() * state.progress)
@@ -55,25 +73,30 @@ fun BreathingPacerOrb(state: BreathingState, modifier: Modifier = Modifier) {
             style = Stroke(width = 1.dp.toPx()),
         )
 
-        // 2. The "Extra" Glow - Dynamic based on orb size
+        // 2. The glow — warms toward the heart tone and widens as resonance locks in.
+        val glowColor = lerp(breath, heart, convergence * 0.55f)
+        val glowRadius = orbRadius * (1.4f + 0.15f * convergence)
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(colorScheme.primary.copy(alpha = 0.25f), Color.Transparent),
+                colors = listOf(glowColor.copy(alpha = 0.25f + 0.10f * convergence), Color.Transparent),
                 center = c,
-                radius = orbRadius * 1.4f,
+                radius = glowRadius,
             ),
-            radius = orbRadius * 1.4f,
+            radius = glowRadius,
             center = c,
         )
 
-        // 3. The Orb - Material Primary with a 3D-effect gradient
+        // 3. The orb — a cool breath core whose rim warms toward the heart tone
+        //    as the two systems converge, with a 3D-effect gradient.
+        val core = lerp(breath, heart, convergence * 0.12f)
+        val rim = lerp(lerp(breath, Color.Black, 0.3f), heart, convergence * 0.5f)
         val gradientCenter = Offset(c.x, c.y - orbRadius * 0.2f)
         drawCircle(
             brush = Brush.radialGradient(
                 colorStops = arrayOf(
-                    0.0f to lerp(colorScheme.primary, Color.White, 0.15f), // Highlight
-                    0.5f to colorScheme.primary,                         // Base
-                    1.0f to lerp(colorScheme.primary, Color.Black, 0.3f)  // Depth shadow
+                    0.0f to lerp(core, Color.White, 0.15f), // Highlight
+                    0.5f to core,                           // Base
+                    1.0f to rim,                            // Depth / warm rim
                 ),
                 center = gradientCenter,
                 radius = orbRadius,
@@ -94,13 +117,25 @@ fun BreathingPacerOrb(state: BreathingState, modifier: Modifier = Modifier) {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "Orb — tuning")
 @Composable
 private fun BreathingPacerOrbPreview() {
     AutoHrvTheme {
         BreathingPacerOrb(
             state = BreathingState(BreathingPhase.Inhale, 0.6f),
             modifier = Modifier.size(188.dp),
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "Orb — in resonance")
+@Composable
+private fun BreathingPacerOrbResonancePreview() {
+    AutoHrvTheme {
+        BreathingPacerOrb(
+            state = BreathingState(BreathingPhase.Inhale, 0.6f),
+            modifier = Modifier.size(188.dp),
+            inResonance = true,
         )
     }
 }

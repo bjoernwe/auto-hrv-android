@@ -28,7 +28,8 @@ fun TimeSeriesChart(ts: List<Int>, modifier: Modifier = Modifier) {
     val maxRR = ts.max().toFloat()
     val rangeRR = (maxRR - minRR).coerceAtLeast(1f)
 
-    val accent = MaterialTheme.colorScheme.primary
+    // Heart side: the beat-to-beat R–R trace uses the warm tone.
+    val accent = MaterialTheme.colorScheme.secondary
     val surface = MaterialTheme.colorScheme.surface
     val outlineColor = MaterialTheme.colorScheme.outlineVariant
 
