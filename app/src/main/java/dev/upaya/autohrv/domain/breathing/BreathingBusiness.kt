@@ -54,10 +54,10 @@ class BreathingBusiness @Inject internal constructor(
         timeSeriesStatsUseCase(rrsMsHistory, rrsMsBeatHistory, range)
     }.stateIn(scope, SharingStarted.Eagerly, null)
 
-    private val initialBreathingPattern = breathingConfig.defaultParams()
+    private val initialBreathingPattern = breathingConfig.defaultPattern()
 
     private val smoothedTargetCycleLength: Flow<Float> = combine(stats, _targetCycleLengthRange) {
-        s, range -> (s?.resampledRrsStats?.autoCorrelationPeak ?: breathingConfig.cycleLength).coerceIn(range)
+        s, range -> (s?.resampledRrsStats?.autoCorrelationPeak ?: breathingConfig.initialCycleLength).coerceIn(range)
     }
         .scan(emptyList<Float>()) { window, cl -> (window + cl).takeLast(breathingConfig.evaluationLengthSeconds) }
         .filter { it.isNotEmpty() }
