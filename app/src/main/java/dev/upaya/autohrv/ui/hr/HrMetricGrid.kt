@@ -85,7 +85,8 @@ private fun MetricCell(
     modifier: Modifier = Modifier,
     showHeart: Boolean = false,
 ) {
-    val accent = MaterialTheme.colorScheme.primary
+    // Heart side: the heart-rate marker uses the warm tone.
+    val accent = MaterialTheme.colorScheme.secondary
     val faint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
 

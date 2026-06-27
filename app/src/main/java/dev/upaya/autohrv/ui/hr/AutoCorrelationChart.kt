@@ -33,7 +33,10 @@ fun AutoCorrelationChart(
 ) {
     if (acf.size < 2) return
 
-    val accent = MaterialTheme.colorScheme.primary
+    // The ACF curve is heart-derived → warm tone. The peak and band — which set
+    // the breathing pace — use the cool breath tone. "peak → pace" made literal.
+    val heart = MaterialTheme.colorScheme.secondary
+    val breath = MaterialTheme.colorScheme.primary
     val surface = MaterialTheme.colorScheme.surface
     val outlineColor = MaterialTheme.colorScheme.outlineVariant
     val bgColor = MaterialTheme.colorScheme.background
@@ -41,7 +44,7 @@ fun AutoCorrelationChart(
 
     val labelStyle = MaterialTheme.typography.labelSmall.copy(
         fontWeight = FontWeight.SemiBold,
-        color = accent,
+        color = breath,
     )
     Canvas(
         modifier = modifier,
@@ -84,7 +87,7 @@ fun AutoCorrelationChart(
         val bandEdgeDash = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 4.dp.toPx()))
         if (bandLo > 0f && bandLo <= maxLag) {
             drawLine(
-                color = accent.copy(alpha = 0.35f),
+                color = breath.copy(alpha = 0.35f),
                 start = Offset(bx0, padT),
                 end = Offset(bx0, chartH - padB),
                 strokeWidth = 1.dp.toPx(),
@@ -93,7 +96,7 @@ fun AutoCorrelationChart(
         }
         if (bandHi < maxLag) {
             drawLine(
-                color = accent.copy(alpha = 0.35f),
+                color = breath.copy(alpha = 0.35f),
                 start = Offset(bx1, padT),
                 end = Offset(bx1, chartH - padB),
                 strokeWidth = 1.dp.toPx(),
@@ -118,7 +121,7 @@ fun AutoCorrelationChart(
         }
         drawPath(
             path = path,
-            color = accent,
+            color = heart,
             style = Stroke(
                 width = 2.dp.toPx(),
                 cap = StrokeCap.Round,
@@ -134,16 +137,16 @@ fun AutoCorrelationChart(
 
             // Dashed vertical line at peak
             drawLine(
-                color = accent.copy(alpha = 0.45f),
+                color = breath.copy(alpha = 0.45f),
                 start = Offset(peakX, padT),
                 end = Offset(peakX, chartH - padB),
                 strokeWidth = 1.5.dp.toPx(),
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 4.dp.toPx())),
             )
 
-            // Dot on curve (surface ring + accent dot)
+            // Dot on curve (surface ring + breath dot — this is the chosen pace)
             drawCircle(color = surface, radius = 6.5.dp.toPx(), center = Offset(peakX, peakY))
-            drawCircle(color = accent, radius = 4.5.dp.toPx(), center = Offset(peakX, peakY))
+            drawCircle(color = breath, radius = 4.5.dp.toPx(), center = Offset(peakX, peakY))
 
             // Label above the marker
             val peakLabel = "%.0fs".format(peakLag)
