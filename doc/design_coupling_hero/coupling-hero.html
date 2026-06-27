@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auto HRV — Coupling hero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#0B0E16; --panel:#121622; --panel2:#1A2030;
+    --ink:#E8ECF4; --dim:#8A93A6; --faint:#565E70;
+    --breath:#5EE0C8; --heart:#FF9E7D; --lock:#FBFEFF;
+    --outline:rgba(255,255,255,.07); --outline-strong:rgba(255,255,255,.13);
+    --ui:'Hanken Grotesk',system-ui,sans-serif;
+    --display:'Space Grotesk',system-ui,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#05070c;height:100%}
+  body{display:grid;place-items:center;font-family:var(--ui);color:var(--ink)}
+  .phone{
+    width:412px;height:892px;background:var(--void);position:relative;overflow:hidden;
+    border-radius:40px;box-shadow:0 0 0 10px #14171f,0 40px 80px rgba(0,0,0,.6);
+    display:flex;flex-direction:column;
+  }
+  /* top bar */
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+    padding:48px 18px 12px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+    background:color-mix(in srgb,var(--heart) 18%,transparent)}
+  .logo svg{width:17px;height:17px;fill:var(--heart)}
+  .title{font-family:var(--display);font-weight:600;font-size:18px;letter-spacing:-.01em}
+  .chip{display:flex;align-items:center;gap:6px;background:var(--panel2);
+    border:1px solid var(--outline-strong);border-radius:999px;padding:6px 10px 6px 11px}
+  .chip .dot{width:8px;height:8px;border-radius:50%;background:var(--breath)}
+  .chip .name{font-size:13px;font-weight:500}
+  .chip .batt{font-family:var(--mono);font-size:12px;color:var(--dim)}
+
+  .content{flex:1;overflow-y:auto;padding:0 18px 22px;display:flex;flex-direction:column;gap:12px}
+
+  .seclabel{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;
+    color:var(--faint);text-transform:uppercase}
+
+  /* hero card */
+  .hero{background:var(--panel);border:1px solid var(--outline);border-radius:24px;
+    padding:16px 14px 12px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .hero-head{display:flex;align-items:flex-start;justify-content:space-between;padding:0 4px 6px}
+  .hero-head .left{display:flex;flex-direction:column;gap:3px}
+  .phase{font-family:var(--display);font-size:15px;font-weight:600;color:var(--ink)}
+  .lockpill{display:flex;align-items:center;gap:7px;border-radius:999px;padding:5px 11px 5px 9px;
+    font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em}
+  .lockpill .d{width:7px;height:7px;border-radius:50%}
+  canvas{display:block;width:100%;height:208px}
+
+  /* readout line */
+  .readout{display:flex;align-items:center;gap:14px;padding:0 6px 2px}
+  .readout .big{font-family:var(--display);font-size:21px;font-weight:600;font-variant-numeric:tabular-nums}
+  .readout .u{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .readout .div{width:1px;height:18px;background:var(--outline)}
+
+  /* metrics */
+  .metrics{display:flex;background:var(--panel);border:1px solid var(--outline);
+    border-radius:18px;overflow:hidden}
+  .metric{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:13px 4px}
+  .metric+.metric{border-left:1px solid var(--outline)}
+  .metric .ml{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--faint);text-transform:uppercase}
+  .metric .mv{font-family:var(--display);font-size:19px;font-weight:600;font-variant-numeric:tabular-nums}
+  .metric .mu{font-family:var(--mono);font-size:10px;color:var(--dim)}
+
+  .note{font-size:11.5px;color:var(--faint);text-align:center;line-height:1.5;padding:2px 20px 0}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="topbar">
+    <div class="brand">
+      <span class="logo"><svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-10-9.2C.3 8.4 2 5 5.3 5c2 0 3.4 1.1 4.2 2.4C10.3 6.1 11.7 5 13.7 5 17 5 18.7 8.4 17 11.8 14.5 16.4 12 21 12 21z"/></svg></span>
+      <span class="title">Auto&nbsp;HRV</span>
+    </div>
+    <div class="chip"><span class="dot"></span><span class="name">H10</span><span class="batt">87%</span></div>
+  </div>
+
+  <div class="content">
+    <div class="hero">
+      <div class="hero-head">
+        <div class="left">
+          <span class="seclabel">Coupling</span>
+          <span class="phase" id="phase">Inhale</span>
+        </div>
+        <div class="lockpill" id="lockpill"><span class="d"></span><span id="locktext">TUNING</span></div>
+      </div>
+      <canvas id="cv"></canvas>
+    </div>
+
+    <div class="readout">
+      <div><span class="big">10.8</span><span class="u">&nbsp;s</span></div>
+      <div class="div"></div>
+      <div><span class="big">5.6</span><span class="u">&nbsp;/min</span></div>
+      <div class="div"></div>
+      <div><span class="big" id="lagval" style="color:var(--heart)">2.3</span><span class="u">&nbsp;s lag</span></div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><span class="ml">Heart rate</span><span class="mv">65</span><span class="mu">bpm</span></div>
+      <div class="metric"><span class="ml">HRV</span><span class="mv" style="color:var(--heart)">62</span><span class="mu">ms</span></div>
+      <div class="metric"><span class="ml">Swing</span><span class="mv" id="swing">284</span><span class="mu">ms</span></div>
+    </div>
+
+    <p class="note">Your heart trails the breath by <b style="color:var(--heart)">2.3&nbsp;s</b>. Account for it, and the two rhythms ride as one.</p>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const params = new URLSearchParams(location.search);
+const frozen = params.get('frame');           // 'tuning' | 'locked' | null
+let dpr = Math.max(1, window.devicePixelRatio||1);
+
+function size(){
+  const r = cv.getBoundingClientRect();
+  cv.width = Math.round(r.width*dpr); cv.height = Math.round(r.height*dpr);
+}
+let renderFrozen=null;            // set in frozen mode; lets resize re-draw
+size(); window.addEventListener('resize', ()=>{ size(); if(renderFrozen) renderFrozen(); });
+
+// ---- params of the model ----
+const T   = 10.8;     // breath period (s)
+const TAU = 2.3;      // measured lag (s) — heart trails breath
+const WIN = 22;       // visible window (s)
+
+function lerp(a,b,t){return a+(b-a)*t;}
+function hex(c){c=c.replace('#','');return [parseInt(c.slice(0,2),16),parseInt(c.slice(2,4),16),parseInt(c.slice(4,6),16)];}
+function mix(c1,c2,t){const a=hex(c1),b=hex(c2);return `rgb(${a.map((v,i)=>Math.round(lerp(v,b[i],t))).join(',')})`;}
+const BREATH='#5EE0C8', HEART='#FF9E7D', LOCK='#FBFEFF', FAINT='#565E70';
+
+// smooth deterministic "noise" for the un-locked heart
+function wobble(t){return Math.sin(t*0.9+1.3)*0.5 + Math.sin(t*2.17+0.4)*0.3 + Math.sin(t*3.7+2.1)*0.2;}
+
+// breath value in [-1,1]; rising = inhale
+function breathV(time){return Math.sin(2*Math.PI*time/T - Math.PI/2);}
+// raw heart RSA value at real time `time`, given coherence c (0..1)
+function heartRaw(time,c){
+  const driven = Math.sin(2*Math.PI*(time-TAU)/T - Math.PI/2); // follows breath, delayed by TAU
+  const amp = lerp(0.18, 1.0, c);
+  const noise = (1-c)*0.55*wobble(time);
+  return driven*amp + noise;
+}
+
+function draw(now, cIn){
+  const W = cv.width, H = cv.height, pad = 10*dpr;
+  ctx.clearRect(0,0,W,H);
+  const c = cIn;
+  const x0 = pad, x1 = W-pad;
+  const plotW = x1-x0;
+  const midB = H*0.40;            // breath baseline (upper)
+  const ampB = H*0.20;
+  const midH = H*0.40;            // heart shares vertical space (overlay)
+  const ampH = H*0.215;
+
+  // helper: time -> x  (newest = right = `now`)
+  const tx = time => x1 - (now-time)/WIN*plotW;
+  const xt = x => now - (x1-x)/plotW*WIN;
+
+  // ---- baseline grid: subtle vertical time ticks ----
+  ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.lineWidth=1*dpr;
+  for(let s=Math.ceil(now-WIN); s<=now; s++){ if(s%2)continue; const x=tx(s);
+    ctx.beginPath();ctx.moveTo(x, H*0.10);ctx.lineTo(x,H*0.78);ctx.stroke(); }
+
+  // ---- BREATH band (the reference / pacer) ----
+  ctx.beginPath();
+  for(let x=x0;x<=x1;x+=1*dpr){ const v=breathV(xt(x)); const y=midB - v*ampB; if(x===x0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+  ctx.lineTo(x1,H*0.86); ctx.lineTo(x0,H*0.86); ctx.closePath();
+  const bg=ctx.createLinearGradient(0,midB-ampB,0,H*0.86);
+  bg.addColorStop(0, 'rgba(94,224,200,0.20)'); bg.addColorStop(1,'rgba(94,224,200,0.0)');
+  ctx.fillStyle=bg; ctx.fill();
+  // breath line
+  ctx.beginPath();
+  for(let x=x0;x<=x1;x+=1*dpr){ const v=breathV(xt(x)); const y=midB - v*ampB; if(x===x0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+  ctx.strokeStyle=mix(BREATH, LOCK, c*0.35); ctx.lineWidth=2.0*dpr;
+  ctx.shadowColor='rgba(94,224,200,'+(0.25+0.45*c)+')'; ctx.shadowBlur=(6+18*c)*dpr;
+  ctx.stroke(); ctx.shadowBlur=0;
+
+  // ---- RAW heart (un-aligned ghost) — shows the lag honestly ----
+  ctx.beginPath();
+  for(let x=x0;x<=x1;x+=1.5*dpr){ const v=heartRaw(xt(x),c); const y=midH - v*ampH; if(x===x0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+  ctx.strokeStyle='rgba(255,158,125,0.22)'; ctx.lineWidth=1.4*dpr; ctx.stroke();
+
+  // ---- ALIGNED heart (shift left by TAU so peaks meet the breath) ----
+  ctx.beginPath();
+  for(let x=x0;x<=x1;x+=1.5*dpr){ const v=heartRaw(xt(x)+TAU,c); const y=midH - v*ampH; if(x===x0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+  ctx.strokeStyle=mix(HEART, LOCK, c*0.45); ctx.lineWidth=(2.0+0.8*c)*dpr;
+  ctx.shadowColor='rgba(255,158,125,'+(0.2+0.5*c)+')'; ctx.shadowBlur=(5+20*c)*dpr;
+  ctx.stroke(); ctx.shadowBlur=0;
+
+  // beat dots on aligned trace
+  for(let bt=Math.ceil(now-WIN); bt<=now; bt+=0.92){ const x=tx(bt); if(x<x0)continue;
+    const v=heartRaw(bt+TAU,c); const y=midH - v*ampH;
+    ctx.beginPath();ctx.arc(x,y,1.7*dpr,0,7);ctx.fillStyle=mix(HEART,LOCK,c*0.4);ctx.globalAlpha=0.5+0.5*((x-x0)/plotW);ctx.fill();ctx.globalAlpha=1;}
+
+  // ---- coherence bloom: brighten the overlap when locked ----
+  if(c>0.4){
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    const bloom=ctx.createRadialGradient(x1-plotW*0.18, midB, 0, x1-plotW*0.18, midB, plotW*0.5);
+    const a=(c-0.4)/0.6;
+    bloom.addColorStop(0,'rgba(251,254,255,'+(0.10*a)+')'); bloom.addColorStop(1,'rgba(251,254,255,0)');
+    ctx.fillStyle=bloom; ctx.fillRect(0,0,W,H); ctx.restore();
+  }
+
+  // ---- lag bracket between latest breath peak and the raw heart peak τ later ----
+  const k=Math.floor((now - T*0.5)/T);           // latest breath peak <= now
+  const peakT=T*(0.5+k);
+  const xPk=tx(peakT), xRaw=tx(peakT+TAU);
+  if(xPk>x0+20*dpr && xRaw<x1){
+    const yb=H*0.13;
+    ctx.strokeStyle='rgba(255,158,125,.55)'; ctx.lineWidth=1*dpr; ctx.setLineDash([2*dpr,3*dpr]);
+    ctx.beginPath();ctx.moveTo(xPk,yb-5*dpr);ctx.lineTo(xPk,midB);ctx.moveTo(xRaw,yb-5*dpr);ctx.lineTo(xRaw,midH);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(xPk,yb);ctx.lineTo(xRaw,yb);ctx.stroke();
+    // arrow caps
+    ctx.beginPath();ctx.moveTo(xPk,yb);ctx.lineTo(xPk+4*dpr,yb-3*dpr);ctx.moveTo(xPk,yb);ctx.lineTo(xPk+4*dpr,yb+3*dpr);
+    ctx.moveTo(xRaw,yb);ctx.lineTo(xRaw-4*dpr,yb-3*dpr);ctx.moveTo(xRaw,yb);ctx.lineTo(xRaw-4*dpr,yb+3*dpr);ctx.stroke();
+    ctx.font=`${10.5*dpr}px 'JetBrains Mono'`; ctx.fillStyle='rgba(255,158,125,.9)'; ctx.textAlign='center';
+    ctx.fillText('τ '+TAU.toFixed(1)+'s', (xPk+xRaw)/2, yb-5*dpr);
+  }
+
+  // ---- now-dot on breath wave (the pacer cursor) ----
+  const bvNow=breathV(now), yNow=midB - bvNow*ampB;
+  ctx.beginPath();ctx.arc(x1,yNow,12*dpr,0,7);ctx.fillStyle='rgba(94,224,200,.12)';ctx.fill();
+  ctx.beginPath();ctx.arc(x1,yNow,4.2*dpr,0,7);ctx.fillStyle=BREATH;ctx.strokeStyle=getCss('--panel');ctx.lineWidth=2*dpr;ctx.fill();ctx.stroke();
+
+  // ---- axis labels ----
+  ctx.font=`${9.5*dpr}px 'JetBrains Mono'`; ctx.fillStyle='rgba(86,94,112,.9)'; ctx.textAlign='left';
+  ctx.fillText('breath', x0, H*0.96);
+  ctx.textAlign='right'; ctx.fillStyle='rgba(255,158,125,.7)';
+  ctx.fillText('heart · aligned', x1, H*0.96);
+}
+function getCss(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+// ---- chrome (phase word + lock pill) ----
+function chrome(now,c){
+  const rising = Math.cos(2*Math.PI*now/T - Math.PI/2) > 0;
+  document.getElementById('phase').textContent = rising? 'Inhale':'Exhale';
+  const locked = c>0.6;
+  const pill=document.getElementById('lockpill');
+  pill.style.background = locked? 'color-mix(in srgb,var(--lock) 14%,transparent)':'var(--panel2)';
+  pill.style.color = locked? 'var(--lock)':'var(--dim)';
+  pill.querySelector('.d').style.background = locked? 'var(--lock)':'var(--faint)';
+  document.getElementById('locktext').textContent = locked? 'LOCKED':'TUNING';
+  document.getElementById('swing').textContent = Math.round(lerp(70,300,c));
+}
+
+// ---- coherence state machine (auto cycle) ----
+let cNow=0.12;
+function targetC(t){ const p=(t%24)/24; // 0..1 over 24s
+  if(p<0.30)return 0.10; if(p<0.42)return lerp(0.10,0.95,(p-0.30)/0.12);
+  if(p<0.80)return 0.95; if(p<0.92)return lerp(0.95,0.10,(p-0.80)/0.12); return 0.10; }
+
+if(frozen){
+  const c = frozen==='locked'?0.95:0.12;
+  const now = frozen==='locked'? 60.0 : 12.0;
+  const go=()=>{ try{ size(); draw(now,c); chrome(now,c);
+    }catch(e){ document.querySelector('.note').textContent='ERR '+e.message; } };
+  renderFrozen=go;            // resize/layout settling will re-draw, not just clear
+  go();
+  requestAnimationFrame(go);  // redraw after first layout pass
+  if(document.fonts && document.fonts.ready){ document.fonts.ready.then(go); }
+}else{
+  function loop(ts){ const now=ts/1000;
+    const tc=targetC(now); cNow += (tc-cNow)*0.06;
+    draw(now,cNow); chrome(now,cNow); requestAnimationFrame(loop);
+  }
+  document.fonts.ready.then(()=>{ size(); requestAnimationFrame(loop); });
+}
+</script>
+</body>
+</html>

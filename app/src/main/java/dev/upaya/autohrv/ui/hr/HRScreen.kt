@@ -1,9 +1,11 @@
 package dev.upaya.autohrv.ui.hr
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.StartOffset
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -41,25 +43,36 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.Canvas
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.polar.sdk.api.model.PolarDeviceInfo
 import dev.upaya.autohrv.data.model.ConnectionState
-import dev.upaya.autohrv.ui.breathing.BreathingPacerOrb
+import dev.upaya.autohrv.domain.breathing.BreathingPattern
+import dev.upaya.autohrv.domain.breathing.BreathingPhase
+import dev.upaya.autohrv.domain.breathing.BreathingState
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
+import kotlin.math.PI
+import kotlin.math.cos
+
+private const val COUPLING_WIN_SEC = 22f
 
 @Composable
 fun HRScreen(viewModel: HrvViewModel) {
@@ -74,14 +87,10 @@ fun HRScreen(viewModel: HrvViewModel) {
         onDispose { view.keepScreenOn = false }
     }
 
-    val rmssd = uiState.rmssd
-    val currentRR = uiState.rrsMsHistory.lastOrNull()
     val hrv = uiState.rmssd
+    val currentRR = uiState.rrsMsHistory.lastOrNull()
     val cycleLengthSec = currentPattern.cycleLengthSeconds
     val breathsPerMin = if (cycleLengthSec > 0f) 60f / cycleLengthSec else null
-
-    val scrollState = rememberScrollState()
-    val density = LocalDensity.current
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -93,134 +102,377 @@ fun HRScreen(viewModel: HrvViewModel) {
             )
         },
     ) { innerPadding ->
-        // We use Box to overlay the Orb (background) and the Content (scrollable foreground)
-        // We ignore innerPadding.top to allow content to scroll underneath the transparent top bar
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = innerPadding.calculateBottomPadding())
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    top = innerPadding.calculateTopPadding() + 8.dp,
+                    bottom = innerPadding.calculateBottomPadding() + 16.dp,
+                )
+                .padding(horizontal = 18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Dimensions for the two-phase scrolling header
-            val maxHeaderHeight = 300.dp
-            val minHeaderHeightPx = with(density) { innerPadding.calculateTopPadding().toPx() }
-            val maxHeaderHeightPx = with(density) { maxHeaderHeight.toPx() }
-            val collapseRangePx = maxHeaderHeightPx - minHeaderHeightPx
-
-            // ① Breathing pacer orb — Hero animation
-            val orbSize = 188.dp
-            val orbSizePx = with(density) { orbSize.toPx() }
-            val orbShiftPx = with(density) { 10.dp.toPx() }
-
-            BreathingPacerOrb(
-                state = breathingState,
-                inResonance = uiState.isInResonance,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .size(orbSize)
-                    .graphicsLayer {
-                        val scrollOffset = scrollState.value.toFloat()
-
-                        // Calculate translation to keep orb centered in the "available" space at the top
-                        translationY = if (scrollOffset < collapseRangePx) {
-                            // Phase 1: Space shrinks; orb stays centered between top bar and content
-                            val currentContentTop = maxHeaderHeightPx - scrollOffset
-                            val topBoundary = minHeaderHeightPx
-                            val availableSpace = currentContentTop - topBoundary
-                            topBoundary + (availableSpace / 2) - (orbSizePx / 2) - orbShiftPx
-                        } else {
-                            // Phase 2: Content has reached top bar; orb moves up with content
-                            val finalCenterY = minHeaderHeightPx - (orbSizePx / 2) - orbShiftPx
-                            finalCenterY - (scrollOffset - collapseRangePx)
-                        }
-                    },
+            // ① Coupling hero — replaces the breathing orb
+            CouplingHeroCard(
+                breathingState = breathingState,
+                pattern = currentPattern,
+                rrsMsHistory = uiState.rrsMsHistory,
+                isInResonance = uiState.isInResonance,
+                modifier = Modifier.fillMaxWidth(),
             )
 
-            // Scrollable Content Layer
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 18.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                // Transparent space at the top of the column to allow the Orb to be seen behind
-                Spacer(Modifier.height(maxHeaderHeight))
+            Spacer(Modifier.height(12.dp))
 
-                // Resonance readout pill — Now follows the orb, no longer pulled up by default
-                ResonancePill(
-                    cycleLengthSec = cycleLengthSec,
-                    breathsPerMin = breathsPerMin,
-                    isInResonance = uiState.isInResonance,
-                )
+            ResonancePill(
+                cycleLengthSec = cycleLengthSec,
+                breathsPerMin = breathsPerMin,
+                lagSeconds = uiState.lagSeconds,
+                isInResonance = uiState.isInResonance,
+            )
 
-                Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(12.dp))
 
-                // ② R–R interval card
-                HrvCard {
-                    RRIntervalHeader(rmssd)
-                    if (uiState.rrsMsHistory.size >= 2) {
-                        TimeSeriesChart(
-                            ts = uiState.rrsMsHistory,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp),
-                        )
-                    } else {
-                        ChartPlaceholder(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp),
-                        )
-                    }
+            // ② R–R interval card
+            HrvCard {
+                RRIntervalHeader(swing = uiState.swing)
+                if (uiState.rrsMsHistory.size >= 2) {
+                    TimeSeriesChart(
+                        ts = uiState.rrsMsHistory,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                    )
+                } else {
+                    ChartPlaceholder(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                    )
                 }
-                Spacer(Modifier.height(12.dp))
-
-                // ③ Autocorrelation card
-                val acf = uiState.autoCorrelation
-                val acfReady = acf != null && acf.size >= 2
-                HrvCard {
-                    ACFHeader()
-                    Spacer(Modifier.height(6.dp))
-                    if (acfReady) {
-                        AutoCorrelationChart(
-                            acf = acf,
-                            peakLag = uiState.autoCorrelationPeak
-                                ?.coerceIn(targetCycleLengthRange),
-                            bandLo = targetCycleLengthRange.start,
-                            bandHi = targetCycleLengthRange.endInclusive,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp),
-                        )
-                        BandRangeSlider(
-                            value = targetCycleLengthRange,
-                            onValueChange = { viewModel.setTargetCycleLengthRange(it) },
-                            valueRange = 0f..(acf.size - 1).toFloat(),
-                            allowedRange = viewModel.cycleLengthAllowedRange,
-                        )
-                    } else {
-                        ChartPlaceholder(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp),
-                        )
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-
-                // ④ Metrics row
-                MetricsRow(
-                    hr = uiState.hr,
-                    hrv = hrv?.let { "%.0f".format(it) },
-                    rr = currentRR,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                Spacer(Modifier.height(16.dp))
             }
+
+            Spacer(Modifier.height(12.dp))
+
+            // ③ Autocorrelation card
+            val acf = uiState.autoCorrelation
+            val acfReady = acf != null && acf.size >= 2
+            HrvCard {
+                ACFHeader()
+                Spacer(Modifier.height(6.dp))
+                if (acfReady) {
+                    AutoCorrelationChart(
+                        acf = acf,
+                        peakLag = uiState.autoCorrelationPeak
+                            ?.coerceIn(targetCycleLengthRange),
+                        bandLo = targetCycleLengthRange.start,
+                        bandHi = targetCycleLengthRange.endInclusive,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                    )
+                    BandRangeSlider(
+                        value = targetCycleLengthRange,
+                        onValueChange = { viewModel.setTargetCycleLengthRange(it) },
+                        valueRange = 0f..(acf.size - 1).toFloat(),
+                        allowedRange = viewModel.cycleLengthAllowedRange,
+                    )
+                } else {
+                    ChartPlaceholder(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // ④ Metrics row
+            MetricsRow(
+                hr = uiState.hr,
+                hrv = hrv?.let { "%.0f".format(it) },
+                rr = currentRR,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
+
+// ─── Coupling hero ────────────────────────────────────────────────────────────
+
+@Composable
+private fun CouplingHeroCard(
+    breathingState: BreathingState,
+    pattern: BreathingPattern,
+    rrsMsHistory: List<Int>,
+    isInResonance: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val lockStrength by animateFloatAsState(
+        targetValue = if (isInResonance) 1f else 0f,
+        animationSpec = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
+        label = "lock-strength",
+    )
+
+    // Capture colors before the Canvas lambda
+    val breathColor = MaterialTheme.colorScheme.primary
+    val heartColor = MaterialTheme.colorScheme.secondary
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val outlineColor = MaterialTheme.colorScheme.outlineVariant
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+
+    // Reconstruct historical breath wave from current pacer position
+    val T = pattern.cycleLengthSeconds.coerceAtLeast(1f)
+    val inhaleSec = T / (1f + pattern.outToInRatio)
+    val exhaleSec = (T - inhaleSec).coerceAtLeast(0.001f)
+    val elapsedInPhase = breathingState.progress *
+        (if (breathingState.phase == BreathingPhase.Inhale) inhaleSec else exhaleSec)
+    val elapsedInCycle =
+        if (breathingState.phase == BreathingPhase.Inhale) elapsedInPhase
+        else inhaleSec + elapsedInPhase
+
+    val phaseLabel = if (breathingState.phase == BreathingPhase.Inhale) "Inhale" else "Exhale"
+
+    HrvCard(modifier = modifier) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                SectionLabel("COUPLING")
+                Text(
+                    text = phaseLabel,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = onSurface,
+                    ),
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+            ResonanceChip(isInResonance = isInResonance)
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        // Chart
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp),
+        ) {
+            val padL = 4.dp.toPx()
+            val padR = 4.dp.toPx()
+            val padT = 8.dp.toPx()
+            val padB = 22.dp.toPx()
+            val plotW = size.width - padL - padR
+            val plotH = size.height - padT - padB
+            val midY = padT + plotH / 2f
+            val breathAmp = plotH * 0.36f
+            val heartAmp = plotH * 0.34f
+
+            // Subtle time grid
+            var gridT = 0f
+            while (gridT <= COUPLING_WIN_SEC) {
+                val gx = padL + (1f - gridT / COUPLING_WIN_SEC) * plotW
+                drawLine(
+                    color = Color.White.copy(alpha = 0.04f),
+                    start = Offset(gx, padT),
+                    end = Offset(gx, padT + plotH),
+                    strokeWidth = 1.dp.toPx(),
+                )
+                gridT += 2f
+            }
+
+            // Breath value at `secondsAgo` in the past; returns 0..1 (0=exhaled, 1=inhaled)
+            fun breathAt(secondsAgo: Float): Float {
+                val pos = ((elapsedInCycle - secondsAgo) % T + T) % T
+                return if (pos < inhaleSec) {
+                    val p = pos / inhaleSec
+                    0.5f - 0.5f * cos(PI.toFloat() * p)
+                } else {
+                    val p = (pos - inhaleSec) / exhaleSec
+                    0.5f + 0.5f * cos(PI.toFloat() * p)
+                }
+            }
+            // Map to signed amplitude: +1 = inhale peak, -1 = exhale trough
+            fun breathNorm(secondsAgo: Float) = breathAt(secondsAgo) * 2f - 1f
+
+            // Breath path
+            val steps = (plotW / 2).toInt().coerceAtLeast(4)
+            val breathPath = Path()
+            for (i in 0..steps) {
+                val frac = i.toFloat() / steps
+                val x = padL + frac * plotW
+                val sAgo = COUPLING_WIN_SEC * (1f - frac)
+                val y = midY - breathNorm(sAgo) * breathAmp
+                if (i == 0) breathPath.moveTo(x, y) else breathPath.lineTo(x, y)
+            }
+
+            // Breath area fill
+            val breathAreaPath = Path().apply {
+                addPath(breathPath)
+                lineTo(padL + plotW, padT + plotH)
+                lineTo(padL, padT + plotH)
+                close()
+            }
+            drawPath(
+                path = breathAreaPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(breathColor.copy(alpha = 0.18f), breathColor.copy(alpha = 0f)),
+                    startY = midY - breathAmp,
+                    endY = padT + plotH,
+                ),
+            )
+
+            // Breath line
+            val breathBright = lerp(breathColor, Color.White, lockStrength * 0.25f)
+            drawPath(
+                path = breathPath,
+                brush = Brush.horizontalGradient(
+                    colorStops = arrayOf(
+                        0f to breathColor.copy(alpha = 0f),
+                        0.10f to breathColor.copy(alpha = 0.80f),
+                        1f to breathBright,
+                    ),
+                    startX = padL,
+                    endX = padL + plotW,
+                ),
+                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
+            )
+
+            // Heart (RR) trace
+            // rrsMsHistory is 1 Hz zero-order-hold resampled: each element = 1 second.
+            // index last = now (0 s ago), index last-k = k seconds ago.
+            if (rrsMsHistory.size >= 2) {
+                val rrMean = rrsMsHistory.average().toFloat()
+                val rrRange = (rrsMsHistory.max() - rrsMsHistory.min()).toFloat().coerceAtLeast(1f)
+                val halfRange = rrRange / 2f
+                val n = rrsMsHistory.size
+
+                fun hx(sAgo: Float) = padL + (1f - sAgo / COUPLING_WIN_SEC) * plotW
+                fun hy(norm: Float) = midY - norm * heartAmp
+                // Invert RR: inhale → HR↑ → RR↓ → norm positive → trace rises with breath
+                fun norm(rr: Int) = -(rr - rrMean) / halfRange
+
+                val heartBright = lerp(heartColor, Color.White, lockStrength * 0.35f)
+                val ghostPath = Path()
+                val heartPath = Path()
+                var started = false
+
+                rrsMsHistory.forEachIndexed { i, rr ->
+                    val sAgo = (n - 1 - i).toFloat()   // 1 Hz: sample spacing = 1 s
+                    if (sAgo > COUPLING_WIN_SEC) return@forEachIndexed
+                    val x = hx(sAgo)
+                    val y = hy(norm(rr))
+                    if (!started) {
+                        ghostPath.moveTo(x, y); heartPath.moveTo(x, y); started = true
+                    } else {
+                        ghostPath.lineTo(x, y); heartPath.lineTo(x, y)
+                    }
+                }
+
+                if (started) {
+                    drawPath(
+                        path = ghostPath,
+                        color = heartColor.copy(alpha = 0.20f),
+                        style = Stroke(width = 1.2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
+                    )
+                    drawPath(
+                        path = heartPath,
+                        brush = Brush.horizontalGradient(
+                            colorStops = arrayOf(
+                                0f to heartColor.copy(alpha = 0f),
+                                0.10f to heartColor.copy(alpha = 0.75f),
+                                1f to heartBright,
+                            ),
+                            startX = padL,
+                            endX = padL + plotW,
+                        ),
+                        style = Stroke(
+                            width = (1.8f + lockStrength * 0.6f).dp.toPx(),
+                            cap = StrokeCap.Round,
+                            join = StrokeJoin.Round,
+                        ),
+                    )
+                    rrsMsHistory.forEachIndexed { i, rr ->
+                        val sAgo = (n - 1 - i).toFloat()
+                        if (sAgo > COUPLING_WIN_SEC) return@forEachIndexed
+                        val alpha = (0.15f + 0.65f * (1f - sAgo / COUPLING_WIN_SEC)).coerceIn(0f, 1f)
+                        drawCircle(
+                            color = heartBright.copy(alpha = alpha),
+                            radius = 1.6.dp.toPx(),
+                            center = Offset(hx(sAgo), hy(norm(rr))),
+                        )
+                    }
+                }
+            }
+
+            // White bloom at lock
+            if (lockStrength > 0.02f) {
+                val bloomCenter = Offset(padL + plotW * 0.72f, midY)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = lockStrength * 0.09f),
+                            Color.Transparent,
+                        ),
+                        center = bloomCenter,
+                        radius = plotW * 0.55f,
+                    ),
+                    radius = plotW * 0.55f,
+                    center = bloomCenter,
+                )
+            }
+
+            // Now-dot on breath wave
+            val nowY = midY - breathNorm(0f) * breathAmp
+            val nowX = padL + plotW
+            drawCircle(
+                color = breathColor.copy(alpha = 0.15f),
+                radius = 10.dp.toPx(),
+                center = Offset(nowX, nowY),
+            )
+            drawCircle(
+                color = surfaceColor,
+                radius = 4.2.dp.toPx(),
+                center = Offset(nowX, nowY),
+            )
+            drawCircle(
+                color = breathColor,
+                radius = 3.dp.toPx(),
+                center = Offset(nowX, nowY),
+            )
+        }
+
+        // Legend
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+        ) {
+            Text(
+                "breath",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                ),
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                "heart",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
+                ),
+            )
+        }
+    }
+}
+
+// ─── Top bar ──────────────────────────────────────────────────────────────────
 
 @Composable
 private fun AutoHrvTopBar(
@@ -228,7 +480,6 @@ private fun AutoHrvTopBar(
     connectionState: ConnectionState,
     batteryLevel: Int?,
 ) {
-    // Heart side: the heart logo mark and the strap's connection dot use the warm tone.
     val accent = MaterialTheme.colorScheme.secondary
     val surface2 = MaterialTheme.colorScheme.surfaceVariant
     val outlineStrong = MaterialTheme.colorScheme.outline
@@ -245,7 +496,6 @@ private fun AutoHrvTopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Left: icon box + title
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -274,7 +524,6 @@ private fun AutoHrvTopBar(
             )
         }
 
-        // Right: status chip
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(999.dp))
@@ -296,21 +545,27 @@ private fun AutoHrvTopBar(
             if (batteryLevel != null) {
                 Text(
                     text = "$batteryLevel%",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        color = muted,
-                    ),
+                    style = MaterialTheme.typography.labelMedium.copy(color = muted),
                 )
             }
         }
     }
 }
 
+// ─── Resonance pill ───────────────────────────────────────────────────────────
+
 @Composable
-private fun ResonancePill(cycleLengthSec: Float, breathsPerMin: Float?, isInResonance: Boolean) {
+private fun ResonancePill(
+    cycleLengthSec: Float,
+    breathsPerMin: Float?,
+    lagSeconds: Float?,
+    isInResonance: Boolean,
+) {
     val surface = MaterialTheme.colorScheme.surface
     val outline = MaterialTheme.colorScheme.outlineVariant
     val onSurface = MaterialTheme.colorScheme.onSurface
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val heart = MaterialTheme.colorScheme.secondary
     val shape = RoundedCornerShape(999.dp)
 
     Row(
@@ -321,39 +576,34 @@ private fun ResonancePill(cycleLengthSec: Float, breathsPerMin: Float?, isInReso
             .padding(start = 16.dp, end = 8.dp, top = 7.dp, bottom = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Cycle length
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        PillNumber(value = "%.1f".format(cycleLengthSec), unit = "s", onSurface = onSurface, muted = muted)
+
+        PillDivider(outline)
+
+        PillNumber(
+            value = breathsPerMin?.let { "%.1f".format(it) } ?: "—",
+            unit = "/min",
+            onSurface = onSurface,
+            muted = muted,
+        )
+
+        PillDivider(outline)
+
+        // τ lag readout — shown in heart color; "—" until cross-correlation is implemented
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             Text(
-                text = "%.1f".format(cycleLengthSec),
+                text = lagSeconds?.let { "%.1f".format(it) } ?: "—",
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontSize = 21.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = onSurface
+                    color = heart,
                 ),
             )
             Text(
-                text = "s",
-                style = MaterialTheme.typography.labelMedium.copy(color = muted),
-                modifier = Modifier.padding(bottom = 3.dp),
-            )
-        }
-
-        Spacer(Modifier.width(13.dp))
-        Box(Modifier.width(1.dp).height(18.dp).background(outline))
-        Spacer(Modifier.width(13.dp))
-
-        // Breaths per minute
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = breathsPerMin?.let { "%.1f".format(it) } ?: "—",
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontSize = 21.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = onSurface
-                ),
-            )
-            Text(
-                text = "/min",
+                text = "s lag",
                 style = MaterialTheme.typography.labelMedium.copy(color = muted),
                 modifier = Modifier.padding(bottom = 3.dp),
             )
@@ -366,9 +616,39 @@ private fun ResonancePill(cycleLengthSec: Float, breathsPerMin: Float?, isInReso
 }
 
 @Composable
+private fun PillNumber(value: String, unit: String, onSurface: Color, muted: Color) {
+    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontSize = 21.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = onSurface,
+            ),
+        )
+        Text(
+            text = unit,
+            style = MaterialTheme.typography.labelMedium.copy(color = muted),
+            modifier = Modifier.padding(bottom = 3.dp),
+        )
+    }
+}
+
+@Composable
+private fun PillDivider(color: Color) {
+    Spacer(Modifier.width(13.dp))
+    Box(Modifier.width(1.dp).height(18.dp).background(color))
+    Spacer(Modifier.width(13.dp))
+}
+
+// ─── Resonance chip & beacon ──────────────────────────────────────────────────
+
+@Composable
 private fun ResonanceChip(isInResonance: Boolean) {
-    val accent = if (isInResonance) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    val background = if (isInResonance) accent.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surfaceVariant
+    val accent = if (isInResonance) MaterialTheme.colorScheme.primary
+                 else MaterialTheme.colorScheme.onSurfaceVariant
+    val background = if (isInResonance) accent.copy(alpha = 0.10f)
+                     else MaterialTheme.colorScheme.surfaceVariant
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
@@ -380,7 +660,7 @@ private fun ResonanceChip(isInResonance: Boolean) {
     ) {
         ResonanceBeacon(accent = accent, pulsing = isInResonance)
         Text(
-            text = if (isInResonance) "resonance" else "tuning ...",
+            text = if (isInResonance) "LOCKED" else "TUNING",
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.SemiBold,
                 color = accent,
@@ -395,40 +675,31 @@ private fun ResonanceBeacon(accent: Color, pulsing: Boolean) {
     val beaconSize = 18.dp
 
     if (!pulsing) {
-        Box(
-            Modifier.size(beaconSize),
-            contentAlignment = Alignment.Center,
-        ) {
+        Box(Modifier.size(beaconSize), contentAlignment = Alignment.Center) {
             Box(Modifier.size(dotSize).background(accent, CircleShape))
         }
         return
     }
 
     val transition = rememberInfiniteTransition(label = "resonance-beacon")
-    // Breathing glow: the halo expands and fades, like a slow exhale.
     val glowProgress by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
+        initialValue = 0f, targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 2400),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "glow",
     )
-    // The dot itself gently pulses in sync with the glow.
     val dotScale by transition.animateFloat(
-        initialValue = 0.82f,
-        targetValue = 1.1f,
+        initialValue = 0.82f, targetValue = 1.1f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 2400),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "dot",
     )
-    // Ring expands outward and fades, staggered against the glow cycle.
     val ringScale by transition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 1.4f,
+        initialValue = 0.3f, targetValue = 1.4f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 2400, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
@@ -437,8 +708,7 @@ private fun ResonanceBeacon(accent: Color, pulsing: Boolean) {
         label = "ring-scale",
     )
     val ringAlpha by transition.animateFloat(
-        initialValue = 0.65f,
-        targetValue = 0f,
+        initialValue = 0.65f, targetValue = 0f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 2400, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
@@ -447,11 +717,7 @@ private fun ResonanceBeacon(accent: Color, pulsing: Boolean) {
         label = "ring-alpha",
     )
 
-    Box(
-        Modifier.size(beaconSize),
-        contentAlignment = Alignment.Center,
-    ) {
-        // Soft breathing glow halo.
+    Box(Modifier.size(beaconSize), contentAlignment = Alignment.Center) {
         Box(
             Modifier
                 .size(beaconSize)
@@ -466,15 +732,12 @@ private fun ResonanceBeacon(accent: Color, pulsing: Boolean) {
                     CircleShape,
                 ),
         )
-        // Expanding ripple ring.
         Box(
             Modifier
                 .size(beaconSize)
                 .scale(ringScale)
                 .border(1.dp, accent.copy(alpha = ringAlpha), CircleShape),
         )
-        // Pulsing dot — same node size as the ring/glow so all three stay
-        // perfectly concentric (no half-pixel centering offset).
         Box(
             Modifier
                 .size(beaconSize)
@@ -483,6 +746,8 @@ private fun ResonanceBeacon(accent: Color, pulsing: Boolean) {
         )
     }
 }
+
+// ─── Card shell & shared primitives ───────────────────────────────────────────
 
 @Composable
 private fun HrvCard(
@@ -503,10 +768,7 @@ private fun HrvCard(
 
 @Composable
 private fun ChartPlaceholder(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center,
-    ) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Text(
             text = "Waiting for data …",
             style = MaterialTheme.typography.bodySmall.copy(
@@ -517,8 +779,21 @@ private fun ChartPlaceholder(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun RRIntervalHeader(rmssd: Float?) {
-    // Heart side: RMSSD is a heart-derived metric → warm tone.
+private fun SectionLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall.copy(
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.14.em,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+        ),
+    )
+}
+
+// ─── R–R card header ──────────────────────────────────────────────────────────
+
+@Composable
+private fun RRIntervalHeader(swing: Int?) {
     val accent = MaterialTheme.colorScheme.secondary
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val faint = muted.copy(alpha = 0.6f)
@@ -542,7 +817,7 @@ private fun RRIntervalHeader(rmssd: Float?) {
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = rmssd?.let { "%.0f".format(it) } ?: "—",
+                    text = swing?.let { "$it" } ?: "—",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.SemiBold,
                         color = accent,
@@ -555,7 +830,7 @@ private fun RRIntervalHeader(rmssd: Float?) {
                 )
             }
             Text(
-                text = "RMSSD",
+                text = "SWING",
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontSize = 10.5.sp,
                     letterSpacing = 0.1.em,
@@ -565,6 +840,8 @@ private fun RRIntervalHeader(rmssd: Float?) {
         }
     }
 }
+
+// ─── ACF card header ──────────────────────────────────────────────────────────
 
 @Composable
 private fun ACFHeader() {
@@ -577,25 +854,12 @@ private fun ACFHeader() {
         SectionLabel(text = "AUTOCORRELATION")
         Text(
             text = "peak → pace",
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 11.5.sp,
-                color = muted,
-            ),
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp, color = muted),
         )
     }
 }
 
-@Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelSmall.copy(
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 0.14.em,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-        ),
-    )
-}
+// ─── Band slider ──────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -606,11 +870,10 @@ private fun BandRangeSlider(
     allowedRange: ClosedFloatingPointRange<Float>,
 ) {
     val accent = MaterialTheme.colorScheme.primary
-
-    // Safety: ensure valueRange is valid and coercedValue is within it to avoid crashes in RangeSliderState.
     val safeValueRange = if (valueRange.start < valueRange.endInclusive) valueRange else 0f..1f
-    val coercedValue = value.start.coerceIn(allowedRange).coerceIn(safeValueRange)..
-            value.endInclusive.coerceIn(allowedRange).coerceIn(safeValueRange)
+    val coercedValue =
+        value.start.coerceIn(allowedRange).coerceIn(safeValueRange)..
+        value.endInclusive.coerceIn(allowedRange).coerceIn(safeValueRange)
 
     val sliderColors = SliderDefaults.colors(
         thumbColor = accent,
@@ -620,36 +883,26 @@ private fun BandRangeSlider(
 
     Column {
         val intSteps = maxOf(0, (safeValueRange.endInclusive - safeValueRange.start).toInt() - 1)
-
         RangeSlider(
             value = coercedValue,
             onValueChange = { new ->
-                onValueChange(new.start.coerceIn(allowedRange)..new.endInclusive.coerceIn(allowedRange))
+                onValueChange(
+                    new.start.coerceIn(allowedRange)..new.endInclusive.coerceIn(allowedRange)
+                )
             },
             valueRange = safeValueRange,
             steps = intSteps,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
                 .height(16.dp)
                 .padding(top = 2.dp),
             colors = sliderColors,
-            startThumb = {
-                ThumbWithLabel(
-                    label = "%.0f".format(coercedValue.start),
-                    accent = accent
-                )
-            },
-            endThumb = {
-                ThumbWithLabel(
-                    label = "%.0f".format(coercedValue.endInclusive),
-                    accent = accent
-                )
-            },
+            startThumb = { ThumbWithLabel(label = "%.0f".format(coercedValue.start), accent = accent) },
+            endThumb = { ThumbWithLabel(label = "%.0f".format(coercedValue.endInclusive), accent = accent) },
             track = { rangeSliderState ->
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(12.dp)
+                    modifier = Modifier.fillMaxWidth().height(12.dp),
                 ) {
                     SliderDefaults.Track(
                         rangeSliderState = rangeSliderState,
@@ -658,41 +911,59 @@ private fun BandRangeSlider(
                         drawTick = { _, _ -> },
                     )
                 }
-            }
+            },
         )
     }
 }
 
 @Composable
-private fun ThumbWithLabel(
-    label: String,
-    accent: Color,
-    labelColor: Color  = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-) {
+private fun ThumbWithLabel(label: String, accent: Color) {
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier.wrapContentSize(unbounded = true)
+        modifier = Modifier.wrapContentSize(unbounded = true),
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 10.sp,
-                color = labelColor,
-
-            ),
-            modifier = Modifier.offset(y = (-22).dp)
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, color = labelColor),
+            modifier = Modifier.offset(y = (-22).dp),
         )
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.size(12.dp)
-        ) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(12.dp)) {
             Box(
                 modifier = Modifier
                     .size(12.dp)
                     .shadow(2.dp, CircleShape)
-                    .background(accent, CircleShape)
+                    .background(accent, CircleShape),
             )
         }
+    }
+}
+
+// ─── Previews ─────────────────────────────────────────────────────────────────
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "Coupling hero — tuning")
+@Composable
+private fun CouplingHeroTuningPreview() {
+    AutoHrvTheme {
+        CouplingHeroCard(
+            breathingState = BreathingState(BreathingPhase.Inhale, 0.6f),
+            pattern = BreathingPattern(outToInRatio = 1.5f, cycleLengthSeconds = 10.8f),
+            rrsMsHistory = (0 until 30).map { i -> (920 + (kotlin.math.sin(i * 0.8) * 80).toInt()) },
+            isInResonance = false,
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "Coupling hero — locked")
+@Composable
+private fun CouplingHeroLockedPreview() {
+    AutoHrvTheme {
+        CouplingHeroCard(
+            breathingState = BreathingState(BreathingPhase.Exhale, 0.3f),
+            pattern = BreathingPattern(outToInRatio = 1.5f, cycleLengthSeconds = 10.8f),
+            rrsMsHistory = (0 until 30).map { i -> (920 + (kotlin.math.sin(i * 0.8) * 80).toInt()) },
+            isInResonance = true,
+        )
     }
 }
 
@@ -726,95 +997,32 @@ private fun AutoHrvTopBarDisconnectedPreview() {
 @Composable
 private fun ResonancePillPreview() {
     AutoHrvTheme {
-        ResonancePill(cycleLengthSec = 10.0f, breathsPerMin = 6.0f, isInResonance = true)
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
-@Composable
-private fun ResonanceChipInResonancePreview() {
-    AutoHrvTheme {
-        ResonanceChip(isInResonance = true)
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
-@Composable
-private fun ResonanceChipNotInResonancePreview() {
-    AutoHrvTheme {
-        ResonanceChip(isInResonance = false)
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
-@Composable
-private fun HrvCardPreview() {
-    AutoHrvTheme {
-        HrvCard {
-            RRIntervalHeader(rmssd = 42.3f)
-            ChartPlaceholder(modifier = Modifier.fillMaxWidth().height(100.dp))
-        }
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
-@Composable
-private fun ChartPlaceholderPreview() {
-    AutoHrvTheme {
-        ChartPlaceholder(modifier = Modifier.fillMaxWidth().height(100.dp))
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "RRIntervalHeader — with data")
-@Composable
-private fun RRIntervalHeaderWithDataPreview() {
-    AutoHrvTheme {
-        RRIntervalHeader(rmssd = 42.3f)
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "RRIntervalHeader — no data")
-@Composable
-private fun RRIntervalHeaderNoDataPreview() {
-    AutoHrvTheme {
-        RRIntervalHeader(rmssd = null)
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
-@Composable
-private fun ACFHeaderPreview() {
-    AutoHrvTheme {
-        ACFHeader()
-    }
-}
-
-@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
-@Composable
-private fun SectionLabelPreview() {
-    AutoHrvTheme {
-        SectionLabel(text = "R–R INTERVAL")
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
-@Composable
-private fun BandRangeSliderPreview() {
-    AutoHrvTheme {
-        BandRangeSlider(
-            value = 7f..13f,
-            onValueChange = {},
-            valueRange = 0f..60f,
-            allowedRange = 4f..16f,
+        ResonancePill(
+            cycleLengthSec = 10.8f,
+            breathsPerMin = 5.6f,
+            lagSeconds = 2.3f,
+            isInResonance = true,
         )
     }
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL)
 @Composable
-private fun ThumbWithLabelPreview() {
+private fun ResonancePillNoLagPreview() {
     AutoHrvTheme {
-        ThumbWithLabel(label = "10", accent = MaterialTheme.colorScheme.primary)
+        ResonancePill(
+            cycleLengthSec = 10.0f,
+            breathsPerMin = 6.0f,
+            lagSeconds = null,
+            isInResonance = false,
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "RRIntervalHeader — swing")
+@Composable
+private fun RRIntervalHeaderPreview() {
+    AutoHrvTheme {
+        HrvCard { RRIntervalHeader(swing = 284) }
     }
 }

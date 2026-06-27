@@ -23,9 +23,11 @@ data class HrUiState(
     val rrsMsHistory: List<Int> = emptyList(),
     val batteryLevel: Int? = null,
     val rmssd: Float? = null,
+    val swing: Int? = null,
     val autoCorrelation: List<Float>? = null,
     val autoCorrelationPeak: Float? = null,
     val isInResonance: Boolean = false,
+    val lagSeconds: Float? = null,
 )
 
 const val AUTO_CORRELATION_SIZE = 20
@@ -63,7 +65,8 @@ class HrvViewModel @Inject constructor(
         }
         viewModelScope.launch {
             rrsMsHistory.collect { history ->
-                _uiState.update { it.copy(rrsMsHistory = history) }
+                val swing = if (history.size >= 2) history.max() - history.min() else null
+                _uiState.update { it.copy(rrsMsHistory = history, swing = swing) }
             }
         }
         viewModelScope.launch {
