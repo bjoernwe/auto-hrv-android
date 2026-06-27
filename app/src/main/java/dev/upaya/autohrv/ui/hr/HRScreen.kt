@@ -227,7 +227,8 @@ private fun AutoHrvTopBar(
     connectionState: ConnectionState,
     batteryLevel: Int?,
 ) {
-    val accent = MaterialTheme.colorScheme.primary
+    // Heart side: the heart logo mark and the strap's connection dot use the warm tone.
+    val accent = MaterialTheme.colorScheme.secondary
     val surface2 = MaterialTheme.colorScheme.surfaceVariant
     val outlineStrong = MaterialTheme.colorScheme.outline
     val onSurface = MaterialTheme.colorScheme.onSurface
@@ -516,7 +517,8 @@ private fun ChartPlaceholder(modifier: Modifier = Modifier) {
 
 @Composable
 private fun RRIntervalHeader(rmssd: Float?) {
-    val accent = MaterialTheme.colorScheme.primary
+    // Heart side: RMSSD is a heart-derived metric → warm tone.
+    val accent = MaterialTheme.colorScheme.secondary
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val faint = muted.copy(alpha = 0.6f)
 
