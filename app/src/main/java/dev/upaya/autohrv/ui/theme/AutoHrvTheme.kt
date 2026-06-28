@@ -8,13 +8,13 @@ import androidx.compose.ui.graphics.Color
 // Two-tone identity: a cool tone for the breath side (orb, pace, resonance)
 // and a warm tone for the heart side (R–R trace, RMSSD, heart rate).
 //
-// Teal breath + softened coral heart. The heart tone is desaturated and lifted
-// in value relative to a pure coral so it no longer competes with the teal at
-// equal loudness — calming the near-complementary tension while keeping the
-// red = heart reading.
-val AutoHrvBreath = Color(0xFF1FD3E0)
+// Teal breath + peach-coral heart. Both hues are warmed toward a shared yellow
+// undertone (teal off pure cyan, heart toward peach/gold) so they read as lit by
+// one warm key instead of vibrating as a near-complement — while keeping the
+// warm = heart / cool = breath split and the red = heart reading.
+val AutoHrvBreath = Color(0xFF2FD4C9)
 val AutoHrvOnBreath = Color(0xFF06181B)
-val AutoHrvHeart = Color(0xFFFF9486)
+val AutoHrvHeart = Color(0xFFFF9E7D)
 val AutoHrvOnHeart = Color(0xFF2A0C06)
 
 val AutoHrvBg = Color(0xFF0A0B0E)
