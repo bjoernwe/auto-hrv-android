@@ -4,11 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.upaya.autohrv.data.model.ConnectionState
 import dev.upaya.autohrv.data.repository.HrvRepository
-import dev.upaya.autohrv.domain.breathing.BreathingConfig
 import dev.upaya.autohrv.domain.breathing.BreathingBusiness
 import dev.upaya.autohrv.domain.breathing.BreathingPattern
+import dev.upaya.autohrv.domain.breathing.BreathingPhase
 import dev.upaya.autohrv.domain.breathing.BreathingPhaseStart
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -17,10 +18,10 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 data class HrUiState(
     val connectionState: ConnectionState = ConnectionState.Idle,
@@ -33,6 +34,8 @@ data class HrUiState(
     val autoCorrelationPeak: Float? = null,
     val isInResonance: Boolean = false,
     val lagSeconds: Float? = null,
+    val currentPhaseStart: BreathingPhaseStart = BreathingPhaseStart(BreathingPhase.Inhale, System.currentTimeMillis(), 4000L),
+    val currentPattern: BreathingPattern = BreathingPattern(1f, 8f),
 )
 
 const val AUTO_CORRELATION_SIZE = 20
@@ -45,8 +48,6 @@ class HrvViewModel @Inject constructor(
     private val hrvRepository: HrvRepository,
     private val breathingBusiness: BreathingBusiness,
 ) : ViewModel() {
-
-    private val breathingConfig = BreathingConfig.DEFAULT
 
     val deviceId: String = HrvRepository.DEVICE_ID
 
@@ -85,9 +86,9 @@ class HrvViewModel @Inject constructor(
         viewModelScope.launch {
             breathingBusiness.stats.collect { stats ->
                 val peak = stats?.resampledRrsStats?.autoCorrelationPeak
-                _uiState.update { it.copy(
+                _uiState.update { uiState -> uiState.copy(
                     rmssd = stats?.beatRrsStats?.rmssd,
-                    autoCorrelation = stats?.resampledRrsStats?.autoCorrelation?.takeIf { it.size >= AUTO_CORRELATION_SIZE }?.take(AUTO_CORRELATION_SIZE),
+                    autoCorrelation = stats?.resampledRrsStats?.autoCorrelation?.takeIf { ac -> ac.size >= AUTO_CORRELATION_SIZE }?.take(AUTO_CORRELATION_SIZE),
                     autoCorrelationPeak = peak,
                 ) }
             }
@@ -97,18 +98,24 @@ class HrvViewModel @Inject constructor(
                 _uiState.update { it.copy(isInResonance = isInResonance) }
             }
         }
+        viewModelScope.launch {
+            breathingBusiness.currentPhaseStart.collect { phaseStart ->
+                _uiState.update { it.copy(currentPhaseStart = phaseStart) }
+            }
+        }
+        viewModelScope.launch {
+            breathingBusiness.currentBreathingPattern.collect { pattern ->
+                _uiState.update { it.copy(currentPattern = pattern) }
+            }
+        }
     }
-
-    val currentPhaseStart: StateFlow<BreathingPhaseStart> = breathingBusiness.currentPhaseStart
-    val currentPattern: StateFlow<BreathingPattern> = breathingBusiness.currentBreathingPattern
-    val targetOutToInRatio: StateFlow<Float> = breathingBusiness.targetOutToInRatio
 
     /** Pacer function sampled at 20 Hz, each point stamped with real wall-clock time. */
     val breathSamples: StateFlow<List<Sample>> = flow {
         while (true) {
             val t = System.currentTimeMillis()
-            emit(Sample(t, breathingBusiness.currentPhaseStart.value.valueAt(t)))
-            delay(1000L / BREATH_SAMPLE_RATE_HZ)
+            emit(Sample(t, _uiState.value.currentPhaseStart.valueAt(t)))
+            delay((1000L / BREATH_SAMPLE_RATE_HZ).milliseconds)
         }
     }
         .scan(emptyList<Sample>()) { acc, s -> (acc + s).pruneOlderThan(DISPLAY_WINDOW_MS, s.tMillis) }
@@ -122,8 +129,6 @@ class HrvViewModel @Inject constructor(
     fun connect() = hrvRepository.connect()
 
     fun disconnect() = hrvRepository.disconnect()
-
-    fun setTargetOutToInRatio(ratio: Float) = breathingBusiness.setTargetOutToInRatio(ratio)
 
     fun setTargetCycleLengthRange(range: ClosedFloatingPointRange<Float>) = breathingBusiness.setTargetCycleLengthRange(range)
 }
