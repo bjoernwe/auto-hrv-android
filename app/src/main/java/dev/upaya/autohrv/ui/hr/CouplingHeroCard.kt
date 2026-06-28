@@ -59,7 +59,7 @@ internal fun CouplingHeroCard(
 
     val breathColor = MaterialTheme.colorScheme.primary
     val heartColor = MaterialTheme.colorScheme.secondary
-    val surfaceColor = MaterialTheme.colorScheme.surface
+    val backgroundColor = MaterialTheme.colorScheme.background
     val onSurface = MaterialTheme.colorScheme.onSurface
 
     val phaseLabel = if (currentPhase == BreathingPhase.Inhale) "Inhale" else "Exhale"
@@ -88,9 +88,11 @@ internal fun CouplingHeroCard(
         label = "rr-half-range"
     )
 
-    HrvCard(modifier = modifier) {
+    Column(modifier = modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -114,8 +116,8 @@ internal fun CouplingHeroCard(
                 .fillMaxWidth()
                 .height(180.dp),
         ) {
-            val padL = 4.dp.toPx()
-            val padR = 4.dp.toPx()
+            val padL = 0f
+            val padR = 0f
             val padT = 8.dp.toPx()
             val padB = 22.dp.toPx()
             val plotW = size.width - padL - padR
@@ -245,7 +247,7 @@ internal fun CouplingHeroCard(
                 val nowX = xFor(latestBreath.tMillis)
                 val nowY = midY - (latestBreath.value * 2f - 1f) * breathAmp
                 drawCircle(color = breathColor.copy(alpha = 0.15f), radius = 10.dp.toPx(), center = Offset(nowX, nowY))
-                drawCircle(color = surfaceColor, radius = 4.2.dp.toPx(), center = Offset(nowX, nowY))
+                drawCircle(color = backgroundColor, radius = 4.2.dp.toPx(), center = Offset(nowX, nowY))
                 drawCircle(color = breathColor, radius = 3.dp.toPx(), center = Offset(nowX, nowY))
             }
         }
@@ -253,7 +255,7 @@ internal fun CouplingHeroCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 2.dp),
+                .padding(horizontal = 18.dp, vertical = 2.dp),
         ) {
             Text(
                 "breath",
