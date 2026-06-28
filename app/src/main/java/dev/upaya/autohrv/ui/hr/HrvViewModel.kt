@@ -11,8 +11,12 @@ import dev.upaya.autohrv.domain.breathing.BreathingState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.sample
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -31,6 +35,9 @@ data class HrUiState(
 )
 
 const val AUTO_CORRELATION_SIZE = 20
+
+private const val BREATH_HISTORY_SAMPLE_RATE_HZ = 20
+private const val BREATH_HISTORY_WINDOW_SEC = 22
 
 @HiltViewModel
 class HrvViewModel @Inject constructor(
@@ -89,6 +96,16 @@ class HrvViewModel @Inject constructor(
     val breathingState: StateFlow<BreathingState> = breathingBusiness.currentBreathingState
     val currentPattern: StateFlow<BreathingPattern> = breathingBusiness.currentBreathingPattern
     val targetOutToInRatio: StateFlow<Float> = breathingBusiness.targetOutToInRatio
+
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    val breathHistory: StateFlow<List<Float>> = breathingBusiness.currentBreathingState
+        .sample(periodMillis = (1000L / BREATH_HISTORY_SAMPLE_RATE_HZ))
+        .scan(emptyList<Float>()) { window, state ->
+            (window + state.value).takeLast(BREATH_HISTORY_WINDOW_SEC * BREATH_HISTORY_SAMPLE_RATE_HZ)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val breathHistorySampleRateHz: Int = BREATH_HISTORY_SAMPLE_RATE_HZ
     val targetCycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = breathingBusiness.targetCycleLengthRange
     val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = breathingBusiness.cycleLengthAllowedRange
 

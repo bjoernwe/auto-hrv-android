@@ -23,8 +23,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
 import dev.upaya.autohrv.domain.breathing.BreathingState
-import kotlin.math.PI
-import kotlin.math.cos
 
 @Composable
 fun BreathingPacerOrb(
@@ -45,10 +43,7 @@ fun BreathingPacerOrb(
     val breath = colorScheme.primary
     val heart = colorScheme.secondary
 
-    val scale = when (state.phase) {
-        BreathingPhase.Inhale -> 0.5f - 0.5f * cos(PI.toFloat() * state.progress)
-        BreathingPhase.Exhale -> 0.5f + 0.5f * cos(PI.toFloat() * state.progress)
-    }
+    val scale = state.value
     val label = when (state.phase) {
         BreathingPhase.Inhale -> "inhale"
         BreathingPhase.Exhale -> "exhale"

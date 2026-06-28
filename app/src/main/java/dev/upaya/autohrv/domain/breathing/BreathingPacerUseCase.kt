@@ -12,10 +12,17 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
+import kotlin.math.PI
+import kotlin.math.cos
 
 enum class BreathingPhase { Inhale, Exhale }
 
-data class BreathingState(val phase: BreathingPhase, val progress: Float)
+data class BreathingState(val phase: BreathingPhase, val progress: Float) {
+    val value: Float get() = when (phase) {
+        BreathingPhase.Inhale -> 0.5f - 0.5f * cos(PI.toFloat() * progress)
+        BreathingPhase.Exhale -> 0.5f + 0.5f * cos(PI.toFloat() * progress)
+    }
+}
 
 data class BreathingPattern(
     val outToInRatio: Float,

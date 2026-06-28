@@ -28,19 +28,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.upaya.autohrv.domain.breathing.BreathingPattern
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
 import dev.upaya.autohrv.domain.breathing.BreathingState
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
-import kotlin.math.PI
-import kotlin.math.cos
 
 private const val COUPLING_WIN_SEC = 22f
 
 @Composable
 internal fun CouplingHeroCard(
     breathingState: BreathingState,
-    pattern: BreathingPattern,
+    breathHistory: List<Float>,
+    breathHistorySampleRateHz: Int,
     rrsMsHistory: List<Int>,
     isInResonance: Boolean,
     modifier: Modifier = Modifier,
@@ -51,23 +49,11 @@ internal fun CouplingHeroCard(
         label = "lock-strength",
     )
 
-    // Capture colors before the Canvas lambda
     val breathColor = MaterialTheme.colorScheme.primary
     val heartColor = MaterialTheme.colorScheme.secondary
     val surfaceColor = MaterialTheme.colorScheme.surface
     val outlineColor = MaterialTheme.colorScheme.outlineVariant
     val onSurface = MaterialTheme.colorScheme.onSurface
-
-    // Reconstruct historical breath wave from current pacer position
-    val T = pattern.cycleLengthSeconds.coerceAtLeast(1f)
-    val inhaleSec = T / (1f + pattern.outToInRatio)
-    val exhaleSec = (T - inhaleSec).coerceAtLeast(0.001f)
-    val elapsedInPhase = breathingState.progress *
-        (if (breathingState.phase == BreathingPhase.Inhale) inhaleSec else exhaleSec)
-        (if (breathingState.phase == BreathingPhase.Inhale) inhaleSec else exhaleSec)
-    val elapsedInCycle =
-        if (breathingState.phase == BreathingPhase.Inhale) elapsedInPhase
-        else inhaleSec + elapsedInPhase
 
     val phaseLabel = if (breathingState.phase == BreathingPhase.Inhale) "Inhale" else "Exhale"
 
@@ -122,29 +108,18 @@ internal fun CouplingHeroCard(
                 gridT += 2f
             }
 
-            // Breath value at `secondsAgo` in the past; returns 0..1 (0=exhaled, 1=inhaled)
-            fun breathAt(secondsAgo: Float): Float {
-                val pos = ((elapsedInCycle - secondsAgo) % T + T) % T
-                return if (pos < inhaleSec) {
-                    val p = pos / inhaleSec
-                    0.5f - 0.5f * cos(PI.toFloat() * p)
-                } else {
-                    val p = (pos - inhaleSec) / exhaleSec
-                    0.5f + 0.5f * cos(PI.toFloat() * p)
-                }
-            }
-            // Map to signed amplitude: +1 = inhale peak, -1 = exhale trough
-            fun breathNorm(secondsAgo: Float) = breathAt(secondsAgo) * 2f - 1f
-
-            // Breath stroke + area fill
-            val steps = (plotW / 2).toInt().coerceAtLeast(4)
+            // Breath stroke + area fill — plot breathHistory directly (index 0 = oldest)
             val breathPath = Path()
-            for (i in 0..steps) {
-                val frac = i.toFloat() / steps
-                val x = padL + frac * plotW
-                val sAgo = COUPLING_WIN_SEC * (1f - frac)
-                val y = midY - breathNorm(sAgo) * breathAmp
-                if (i == 0) breathPath.moveTo(x, y) else breathPath.lineTo(x, y)
+            val n = breathHistory.size
+            if (n >= 2) {
+                val secPerSample = 1f / breathHistorySampleRateHz
+                breathHistory.forEachIndexed { i, v ->
+                    val sAgo = (n - 1 - i) * secPerSample
+                    if (sAgo > COUPLING_WIN_SEC) return@forEachIndexed
+                    val x = padL + (1f - sAgo / COUPLING_WIN_SEC) * plotW
+                    val y = midY - (v * 2f - 1f) * breathAmp
+                    if (breathPath.isEmpty) breathPath.moveTo(x, y) else breathPath.lineTo(x, y)
+                }
             }
             val breathAreaPath = Path().apply {
                 addPath(breathPath)
@@ -259,7 +234,8 @@ internal fun CouplingHeroCard(
             }
 
             // Now-dot on breath wave
-            val nowY = midY - breathNorm(0f) * breathAmp
+            val nowBreath = breathHistory.lastOrNull() ?: 0.5f
+            val nowY = midY - (nowBreath * 2f - 1f) * breathAmp
             val nowX = padL + plotW
             drawCircle(
                 color = breathColor.copy(alpha = 0.15f),
@@ -303,13 +279,23 @@ internal fun CouplingHeroCard(
     }
 }
 
+private fun previewBreathHistory(sampleRateHz: Int = 4, windowSec: Int = 22): List<Float> {
+    val count = sampleRateHz * windowSec
+    val cycleSamples = 10.8f * sampleRateHz
+    return List(count) { i ->
+        val pos = (i % cycleSamples) / cycleSamples
+        (0.5f - 0.5f * kotlin.math.cos(kotlin.math.PI.toFloat() * 2f * pos)).coerceIn(0f, 1f)
+    }
+}
+
 @Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "Coupling hero — tuning")
 @Composable
 private fun CouplingHeroTuningPreview() {
     AutoHrvTheme {
         CouplingHeroCard(
             breathingState = BreathingState(BreathingPhase.Inhale, 0.6f),
-            pattern = BreathingPattern(outToInRatio = 1.5f, cycleLengthSeconds = 10.8f),
+            breathHistory = previewBreathHistory(),
+            breathHistorySampleRateHz = 4,
             rrsMsHistory = (0 until 30).map { i -> (920 + (kotlin.math.sin(i * 0.8) * 80).toInt()) },
             isInResonance = false,
         )
@@ -322,7 +308,8 @@ private fun CouplingHeroLockedPreview() {
     AutoHrvTheme {
         CouplingHeroCard(
             breathingState = BreathingState(BreathingPhase.Exhale, 0.3f),
-            pattern = BreathingPattern(outToInRatio = 1.5f, cycleLengthSeconds = 10.8f),
+            breathHistory = previewBreathHistory(),
+            breathHistorySampleRateHz = 4,
             rrsMsHistory = (0 until 30).map { i -> (920 + (kotlin.math.sin(i * 0.8) * 80).toInt()) },
             isInResonance = true,
         )
