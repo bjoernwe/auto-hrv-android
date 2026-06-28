@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auto HRV · breath/heart color study</title>
+<style>
+  :root{
+    --void:#0A0B0E; --panel:#131519; --panel2:#1A1D23;
+    --ink:#ECEFF3; --dim:#9298A2; --faint:#5C626C;
+    --outline:rgba(255,255,255,.07); --outline-strong:rgba(255,255,255,.13);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:#05070c;color:var(--ink);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1100px;margin:0 auto;padding:40px 24px 80px}
+  header{margin-bottom:32px}
+  h1{font-size:22px;font-weight:650;letter-spacing:-.01em;margin:0 0 6px}
+  .sub{color:var(--dim);font-size:13px;max-width:62ch}
+  .legend{display:flex;gap:20px;margin-top:14px;font-size:12px;color:var(--dim)}
+  .legend b{font-weight:600}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px}
+  .grid{display:grid;gap:18px;margin-top:8px}
+  .card{background:var(--void);border:1px solid var(--outline);border-radius:18px;
+    padding:18px 18px 16px;box-shadow:0 12px 36px rgba(0,0,0,.45)}
+  .card.rec{border-color:rgba(255,166,114,.35);box-shadow:0 12px 36px rgba(0,0,0,.45),0 0 0 1px rgba(47,212,201,.10)}
+  .chead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+  .name{font-size:15px;font-weight:650;letter-spacing:-.01em}
+  .tag{font-size:10.5px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;
+    color:#FFA672;border:1px solid rgba(255,166,114,.4);border-radius:999px;padding:3px 9px}
+  .row{display:grid;grid-template-columns:1.55fr 1fr;gap:18px;align-items:stretch}
+  canvas{width:100%;height:150px;display:block;border-radius:12px;background:var(--void)}
+  .swatches{display:flex;flex-direction:column;gap:10px;justify-content:center}
+  .sw{display:flex;align-items:center;gap:11px}
+  .chip{width:46px;height:46px;border-radius:11px;flex:none;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+  .meta{min-width:0}
+  .meta .lab{font-size:11px;color:var(--dim);letter-spacing:.04em;text-transform:uppercase}
+  .meta .hex{font-family:ui-monospace,'JetBrains Mono',Menlo,monospace;font-size:14px;font-weight:600}
+  .meta .hue{font-size:11px;color:var(--faint);font-family:ui-monospace,monospace}
+  .note{margin-top:13px;font-size:12px;color:var(--dim);line-height:1.5}
+  .note b{color:var(--ink);font-weight:600}
+  @media(max-width:680px){.row{grid-template-columns:1fr}.swatches{flex-direction:row;flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Breath / heart color study</h1>
+    <div class="sub">Each row shows the pair as swatches and as the two waves overlapping on the
+      dashboard background — the hero/ACF condition where harmony is actually judged. The gap
+      between the two hues (Δ°) is the tell: closer to 180° = more complementary vibration.</div>
+    <div class="legend">
+      <span><span class="dot" style="background:#2FD4C9"></span><b>breath</b> (pacer, smooth sinusoid)</span>
+      <span><span class="dot" style="background:#FFA672"></span><b>heart</b> (R–R, beat-to-beat)</span>
+    </div>
+  </header>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+const VARIANTS = [
+  { name:'Current (app)', tag:null, breath:'#1FD3E0', heart:'#FF9486',
+    note:'Cyan teal vs salmon coral. Hues sit ~177° apart — almost a perfect complement, so the two strokes vibrate where they overlap. The teal also reads brightest, so it dominates.' },
+  { name:'Subtle nudge', tag:null, breath:'#2FD4C9', heart:'#FF9E7D',
+    note:'Teal warmed just off cyan; heart = the experiment’s peach. Smaller hue gap and a shared yellow undertone — the buzz drops without a big visual change.' },
+  { name:'Full commit', tag:'Recommended', breath:'#3DDAC4', heart:'#FFA672', rec:true,
+    note:'Experiment’s mint teal + heart pushed a touch more gold. Both lit by one warm key; warm-heart / cool-breath split preserved. Teal comes off the boil so the two read as equals.' },
+  { name:'Rose variant', tag:null, breath:'#2FD4C9', heart:'#FF7DA6',
+    note:'Heart rotated the other way toward rose. Elegant split-complement, but a cooler / more clinical mood — and it fights the warm = blood = heart reading. A different temperament, not a small tweak.' },
+];
+
+function hexToRgb(h){const n=parseInt(h.slice(1),16);return[(n>>16)&255,(n>>8)&255,n&255];}
+function hueOf(h){
+  let[r,g,b]=hexToRgb(h).map(v=>v/255);
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;
+  let H=0;
+  if(d===0)H=0;
+  else if(mx===r)H=60*(((g-b)/d)%6);
+  else if(mx===g)H=60*((b-r)/d+2);
+  else H=60*((r-g)/d+4);
+  if(H<0)H+=360;
+  return Math.round(H);
+}
+function hueGap(a,b){let d=Math.abs(hueOf(a)-hueOf(b));return Math.min(d,360-d);}
+
+function drawWaves(cv,breath,heart){
+  const dpr=Math.max(2,window.devicePixelRatio||1);
+  const w=cv.clientWidth,h=cv.clientHeight;
+  cv.width=w*dpr;cv.height=h*dpr;
+  const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+  // baseline grid
+  ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;
+  for(let i=1;i<4;i++){const y=h*i/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+  const mid=h*0.54, amp=h*0.26, pad=10;
+  const N=240;
+  // breath: clean sinusoid with area fill, slightly ahead in phase
+  const [br,bg,bb]=hexToRgb(breath);
+  const grad=ctx.createLinearGradient(0,mid-amp,0,h);
+  grad.addColorStop(0,`rgba(${br},${bg},${bb},0.20)`);
+  grad.addColorStop(1,`rgba(${br},${bg},${bb},0.0)`);
+  ctx.beginPath();
+  for(let i=0;i<=N;i++){const x=pad+(w-2*pad)*i/N;const t=i/N*Math.PI*2*1.6;
+    const y=mid-amp*Math.sin(t);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+  ctx.lineTo(w-pad,h);ctx.lineTo(pad,h);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
+  ctx.beginPath();
+  for(let i=0;i<=N;i++){const x=pad+(w-2*pad)*i/N;const t=i/N*Math.PI*2*1.6;
+    const y=mid-amp*Math.sin(t);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+  ctx.strokeStyle=breath;ctx.lineWidth=2.4;ctx.lineJoin='round';
+  ctx.shadowColor=`rgba(${br},${bg},${bb},.5)`;ctx.shadowBlur=10;ctx.stroke();ctx.shadowBlur=0;
+  // heart: beat-to-beat, trails by lag τ, jittered samples
+  const [hr,hg,hb]=hexToRgb(heart);
+  const lag=0.42; // phase trail
+  ctx.beginPath();
+  for(let i=0;i<=N;i++){const x=pad+(w-2*pad)*i/N;const t=i/N*Math.PI*2*1.6-lag;
+    const jitter=Math.sin(t*5.3)*0.05+Math.sin(t*9.1)*0.03;
+    const y=mid-amp*0.82*(Math.sin(t)+jitter);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+  ctx.strokeStyle=heart;ctx.lineWidth=2.4;ctx.lineJoin='round';
+  ctx.shadowColor=`rgba(${hr},${hg},${hb},.5)`;ctx.shadowBlur=10;ctx.stroke();ctx.shadowBlur=0;
+  // sample dots on heart line
+  ctx.fillStyle=heart;
+  for(let i=0;i<=12;i++){const x=pad+(w-2*pad)*i/12;const t=i/12*Math.PI*2*1.6-lag;
+    const jitter=Math.sin(t*5.3)*0.05+Math.sin(t*9.1)*0.03;
+    const y=mid-amp*0.82*(Math.sin(t)+jitter);
+    ctx.beginPath();ctx.arc(x,y,2.1,0,7);ctx.fill();}
+}
+
+const grid=document.getElementById('grid');
+VARIANTS.forEach(v=>{
+  const card=document.createElement('div');
+  card.className='card'+(v.rec?' rec':'');
+  card.innerHTML=`
+    <div class="chead">
+      <span class="name">${v.name}</span>
+      ${v.tag?`<span class="tag">${v.tag}</span>`:''}
+    </div>
+    <div class="row">
+      <canvas></canvas>
+      <div class="swatches">
+        <div class="sw"><div class="chip" style="background:${v.breath}"></div>
+          <div class="meta"><div class="lab">breath</div><div class="hex">${v.breath}</div>
+          <div class="hue">hue ${hueOf(v.breath)}°</div></div></div>
+        <div class="sw"><div class="chip" style="background:${v.heart}"></div>
+          <div class="meta"><div class="lab">heart</div><div class="hex">${v.heart}</div>
+          <div class="hue">hue ${hueOf(v.heart)}°</div></div></div>
+        <div class="sw" style="margin-top:2px">
+          <div class="meta"><div class="lab">hue gap</div>
+          <div class="hex">Δ ${hueGap(v.breath,v.heart)}°</div></div></div>
+      </div>
+    </div>
+    <div class="note">${v.note}</div>`;
+  grid.appendChild(card);
+  drawWaves(card.querySelector('canvas'),v.breath,v.heart);
+});
+window.addEventListener('resize',()=>{
+  document.querySelectorAll('.card').forEach((c,i)=>
+    drawWaves(c.querySelector('canvas'),VARIANTS[i].breath,VARIANTS[i].heart));
+});
+</script>
+</body>
+</html>
