@@ -12,9 +12,9 @@ import androidx.compose.ui.graphics.Color
 // undertone (teal off pure cyan, heart toward peach/gold) so they read as lit by
 // one warm key instead of vibrating as a near-complement — while keeping the
 // warm = heart / cool = breath split and the red = heart reading.
-val AutoHrvBreath = Color(0xFF2FD4C9)
+val AutoHrvBreath = Color(0xFF3DDAC4)
 val AutoHrvOnBreath = Color(0xFF06181B)
-val AutoHrvHeart = Color(0xFFFF9E7D)
+val AutoHrvHeart = Color(0xFFFFA672)
 val AutoHrvOnHeart = Color(0xFF2A0C06)
 
 val AutoHrvBg = Color(0xFF0A0B0E)
