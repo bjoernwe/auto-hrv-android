@@ -95,7 +95,9 @@ internal fun CouplingHeroCard(
                 .padding(horizontal = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            ResonanceChip(isInResonance = isInResonance)
+            Spacer(Modifier.weight(1f))
+            Column(horizontalAlignment = Alignment.End) {
                 SectionLabel("COUPLING")
                 Text(
                     text = phaseLabel,
@@ -106,7 +108,6 @@ internal fun CouplingHeroCard(
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
-            ResonanceChip(isInResonance = isInResonance)
         }
 
         Spacer(Modifier.height(10.dp))
@@ -258,18 +259,18 @@ internal fun CouplingHeroCard(
                 .padding(horizontal = 18.dp, vertical = 2.dp),
         ) {
             Text(
-                "breath",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                ),
-            )
-            Spacer(Modifier.weight(1f))
-            Text(
                 "heart",
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
+                ),
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                "breath",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                 ),
             )
         }
