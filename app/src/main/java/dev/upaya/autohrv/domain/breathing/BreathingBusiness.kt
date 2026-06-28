@@ -4,6 +4,7 @@ import dev.upaya.autohrv.data.repository.HrvRepository
 import dev.upaya.autohrv.di.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
@@ -80,4 +82,37 @@ class BreathingBusiness @Inject internal constructor(
         val peakValue = rrsStats.autoCorrelation?.getOrNull(peak.toInt()) ?: return@combine false
         abs(peak - breathingPattern.cycleLengthSeconds) <= breathingConfig.resonancePeakToleranceSeconds && peakValue > breathingConfig.resonanceMinPeakValue
     }.stateIn(scope, SharingStarted.Eagerly, false)
+
+    // Breath signal sampled at 1 Hz to match the RR history grid.
+    private val breathHistory: StateFlow<List<Float>> = flow {
+        while (true) {
+            val now = System.currentTimeMillis()
+            emit(currentPhaseStart.value.valueAt(now))
+            delay(1000L)
+        }
+    }
+        .scan(emptyList<Float>()) { w, v -> (w + v).takeLast(breathingConfig.evaluationLengthSeconds) }
+        .stateIn(scope, SharingStarted.Eagerly, emptyList())
+
+    // Seconds by which the RR response lags behind the breath signal (positive = heart follows breath).
+    val lagSeconds: StateFlow<Float?> = combine(breathHistory, rrsMsHistory) { breath, rr ->
+        computeLag(breath, rr, breathingConfig.maxCycleLengthRange.endInclusive)
+    }.stateIn(scope, SharingStarted.Eagerly, null)
+
+    private fun computeLag(breath: List<Float>, rr: List<Int>, maxCycleLengthSeconds: Float): Float? {
+        val n = minOf(breath.size, rr.size)
+        if (n < 4) return null
+        val b = breath.takeLast(n)
+        val r = rr.takeLast(n)
+        val bMean = b.average().toFloat()
+        val rMean = r.average().toFloat()
+        val bNorm = b.map { it - bMean }
+        val rNorm = r.map { it.toFloat() - rMean }
+        // RR is anti-phase to breath (HR rises on inhale → RR drops), so correlate breath vs –RR.
+        // Peak at lag τ means the heart responds τ seconds after the breath signal.
+        val maxLag = maxCycleLengthSeconds.toInt().coerceAtMost(n / 2)
+        return (0..maxLag).maxByOrNull { lag ->
+            (0 until n - lag).sumOf { t -> (bNorm[t] * (-rNorm[t + lag])).toDouble() }
+        }?.toFloat()
+    }
 }

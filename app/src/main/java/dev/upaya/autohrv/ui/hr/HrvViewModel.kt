@@ -99,6 +99,11 @@ class HrvViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            breathingBusiness.lagSeconds.collect { lag ->
+                _uiState.update { it.copy(lagSeconds = lag) }
+            }
+        }
+        viewModelScope.launch {
             breathingBusiness.currentPhaseStart.collect { phaseStart ->
                 _uiState.update { it.copy(currentPhaseStart = phaseStart) }
             }

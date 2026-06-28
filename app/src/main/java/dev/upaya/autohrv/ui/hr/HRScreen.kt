@@ -80,31 +80,9 @@ fun HRScreen(viewModel: HrvViewModel) {
                 cycleLengthSec = cycleLengthSec,
                 breathsPerMin = breathsPerMin,
                 lagSeconds = uiState.lagSeconds,
-                isInResonance = uiState.isInResonance,
             )
 
             Spacer(Modifier.height(12.dp))
-
-            /*HrvCard {
-                RRIntervalHeader(swing = uiState.swing)
-                if (rrSamples.size >= 2) {
-                    TimeSeriesChart(
-                        samples = rrSamples,
-                        windowMs = viewModel.displayWindowMs,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                    )
-                } else {
-                    ChartPlaceholder(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))*/
 
             val acf = uiState.autoCorrelation
             val acfReady = acf != null && acf.size >= 2
