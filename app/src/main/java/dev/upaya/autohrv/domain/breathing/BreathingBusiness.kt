@@ -71,7 +71,7 @@ class BreathingBusiness @Inject internal constructor(
 
     private val pacerOutput = breathingPacerUseCase(scope, targetBreathingPattern)
 
-    val currentBreathingState: StateFlow<BreathingState> = pacerOutput.breathingState
+    val currentPhaseStart: StateFlow<BreathingPhaseStart> = pacerOutput.currentPhaseStart
     val currentBreathingPattern: StateFlow<BreathingPattern> = pacerOutput.currentPattern
 
     val isInResonance: StateFlow<Boolean> = combine(stats, currentBreathingPattern) { stats, breathingPattern ->

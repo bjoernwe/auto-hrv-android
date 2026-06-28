@@ -29,14 +29,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
-import dev.upaya.autohrv.domain.breathing.BreathingState
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 private const val COUPLING_WIN_SEC = 22f
 
 @Composable
 internal fun CouplingHeroCard(
-    breathingState: BreathingState,
+    currentPhase: BreathingPhase,
     breathHistory: List<Float>,
     breathHistorySampleRateHz: Int,
     rrsMsHistory: List<Int>,
@@ -55,7 +54,7 @@ internal fun CouplingHeroCard(
     val outlineColor = MaterialTheme.colorScheme.outlineVariant
     val onSurface = MaterialTheme.colorScheme.onSurface
 
-    val phaseLabel = if (breathingState.phase == BreathingPhase.Inhale) "Inhale" else "Exhale"
+    val phaseLabel = if (currentPhase == BreathingPhase.Inhale) "Inhale" else "Exhale"
 
     HrvCard(modifier = modifier) {
         // Header
@@ -293,7 +292,7 @@ private fun previewBreathHistory(sampleRateHz: Int = 4, windowSec: Int = 22): Li
 private fun CouplingHeroTuningPreview() {
     AutoHrvTheme {
         CouplingHeroCard(
-            breathingState = BreathingState(BreathingPhase.Inhale, 0.6f),
+            currentPhase = BreathingPhase.Inhale,
             breathHistory = previewBreathHistory(),
             breathHistorySampleRateHz = 4,
             rrsMsHistory = (0 until 30).map { i -> (920 + (kotlin.math.sin(i * 0.8) * 80).toInt()) },
@@ -307,7 +306,7 @@ private fun CouplingHeroTuningPreview() {
 private fun CouplingHeroLockedPreview() {
     AutoHrvTheme {
         CouplingHeroCard(
-            breathingState = BreathingState(BreathingPhase.Exhale, 0.3f),
+            currentPhase = BreathingPhase.Exhale,
             breathHistory = previewBreathHistory(),
             breathHistorySampleRateHz = 4,
             rrsMsHistory = (0 until 30).map { i -> (920 + (kotlin.math.sin(i * 0.8) * 80).toInt()) },

@@ -7,7 +7,12 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
@@ -22,19 +27,17 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
-import dev.upaya.autohrv.domain.breathing.BreathingState
+import dev.upaya.autohrv.domain.breathing.BreathingPhaseStart
 
 @Composable
 fun BreathingPacerOrb(
-    state: BreathingState,
+    phaseStart: BreathingPhaseStart,
     modifier: Modifier = Modifier,
     inResonance: Boolean = false,
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val textMeasurer = rememberTextMeasurer()
 
-    // Convergence: when heart and breath lock into resonance, the warm heart
-    // tone rises into the cool breath orb — the two systems meeting at its edge.
     val convergence by animateFloatAsState(
         targetValue = if (inResonance) 1f else 0f,
         animationSpec = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
@@ -43,8 +46,14 @@ fun BreathingPacerOrb(
     val breath = colorScheme.primary
     val heart = colorScheme.secondary
 
-    val scale = state.value
-    val label = when (state.phase) {
+    var scale by remember(phaseStart) { mutableFloatStateOf(phaseStart.valueAt(System.currentTimeMillis())) }
+    LaunchedEffect(phaseStart) {
+        while (true) {
+            withFrameMillis { nowMs -> scale = phaseStart.valueAt(nowMs) }
+        }
+    }
+
+    val label = when (phaseStart.phase) {
         BreathingPhase.Inhale -> "inhale"
         BreathingPhase.Exhale -> "exhale"
     }
@@ -61,14 +70,12 @@ fun BreathingPacerOrb(
         val orbRadius = maxRadius * (minFraction + (1f - minFraction) * scale)
         val c = center
 
-        // 1. Guide ring (Material-consistent boundary)
         drawCircle(
             color = colorScheme.outlineVariant.copy(alpha = 0.3f),
             radius = maxRadius,
             style = Stroke(width = 1.dp.toPx()),
         )
 
-        // 2. The glow — warms toward the heart tone and widens as resonance locks in.
         val glowColor = lerp(breath, heart, convergence * 0.55f)
         val glowRadius = orbRadius * (1.4f + 0.15f * convergence)
         drawCircle(
@@ -81,17 +88,15 @@ fun BreathingPacerOrb(
             center = c,
         )
 
-        // 3. The orb — a cool breath core whose rim warms toward the heart tone
-        //    as the two systems converge, with a 3D-effect gradient.
         val core = lerp(breath, heart, convergence * 0.12f)
         val rim = lerp(lerp(breath, Color.Black, 0.3f), heart, convergence * 0.5f)
         val gradientCenter = Offset(c.x, c.y - orbRadius * 0.2f)
         drawCircle(
             brush = Brush.radialGradient(
                 colorStops = arrayOf(
-                    0.0f to lerp(core, Color.White, 0.15f), // Highlight
-                    0.5f to core,                           // Base
-                    1.0f to rim,                            // Depth / warm rim
+                    0.0f to lerp(core, Color.White, 0.15f),
+                    0.5f to core,
+                    1.0f to rim,
                 ),
                 center = gradientCenter,
                 radius = orbRadius,
@@ -100,7 +105,6 @@ fun BreathingPacerOrb(
             center = c,
         )
 
-        // 4. Phase label centred on the orb
         val measured = textMeasurer.measure(label, style = labelStyle)
         drawText(
             measured,
@@ -117,7 +121,7 @@ fun BreathingPacerOrb(
 private fun BreathingPacerOrbPreview() {
     AutoHrvTheme {
         BreathingPacerOrb(
-            state = BreathingState(BreathingPhase.Inhale, 0.6f),
+            phaseStart = BreathingPhaseStart(BreathingPhase.Inhale, System.currentTimeMillis() - 3000L, 5400L),
             modifier = Modifier.size(188.dp),
         )
     }
@@ -128,7 +132,7 @@ private fun BreathingPacerOrbPreview() {
 private fun BreathingPacerOrbResonancePreview() {
     AutoHrvTheme {
         BreathingPacerOrb(
-            state = BreathingState(BreathingPhase.Inhale, 0.6f),
+            phaseStart = BreathingPhaseStart(BreathingPhase.Inhale, System.currentTimeMillis() - 3000L, 5400L),
             modifier = Modifier.size(188.dp),
             inResonance = true,
         )

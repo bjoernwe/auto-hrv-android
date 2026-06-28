@@ -24,7 +24,7 @@ import dev.upaya.autohrv.ui.hr.charts.TimeSeriesChart
 @Composable
 fun HRScreen(viewModel: HrvViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val breathingState by viewModel.breathingState.collectAsStateWithLifecycle()
+    val currentPhaseStart by viewModel.currentPhaseStart.collectAsStateWithLifecycle()
     val breathHistory by viewModel.breathHistory.collectAsStateWithLifecycle()
     val currentPattern by viewModel.currentPattern.collectAsStateWithLifecycle()
     val targetCycleLengthRange by viewModel.targetCycleLengthRange.collectAsStateWithLifecycle()
@@ -62,7 +62,7 @@ fun HRScreen(viewModel: HrvViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             CouplingHeroCard(
-                breathingState = breathingState,
+                currentPhase = currentPhaseStart.phase,
                 breathHistory = breathHistory,
                 breathHistorySampleRateHz = viewModel.breathHistorySampleRateHz,
                 rrsMsHistory = uiState.rrsMsHistory,
