@@ -9,12 +9,12 @@ import dev.upaya.autohrv.domain.breathing.BreathingBusiness
 import dev.upaya.autohrv.domain.breathing.BreathingPattern
 import dev.upaya.autohrv.domain.breathing.BreathingPhaseStart
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.delay
@@ -25,8 +25,7 @@ import javax.inject.Inject
 data class HrUiState(
     val connectionState: ConnectionState = ConnectionState.Idle,
     val hr: Int? = null,
-    val rrsMsHistory: List<Int> = emptyList(),
-    val lastRrSampleMs: Long = 0L,
+    val currentRr: Int? = null,
     val batteryLevel: Int? = null,
     val rmssd: Float? = null,
     val swing: Int? = null,
@@ -38,8 +37,8 @@ data class HrUiState(
 
 const val AUTO_CORRELATION_SIZE = 20
 
-private const val BREATH_HISTORY_SAMPLE_RATE_HZ = 20
-private const val BREATH_HISTORY_WINDOW_SEC = 22
+private const val BREATH_SAMPLE_RATE_HZ = 20
+private const val DISPLAY_WINDOW_MS = 22_000L
 
 @HiltViewModel
 class HrvViewModel @Inject constructor(
@@ -54,9 +53,13 @@ class HrvViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HrUiState())
     val uiState: StateFlow<HrUiState> = _uiState.asStateFlow()
 
-    init {
-        val rrsMsHistory: Flow<List<Int>> = hrvRepository.getRrsMsHistory(breathingConfig.evaluationLengthSeconds)
+    /** Raw beats from the sensor, each stamped with wall-clock arrival time. */
+    val rrSamples: StateFlow<List<Sample>> = hrvRepository.rrMsBeatFlow
+        .map { rr -> Sample(System.currentTimeMillis(), rr.toFloat()) }
+        .scan(emptyList<Sample>()) { acc, s -> (acc + s).pruneOlderThan(DISPLAY_WINDOW_MS, s.tMillis) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    init {
         viewModelScope.launch {
             hrvRepository.connectionState.collect { state ->
                 _uiState.update { it.copy(connectionState = state) }
@@ -73,9 +76,10 @@ class HrvViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            rrsMsHistory.collect { history ->
-                val swing = if (history.size >= 2) history.max() - history.min() else null
-                _uiState.update { it.copy(rrsMsHistory = history, lastRrSampleMs = System.currentTimeMillis(), swing = swing) }
+            rrSamples.collect { samples ->
+                val values = samples.map { it.value.toInt() }
+                val swing = if (values.size >= 2) values.max() - values.min() else null
+                _uiState.update { it.copy(currentRr = values.lastOrNull(), swing = swing) }
             }
         }
         viewModelScope.launch {
@@ -99,18 +103,19 @@ class HrvViewModel @Inject constructor(
     val currentPattern: StateFlow<BreathingPattern> = breathingBusiness.currentBreathingPattern
     val targetOutToInRatio: StateFlow<Float> = breathingBusiness.targetOutToInRatio
 
-    val breathHistory: StateFlow<List<Float>> = flow {
+    /** Pacer function sampled at 20 Hz, each point stamped with real wall-clock time. */
+    val breathSamples: StateFlow<List<Sample>> = flow {
         while (true) {
-            emit(breathingBusiness.currentPhaseStart.value.valueAt(System.currentTimeMillis()))
-            delay(1000L / BREATH_HISTORY_SAMPLE_RATE_HZ)
+            val t = System.currentTimeMillis()
+            emit(Sample(t, breathingBusiness.currentPhaseStart.value.valueAt(t)))
+            delay(1000L / BREATH_SAMPLE_RATE_HZ)
         }
     }
-        .scan(emptyList<Float>()) { window, v ->
-            (window + v).takeLast(BREATH_HISTORY_WINDOW_SEC * BREATH_HISTORY_SAMPLE_RATE_HZ)
-        }
+        .scan(emptyList<Sample>()) { acc, s -> (acc + s).pruneOlderThan(DISPLAY_WINDOW_MS, s.tMillis) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val breathHistorySampleRateHz: Int = BREATH_HISTORY_SAMPLE_RATE_HZ
+    val displayWindowMs: Long = DISPLAY_WINDOW_MS
+
     val targetCycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = breathingBusiness.targetCycleLengthRange
     val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = breathingBusiness.cycleLengthAllowedRange
 

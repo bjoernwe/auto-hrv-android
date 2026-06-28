@@ -25,7 +25,8 @@ import dev.upaya.autohrv.ui.hr.charts.TimeSeriesChart
 fun HRScreen(viewModel: HrvViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentPhaseStart by viewModel.currentPhaseStart.collectAsStateWithLifecycle()
-    val breathHistory by viewModel.breathHistory.collectAsStateWithLifecycle()
+    val breathSamples by viewModel.breathSamples.collectAsStateWithLifecycle()
+    val rrSamples by viewModel.rrSamples.collectAsStateWithLifecycle()
     val currentPattern by viewModel.currentPattern.collectAsStateWithLifecycle()
     val targetCycleLengthRange by viewModel.targetCycleLengthRange.collectAsStateWithLifecycle()
 
@@ -36,7 +37,7 @@ fun HRScreen(viewModel: HrvViewModel) {
     }
 
     val hrv = uiState.rmssd
-    val currentRR = uiState.rrsMsHistory.lastOrNull()
+    val currentRR = uiState.currentRr
     val cycleLengthSec = currentPattern.cycleLengthSeconds
     val breathsPerMin = if (cycleLengthSec > 0f) 60f / cycleLengthSec else null
 
@@ -63,10 +64,9 @@ fun HRScreen(viewModel: HrvViewModel) {
         ) {
             CouplingHeroCard(
                 currentPhase = currentPhaseStart.phase,
-                breathHistory = breathHistory,
-                breathHistorySampleRateHz = viewModel.breathHistorySampleRateHz,
-                rrsMsHistory = uiState.rrsMsHistory,
-                lastRrSampleMs = uiState.lastRrSampleMs,
+                breathSamples = breathSamples,
+                rrSamples = rrSamples,
+                windowMs = viewModel.displayWindowMs,
                 isInResonance = uiState.isInResonance,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -84,10 +84,10 @@ fun HRScreen(viewModel: HrvViewModel) {
 
             HrvCard {
                 RRIntervalHeader(swing = uiState.swing)
-                if (uiState.rrsMsHistory.size >= 2) {
+                if (rrSamples.size >= 2) {
                     TimeSeriesChart(
-                        ts = uiState.rrsMsHistory,
-                        lastRrSampleMs = uiState.lastRrSampleMs,
+                        samples = rrSamples,
+                        windowMs = viewModel.displayWindowMs,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(100.dp),
