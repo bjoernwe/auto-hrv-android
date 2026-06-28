@@ -73,7 +73,7 @@ internal fun CouplingHeroCard(
             val range = (rrValues.max() - rrValues.min()).coerceAtLeast(1f)
             mean to (range / 2f)
         } else {
-            0f to 1f
+            600f to 500f
         }
     }
 
