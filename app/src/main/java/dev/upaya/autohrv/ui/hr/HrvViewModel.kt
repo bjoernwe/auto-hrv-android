@@ -26,6 +26,7 @@ data class HrUiState(
     val connectionState: ConnectionState = ConnectionState.Idle,
     val hr: Int? = null,
     val rrsMsHistory: List<Int> = emptyList(),
+    val lastRrSampleMs: Long = 0L,
     val batteryLevel: Int? = null,
     val rmssd: Float? = null,
     val swing: Int? = null,
@@ -74,7 +75,7 @@ class HrvViewModel @Inject constructor(
         viewModelScope.launch {
             rrsMsHistory.collect { history ->
                 val swing = if (history.size >= 2) history.max() - history.min() else null
-                _uiState.update { it.copy(rrsMsHistory = history, swing = swing) }
+                _uiState.update { it.copy(rrsMsHistory = history, lastRrSampleMs = System.currentTimeMillis(), swing = swing) }
             }
         }
         viewModelScope.launch {

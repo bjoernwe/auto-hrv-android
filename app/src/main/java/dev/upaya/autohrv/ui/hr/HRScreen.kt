@@ -66,6 +66,7 @@ fun HRScreen(viewModel: HrvViewModel) {
                 breathHistory = breathHistory,
                 breathHistorySampleRateHz = viewModel.breathHistorySampleRateHz,
                 rrsMsHistory = uiState.rrsMsHistory,
+                lastRrSampleMs = uiState.lastRrSampleMs,
                 isInResonance = uiState.isInResonance,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -86,6 +87,7 @@ fun HRScreen(viewModel: HrvViewModel) {
                 if (uiState.rrsMsHistory.size >= 2) {
                     TimeSeriesChart(
                         ts = uiState.rrsMsHistory,
+                        lastRrSampleMs = uiState.lastRrSampleMs,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(100.dp),

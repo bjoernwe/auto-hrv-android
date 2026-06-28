@@ -14,6 +14,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -39,9 +41,15 @@ internal fun CouplingHeroCard(
     breathHistory: List<Float>,
     breathHistorySampleRateHz: Int,
     rrsMsHistory: List<Int>,
+    lastRrSampleMs: Long,
     isInResonance: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val nowMs by produceState(System.currentTimeMillis()) {
+        while (true) { withFrameMillis { value = System.currentTimeMillis() } }
+    }
+    val rrScrollFrac = if (lastRrSampleMs > 0L) ((nowMs - lastRrSampleMs) / 1000f).coerceIn(0f, 1f) else 0f
+
     val lockStrength by animateFloatAsState(
         targetValue = if (isInResonance) 1f else 0f,
         animationSpec = tween(durationMillis = 1400, easing = FastOutSlowInEasing),
@@ -171,7 +179,8 @@ internal fun CouplingHeroCard(
                 val heartPoints = mutableListOf<Pair<Float, Offset>>()
 
                 rrsMsHistory.forEachIndexed { i, rr ->
-                    val sAgo = (n - 1 - i).toFloat()   // 1 Hz: sample spacing = 1 s
+                    // Add rrScrollFrac so the trace glides left continuously between 1 Hz arrivals
+                    val sAgo = (n - 1 - i).toFloat() + rrScrollFrac
                     if (sAgo > COUPLING_WIN_SEC) return@forEachIndexed
                     val pt = Offset(hx(sAgo), hy(norm(rr)))
                     if (heartPoints.isEmpty()) heartPath.moveTo(pt.x, pt.y)
@@ -296,6 +305,7 @@ private fun CouplingHeroTuningPreview() {
             breathHistory = previewBreathHistory(),
             breathHistorySampleRateHz = 4,
             rrsMsHistory = (0 until 30).map { i -> (920 + (kotlin.math.sin(i * 0.8) * 80).toInt()) },
+            lastRrSampleMs = 0L,
             isInResonance = false,
         )
     }
@@ -310,6 +320,7 @@ private fun CouplingHeroLockedPreview() {
             breathHistory = previewBreathHistory(),
             breathHistorySampleRateHz = 4,
             rrsMsHistory = (0 until 30).map { i -> (920 + (kotlin.math.sin(i * 0.8) * 80).toInt()) },
+            lastRrSampleMs = 0L,
             isInResonance = true,
         )
     }
