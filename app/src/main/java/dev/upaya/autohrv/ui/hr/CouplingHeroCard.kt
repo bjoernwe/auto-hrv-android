@@ -1,6 +1,7 @@
 package dev.upaya.autohrv.ui.hr
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -15,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,6 +63,30 @@ internal fun CouplingHeroCard(
     val onSurface = MaterialTheme.colorScheme.onSurface
 
     val phaseLabel = if (currentPhase == BreathingPhase.Inhale) "Inhale" else "Exhale"
+
+    // Target mean/range for the heart trace, updated when samples change.
+    // We animate these to smooth out the jumps when new outliers enter/leave the window.
+    val rrStats = remember(rrSamples) {
+        val rrValues = rrSamples.map { it.value }
+        if (rrValues.size >= 2) {
+            val mean = rrValues.average().toFloat()
+            val range = (rrValues.max() - rrValues.min()).coerceAtLeast(1f)
+            mean to (range / 2f)
+        } else {
+            0f to 1f
+        }
+    }
+
+    val animatedMean by animateFloatAsState(
+        targetValue = rrStats.first,
+        animationSpec = tween(5000, easing = LinearEasing),
+        label = "rr-mean"
+    )
+    val animatedHalfRange by animateFloatAsState(
+        targetValue = rrStats.second,
+        animationSpec = tween(5000, easing = LinearEasing),
+        label = "rr-half-range"
+    )
 
     HrvCard(modifier = modifier) {
         Row(
@@ -157,12 +183,8 @@ internal fun CouplingHeroCard(
             // Heart (RR) trace — raw beats, one dot per heartbeat, same xFor(t) axis
             val visibleRr = rrSamples.filter { nowMs - it.tMillis <= windowMs }
             if (visibleRr.size >= 2) {
-                val rrValues = visibleRr.map { it.value }
-                val rrMean = rrValues.average().toFloat()
-                val rrRange = (rrValues.max() - rrValues.min()).coerceAtLeast(1f)
-                val halfRange = rrRange / 2f
                 // Invert RR: inhale → HR↑ → RR↓ → norm positive → trace rises with breath
-                fun norm(v: Float) = -(v - rrMean) / halfRange
+                fun norm(v: Float) = -(v - animatedMean) / animatedHalfRange
 
                 val heartPath = Path()
                 val heartPoints = mutableListOf<Pair<Long, Offset>>()
