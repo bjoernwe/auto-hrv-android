@@ -113,12 +113,7 @@ fun AutoCorrelationChart(
         )
 
         // ACF curve
-        val path = Path()
-        acf.forEachIndexed { i, v ->
-            val x = xs(i.toFloat())
-            val y = ys(v)
-            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-        }
+        val path = smoothPath(acf.mapIndexed { i, v -> Offset(xs(i.toFloat()), ys(v)) })
         drawPath(
             path = path,
             color = heart,
