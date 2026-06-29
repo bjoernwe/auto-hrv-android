@@ -64,7 +64,17 @@ internal fun CouplingHeroCard(
     val backgroundColor = MaterialTheme.colorScheme.background
     val onSurface = MaterialTheme.colorScheme.onSurface
 
-    val phaseLabel = if (currentPhase == BreathingPhase.Inhale) "Inhale" else "Exhale"
+    val phaseLabel = if (currentPhase == BreathingPhase.Inhale) "inhale" else "exhale"
+
+    // Drive label color from the live breath value (0=exhale, 1=inhale) so it brightens
+    // toward teal as the user inhales and dims as they exhale — temporal anchor for the now-dot.
+    val latestBreathValue = breathSamples.lastOrNull()?.value ?: 0f
+    val animatedBreathValue by animateFloatAsState(
+        targetValue = latestBreathValue,
+        animationSpec = tween(durationMillis = 300, easing = LinearEasing),
+        label = "breath-value",
+    )
+    val phaseLabelColor = lerp(onSurface.copy(alpha = 0.2f), breathColor, animatedBreathValue)
 
     // Target mean/range for the heart trace, updated when samples change.
     // We animate these to smooth out the jumps when new outliers enter/leave the window.
@@ -99,17 +109,13 @@ internal fun CouplingHeroCard(
         ) {
             ResonanceChip(isInResonance = isInResonance)
             Spacer(Modifier.weight(1f))
-            Column(horizontalAlignment = Alignment.End) {
-                SectionLabel("COUPLING")
-                Text(
-                    text = phaseLabel,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = onSurface,
-                    ),
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
+            Text(
+                text = phaseLabel,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = phaseLabelColor,
+                ),
+            )
         }
 
         Spacer(Modifier.height(10.dp))
@@ -245,14 +251,18 @@ internal fun CouplingHeroCard(
                 size = Size(fadeWidth, plotH),
             )
 
-            // Now-dot sits at the most recent breath sample and glides left with it
+            // Now-dot: size breathes with the signal — larger on inhale, smaller on exhale.
             val latestBreath = visibleBreath.lastOrNull()
             if (latestBreath != null) {
                 val nowX = xFor(latestBreath.tMillis)
                 val nowY = midY - (latestBreath.value * 2f - 1f) * breathAmp
-                drawCircle(color = breathColor.copy(alpha = 0.15f), radius = 10.dp.toPx(), center = Offset(nowX, nowY))
-                drawCircle(color = backgroundColor, radius = 4.2.dp.toPx(), center = Offset(nowX, nowY))
-                drawCircle(color = breathColor, radius = 3.dp.toPx(), center = Offset(nowX, nowY))
+                val v = latestBreath.value
+                val coreR = (2f + v * 2.5f).dp.toPx()
+                val ringR = (3.5f + v * 3f).dp.toPx()
+                val glowR = (8f + v * 6f).dp.toPx()
+                drawCircle(color = breathColor.copy(alpha = 0.12f + v * 0.10f), radius = glowR, center = Offset(nowX, nowY))
+                drawCircle(color = backgroundColor, radius = ringR, center = Offset(nowX, nowY))
+                drawCircle(color = breathColor, radius = coreR, center = Offset(nowX, nowY))
             }
         }
 
