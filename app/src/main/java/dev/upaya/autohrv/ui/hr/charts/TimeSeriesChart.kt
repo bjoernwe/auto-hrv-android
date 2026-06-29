@@ -1,14 +1,14 @@
-package dev.upaya.autohrv.ui.hr
+package dev.upaya.autohrv.ui.hr.charts
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import dev.upaya.autohrv.ui.theme.AutoHrvTheme
-import kotlin.math.sin
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
@@ -16,17 +16,25 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import dev.upaya.autohrv.ui.theme.AutoHrvTheme
+import kotlin.math.sin
 
 private const val RR_BASE = 945f
 
 @Composable
-fun TimeSeriesChart(ts: List<Int>, modifier: Modifier = Modifier) {
+fun TimeSeriesChart(ts: List<Int>, lastRrSampleMs: Long = 0L, modifier: Modifier = Modifier) {
     if (ts.size < 2) return
 
     val minRR = ts.min().toFloat()
     val maxRR = ts.max().toFloat()
     val rangeRR = (maxRR - minRR).coerceAtLeast(1f)
+
+    val nowMs by produceState(System.currentTimeMillis()) {
+        while (true) { withFrameMillis { value = System.currentTimeMillis() } }
+    }
+    val scrollFrac = if (lastRrSampleMs > 0L) ((nowMs - lastRrSampleMs) / 1000f).coerceIn(0f, 1f) else 0f
 
     // Heart side: the beat-to-beat R–R trace uses the warm tone.
     val accent = MaterialTheme.colorScheme.secondary
@@ -44,7 +52,9 @@ fun TimeSeriesChart(ts: List<Int>, modifier: Modifier = Modifier) {
         val chartH = size.height
 
         val n = ts.size
-        val xs = { i: Int -> padL + (i.toFloat() / (n - 1).coerceAtLeast(1)) * (chartW - padL - padR) }
+        val plotW = chartW - padL - padR
+        // scrollFrac 0→1: newest point glides from right edge toward one slot left until next sample arrives
+        val xs = { i: Int -> padL + ((i - scrollFrac) / (n - 1).coerceAtLeast(1)) * plotW }
         val ys = { rr: Int ->
             padT + (1f - (rr.toFloat() - minRR) / rangeRR) * (chartH - padT - padB)
         }
@@ -111,7 +121,7 @@ fun TimeSeriesChart(ts: List<Int>, modifier: Modifier = Modifier) {
             )
         }
 
-        // "Now" dot at rightmost point
+        // "Now" dot tracks the newest data point
         val lastX = xs(n - 1)
         val lastY = ys(ts.last())
         val nowCenter = Offset(lastX, lastY)

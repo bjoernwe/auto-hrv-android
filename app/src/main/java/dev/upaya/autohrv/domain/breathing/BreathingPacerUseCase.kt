@@ -2,20 +2,17 @@ package dev.upaya.autohrv.domain.breathing
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
+import kotlin.math.PI
+import kotlin.math.cos
 
 enum class BreathingPhase { Inhale, Exhale }
-
-data class BreathingState(val phase: BreathingPhase, val progress: Float)
 
 data class BreathingPattern(
     val outToInRatio: Float,
@@ -23,17 +20,27 @@ data class BreathingPattern(
 ) {
     operator fun plus(other: BreathingPattern) = BreathingPattern(
         outToInRatio + other.outToInRatio,
-        cycleLengthSeconds + other.cycleLengthSeconds
+        cycleLengthSeconds + other.cycleLengthSeconds,
     )
+    operator fun div(x: Float) = BreathingPattern(outToInRatio / x, cycleLengthSeconds / x)
+}
 
-    operator fun div(x: Float) = BreathingPattern(
-        outToInRatio / x,
-        cycleLengthSeconds / x
-    )
+data class BreathingPhaseStart(
+    val phase: BreathingPhase,
+    val startTimeMs: Long,
+    val durationMs: Long,
+) {
+    fun valueAt(nowMs: Long): Float {
+        val progress = ((nowMs - startTimeMs).toFloat() / durationMs).coerceIn(0f, 1f)
+        return when (phase) {
+            BreathingPhase.Inhale -> 0.5f - 0.5f * cos(PI.toFloat() * progress)
+            BreathingPhase.Exhale -> 0.5f + 0.5f * cos(PI.toFloat() * progress)
+        }
+    }
 }
 
 class PacerOutput(
-    val breathingState: StateFlow<BreathingState>,
+    val currentPhaseStart: StateFlow<BreathingPhaseStart>,
     val currentPattern: StateFlow<BreathingPattern>,
 )
 
@@ -42,32 +49,31 @@ class BreathingPacerUseCase @Inject constructor() {
     operator fun invoke(scope: CoroutineScope, targetPattern: StateFlow<BreathingPattern>): PacerOutput {
         val currentBreathingPattern = MutableStateFlow(targetPattern.value)
 
-        val breathingState = flow {
+        val currentPhaseStart = flow {
             while (true) {
                 val inhalePattern = targetPattern.value
                 currentBreathingPattern.value = inhalePattern
-                emitAll(progressFlow(inhalePattern.inhaleMs()).map { BreathingState(BreathingPhase.Inhale, it) })
+                val inhaleMs = inhalePattern.inhaleMs()
+                emit(BreathingPhaseStart(BreathingPhase.Inhale, System.currentTimeMillis(), inhaleMs))
+                delay(inhaleMs)
+
                 val exhalePattern = targetPattern.value
                 currentBreathingPattern.value = exhalePattern
-                emitAll(progressFlow(exhalePattern.exhaleMs()).map { BreathingState(BreathingPhase.Exhale, it) })
+                val exhaleMs = exhalePattern.exhaleMs()
+                emit(BreathingPhaseStart(BreathingPhase.Exhale, System.currentTimeMillis(), exhaleMs))
+                delay(exhaleMs)
             }
         }.stateIn(
             scope = scope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = BreathingState(BreathingPhase.Inhale, 0f)
+            initialValue = BreathingPhaseStart(
+                BreathingPhase.Inhale,
+                System.currentTimeMillis(),
+                targetPattern.value.inhaleMs(),
+            ),
         )
 
-        return PacerOutput(breathingState, currentBreathingPattern.asStateFlow())
-    }
-
-    private fun progressFlow(durationMs: Long): Flow<Float> = flow {
-        val start = System.currentTimeMillis()
-        while (true) {
-            val elapsed = System.currentTimeMillis() - start
-            if (elapsed >= durationMs) break
-            emit((elapsed.toFloat() / durationMs).coerceAtMost(1f))
-            delay(16L)
-        }
+        return PacerOutput(currentPhaseStart, currentBreathingPattern.asStateFlow())
     }
 }
 
