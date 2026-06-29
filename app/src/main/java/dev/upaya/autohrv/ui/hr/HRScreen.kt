@@ -55,8 +55,7 @@ fun HRScreen(viewModel: HrvViewModel) {
                 .padding(
                     top = innerPadding.calculateTopPadding() + 8.dp,
                     bottom = innerPadding.calculateBottomPadding() + 16.dp,
-                )
-                .padding(horizontal = 18.dp),
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             CouplingHeroCard(
@@ -67,6 +66,13 @@ fun HRScreen(viewModel: HrvViewModel) {
                 isInResonance = uiState.isInResonance,
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
 
             Spacer(Modifier.height(12.dp))
 
@@ -139,6 +145,7 @@ fun HRScreen(viewModel: HrvViewModel) {
                 rr = currentRR,
                 modifier = Modifier.fillMaxWidth(),
             )
+            } // end padded column
         }
     }
 }

@@ -12,6 +12,7 @@ import com.polar.sdk.api.PolarBleApiDefaultImpl
 import com.polar.sdk.api.model.PolarDeviceInfo
 import com.polar.sdk.api.model.PolarHrData
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -71,7 +73,10 @@ class HrvRepository @Inject constructor(
     val hrBeatFlow: Flow<Int> = hrFlow.map { it.hr }
 
     /** Beat-indexed RR intervals (true NN intervals), one value per heartbeat. */
-    val rrMsBeatFlow: Flow<Int> = hrFlow.transform { sample -> sample.rrsMs.firstOrNull()?.let { emit(it) } }
+    @OptIn(FlowPreview::class)
+    val rrMsBeatFlow: Flow<Int> = hrFlow
+        .transform { sample -> sample.rrsMs.forEach { emit(it) } }
+        .debounce { 100.milliseconds }
 
     /** HR resampled onto a uniform 1 Hz grid (zero-order hold). */
     val hrResampled1Hz: Flow<Int> = hrBeatFlow.resampledTo1Hz()
@@ -197,7 +202,7 @@ class HrvRepository @Inject constructor(
             .subscribe(
                 // Emit every sample so no beats (and their RR intervals) are lost; consumers that
                 // want a uniform rate go through resampledTo1Hz instead.
-                { hrData -> hrData.samples.lastOrNull()?.let { trySend(it) } },
+                { hrData -> hrData.samples.forEach { trySend(it) } },
                 { error -> close(error) },
                 { close() }
             )
