@@ -21,6 +21,7 @@ import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -172,20 +173,16 @@ internal fun CouplingHeroCard(
             val breathBright = lerp(breathColor, Color.White, lockStrength * 0.25f)
             drawPath(
                 path = breathPath,
-                brush = Brush.horizontalGradient(
-                    colorStops = arrayOf(
-                        0f to breathColor.copy(alpha = 0f),
-                        0.10f to breathColor.copy(alpha = 0.80f),
-                        1f to breathBright,
-                    ),
-                    startX = padL,
-                    endX = padL + plotW,
-                ),
+                color = breathBright,
                 style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
             )
 
             // Heart (RR) trace — raw beats, one dot per heartbeat, same xFor(t) axis
-            val visibleRr = rrSamples.filter { nowMs - it.tMillis <= windowMs }
+            // Keep a point if it or its successor is on-screen so no segment is dropped prematurely.
+            // Time-based heuristics fail for irregular gaps, so we check x directly.
+            val visibleRr = rrSamples.filterIndexed { i, s ->
+                xFor(s.tMillis) >= 0f || (i + 1 < rrSamples.size && xFor(rrSamples[i + 1].tMillis) >= 0f)
+            }
             if (visibleRr.size >= 2) {
                 // Invert RR: inhale → HR↑ → RR↓ → norm positive → trace rises with breath
                 fun norm(v: Float) = -(v - animatedMean) / animatedHalfRange
@@ -203,15 +200,7 @@ internal fun CouplingHeroCard(
                 )
                 drawPath(
                     path = heartPath,
-                    brush = Brush.horizontalGradient(
-                        colorStops = arrayOf(
-                            0f to heartColor.copy(alpha = 0f),
-                            0.10f to heartColor.copy(alpha = 0.75f),
-                            1f to heartBright,
-                        ),
-                        startX = padL,
-                        endX = padL + plotW,
-                    ),
+                    color = heartBright,
                     style = Stroke(
                         width = (1.8f + lockStrength * 0.6f).dp.toPx(),
                         cap = StrokeCap.Round,
@@ -238,6 +227,18 @@ internal fun CouplingHeroCard(
                     center = bloomCenter,
                 )
             }
+
+            // Left-edge fade overlay — masks entering curve segments cleanly regardless of gap size
+            val fadeWidth = plotW * 0.2f
+            drawRect(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(backgroundColor, Color.Transparent),
+                    startX = padL,
+                    endX = padL + fadeWidth,
+                ),
+                topLeft = Offset(padL, padT),
+                size = Size(fadeWidth, plotH),
+            )
 
             // Now-dot sits at the most recent breath sample and glides left with it
             val latestBreath = visibleBreath.lastOrNull()
