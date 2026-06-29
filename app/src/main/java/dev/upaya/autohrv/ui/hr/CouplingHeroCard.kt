@@ -157,9 +157,14 @@ internal fun CouplingHeroCard(
                 }
             }
             val breathAreaPath = Path().apply {
+                if (visibleBreath.size <= 2) {
+                    return@apply
+                }
+                val firstX = xFor(visibleBreath.first().tMillis)
+                val lastX = xFor(visibleBreath.last().tMillis)
                 addPath(breathPath)
-                lineTo(padL + plotW, padT + plotH)
-                lineTo(padL, padT + plotH)
+                lineTo(lastX, padT + plotH)
+                lineTo(firstX, padT + plotH)
                 close()
             }
             drawPath(
