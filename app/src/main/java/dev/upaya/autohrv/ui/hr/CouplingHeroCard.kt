@@ -33,6 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
+import dev.upaya.autohrv.ui.hr.charts.smoothPath
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 import kotlin.math.PI
 import kotlin.math.cos
@@ -189,14 +190,10 @@ internal fun CouplingHeroCard(
                 // Invert RR: inhale → HR↑ → RR↓ → norm positive → trace rises with breath
                 fun norm(v: Float) = -(v - animatedMean) / animatedHalfRange
 
-                val heartPath = Path()
-                val heartPoints = mutableListOf<Pair<Long, Offset>>()
-                visibleRr.forEachIndexed { i, s ->
-                    val x = xFor(s.tMillis)
-                    val y = midY - norm(s.value) * heartAmp
-                    if (i == 0) heartPath.moveTo(x, y) else heartPath.lineTo(x, y)
-                    heartPoints.add(s.tMillis to Offset(x, y))
+                val heartPoints = visibleRr.map { s ->
+                    s.tMillis to Offset(xFor(s.tMillis), midY - norm(s.value) * heartAmp)
                 }
+                val heartPath = smoothPath(heartPoints.map { it.second })
 
                 val heartBright = lerp(heartColor, Color.White, lockStrength * 0.35f)
                 drawPath(
