@@ -1,6 +1,7 @@
 package dev.upaya.autohrv.ui.hr
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -15,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,23 +34,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
-
-private const val COUPLING_WIN_SEC = 22f
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 internal fun CouplingHeroCard(
     currentPhase: BreathingPhase,
-    breathHistory: List<Float>,
-    breathHistorySampleRateHz: Int,
-    rrsMsHistory: List<Int>,
-    lastRrSampleMs: Long,
+    breathSamples: List<Sample>,
+    rrSamples: List<Sample>,
+    windowMs: Long,
     isInResonance: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val nowMs by produceState(System.currentTimeMillis()) {
         while (true) { withFrameMillis { value = System.currentTimeMillis() } }
     }
-    val rrScrollFrac = if (lastRrSampleMs > 0L) ((nowMs - lastRrSampleMs) / 1000f).coerceIn(0f, 1f) else 0f
 
     val lockStrength by animateFloatAsState(
         targetValue = if (isInResonance) 1f else 0f,
@@ -59,13 +60,35 @@ internal fun CouplingHeroCard(
     val breathColor = MaterialTheme.colorScheme.primary
     val heartColor = MaterialTheme.colorScheme.secondary
     val surfaceColor = MaterialTheme.colorScheme.surface
-    val outlineColor = MaterialTheme.colorScheme.outlineVariant
     val onSurface = MaterialTheme.colorScheme.onSurface
 
     val phaseLabel = if (currentPhase == BreathingPhase.Inhale) "Inhale" else "Exhale"
 
+    // Target mean/range for the heart trace, updated when samples change.
+    // We animate these to smooth out the jumps when new outliers enter/leave the window.
+    val rrStats = remember(rrSamples) {
+        val rrValues = rrSamples.map { it.value }
+        if (rrValues.size >= 2) {
+            val mean = rrValues.average().toFloat()
+            val range = (rrValues.max() - rrValues.min()).coerceAtLeast(1f)
+            mean to (range / 2f)
+        } else {
+            600f to 500f
+        }
+    }
+
+    val animatedMean by animateFloatAsState(
+        targetValue = rrStats.first,
+        animationSpec = tween(5000, easing = LinearEasing),
+        label = "rr-mean"
+    )
+    val animatedHalfRange by animateFloatAsState(
+        targetValue = rrStats.second,
+        animationSpec = tween(5000, easing = LinearEasing),
+        label = "rr-half-range"
+    )
+
     HrvCard(modifier = modifier) {
-        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -86,7 +109,6 @@ internal fun CouplingHeroCard(
 
         Spacer(Modifier.height(10.dp))
 
-        // Chart
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
@@ -102,30 +124,31 @@ internal fun CouplingHeroCard(
             val breathAmp = plotH * 0.36f
             val heartAmp = plotH * 0.34f
 
-            // Subtle time grid
-            var gridT = 0f
-            while (gridT <= COUPLING_WIN_SEC) {
-                val gx = padL + (1f - gridT / COUPLING_WIN_SEC) * plotW
+            // Both curves share one time-to-x mapping anchored at the same nowMs.
+            fun xFor(t: Long) = padL + (1f - (nowMs - t).toFloat() / windowMs) * plotW
+
+            // Subtle time grid (every 2 seconds)
+            val windowSec = (windowMs / 1000).toInt()
+            var gridSec = 0
+            while (gridSec <= windowSec) {
+                val gx = padL + (1f - gridSec.toFloat() / windowSec) * plotW
                 drawLine(
                     color = Color.White.copy(alpha = 0.04f),
                     start = Offset(gx, padT),
                     end = Offset(gx, padT + plotH),
                     strokeWidth = 1.dp.toPx(),
                 )
-                gridT += 2f
+                gridSec += 2
             }
 
-            // Breath stroke + area fill — plot breathHistory directly (index 0 = oldest)
+            // Breath trace
+            val visibleBreath = breathSamples.filter { nowMs - it.tMillis <= windowMs }
             val breathPath = Path()
-            val n = breathHistory.size
-            if (n >= 2) {
-                val secPerSample = 1f / breathHistorySampleRateHz
-                breathHistory.forEachIndexed { i, v ->
-                    val sAgo = (n - 1 - i) * secPerSample
-                    if (sAgo > COUPLING_WIN_SEC) return@forEachIndexed
-                    val x = padL + (1f - sAgo / COUPLING_WIN_SEC) * plotW
-                    val y = midY - (v * 2f - 1f) * breathAmp
-                    if (breathPath.isEmpty) breathPath.moveTo(x, y) else breathPath.lineTo(x, y)
+            if (visibleBreath.size >= 2) {
+                visibleBreath.forEachIndexed { i, s ->
+                    val x = xFor(s.tMillis)
+                    val y = midY - (s.value * 2f - 1f) * breathAmp
+                    if (i == 0) breathPath.moveTo(x, y) else breathPath.lineTo(x, y)
                 }
             }
             val breathAreaPath = Path().apply {
@@ -142,8 +165,6 @@ internal fun CouplingHeroCard(
                     endY = padT + plotH,
                 ),
             )
-
-            // Breath line
             val breathBright = lerp(breathColor, Color.White, lockStrength * 0.25f)
             drawPath(
                 path = breathPath,
@@ -159,68 +180,48 @@ internal fun CouplingHeroCard(
                 style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
             )
 
-            // Heart (RR) trace
-            // rrsMsHistory is 1 Hz zero-order-hold resampled: each element = 1 second.
-            // index last = now (0 s ago), index last-k = k seconds ago.
-            if (rrsMsHistory.size >= 2) {
-                val rrMean = rrsMsHistory.average().toFloat()
-                val rrRange = (rrsMsHistory.max() - rrsMsHistory.min()).toFloat().coerceAtLeast(1f)
-                val halfRange = rrRange / 2f
-                val n = rrsMsHistory.size
-
-                fun hx(sAgo: Float) = padL + (1f - sAgo / COUPLING_WIN_SEC) * plotW
-                fun hy(norm: Float) = midY - norm * heartAmp
+            // Heart (RR) trace — raw beats, one dot per heartbeat, same xFor(t) axis
+            val visibleRr = rrSamples.filter { nowMs - it.tMillis <= windowMs }
+            if (visibleRr.size >= 2) {
                 // Invert RR: inhale → HR↑ → RR↓ → norm positive → trace rises with breath
-                fun norm(rr: Int) = -(rr - rrMean) / halfRange
+                fun norm(v: Float) = -(v - animatedMean) / animatedHalfRange
 
-                val heartBright = lerp(heartColor, Color.White, lockStrength * 0.35f)
                 val heartPath = Path()
-                // Collect visible points (sAgo, center) in one pass for reuse in dot drawing.
-                val heartPoints = mutableListOf<Pair<Float, Offset>>()
-
-                rrsMsHistory.forEachIndexed { i, rr ->
-                    // Add rrScrollFrac so the trace glides left continuously between 1 Hz arrivals
-                    val sAgo = (n - 1 - i).toFloat() + rrScrollFrac
-                    if (sAgo > COUPLING_WIN_SEC) return@forEachIndexed
-                    val pt = Offset(hx(sAgo), hy(norm(rr)))
-                    if (heartPoints.isEmpty()) heartPath.moveTo(pt.x, pt.y)
-                    else heartPath.lineTo(pt.x, pt.y)
-                    heartPoints.add(sAgo to pt)
+                val heartPoints = mutableListOf<Pair<Long, Offset>>()
+                visibleRr.forEachIndexed { i, s ->
+                    val x = xFor(s.tMillis)
+                    val y = midY - norm(s.value) * heartAmp
+                    if (i == 0) heartPath.moveTo(x, y) else heartPath.lineTo(x, y)
+                    heartPoints.add(s.tMillis to Offset(x, y))
                 }
 
-                if (heartPoints.isNotEmpty()) {
-                    // Ghost pass: same geometry, flat low-alpha color
-                    drawPath(
-                        path = heartPath,
-                        color = heartColor.copy(alpha = 0.20f),
-                        style = Stroke(width = 1.2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
-                    )
-                    // Bright pass: horizontal gradient fading in from left
-                    drawPath(
-                        path = heartPath,
-                        brush = Brush.horizontalGradient(
-                            colorStops = arrayOf(
-                                0f to heartColor.copy(alpha = 0f),
-                                0.10f to heartColor.copy(alpha = 0.75f),
-                                1f to heartBright,
-                            ),
-                            startX = padL,
-                            endX = padL + plotW,
+                val heartBright = lerp(heartColor, Color.White, lockStrength * 0.35f)
+                drawPath(
+                    path = heartPath,
+                    color = heartColor.copy(alpha = 0.20f),
+                    style = Stroke(width = 1.2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
+                )
+                drawPath(
+                    path = heartPath,
+                    brush = Brush.horizontalGradient(
+                        colorStops = arrayOf(
+                            0f to heartColor.copy(alpha = 0f),
+                            0.10f to heartColor.copy(alpha = 0.75f),
+                            1f to heartBright,
                         ),
-                        style = Stroke(
-                            width = (1.8f + lockStrength * 0.6f).dp.toPx(),
-                            cap = StrokeCap.Round,
-                            join = StrokeJoin.Round,
-                        ),
-                    )
-                    for ((sAgo, pt) in heartPoints) {
-                        val alpha = (0.15f + 0.65f * (1f - sAgo / COUPLING_WIN_SEC)).coerceIn(0f, 1f)
-                        drawCircle(
-                            color = heartBright.copy(alpha = alpha),
-                            radius = 1.6.dp.toPx(),
-                            center = pt,
-                        )
-                    }
+                        startX = padL,
+                        endX = padL + plotW,
+                    ),
+                    style = Stroke(
+                        width = (1.8f + lockStrength * 0.6f).dp.toPx(),
+                        cap = StrokeCap.Round,
+                        join = StrokeJoin.Round,
+                    ),
+                )
+                for ((t, pt) in heartPoints) {
+                    val ageFrac = (nowMs - t).toFloat() / windowMs
+                    val alpha = (0.15f + 0.65f * (1f - ageFrac)).coerceIn(0f, 1f)
+                    drawCircle(color = heartBright.copy(alpha = alpha), radius = 1.6.dp.toPx(), center = pt)
                 }
             }
 
@@ -229,10 +230,7 @@ internal fun CouplingHeroCard(
                 val bloomCenter = Offset(padL + plotW * 0.72f, midY)
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = lockStrength * 0.09f),
-                            Color.Transparent,
-                        ),
+                        colors = listOf(Color.White.copy(alpha = lockStrength * 0.09f), Color.Transparent),
                         center = bloomCenter,
                         radius = plotW * 0.55f,
                     ),
@@ -241,28 +239,17 @@ internal fun CouplingHeroCard(
                 )
             }
 
-            // Now-dot on breath wave
-            val nowBreath = breathHistory.lastOrNull() ?: 0.5f
-            val nowY = midY - (nowBreath * 2f - 1f) * breathAmp
-            val nowX = padL + plotW
-            drawCircle(
-                color = breathColor.copy(alpha = 0.15f),
-                radius = 10.dp.toPx(),
-                center = Offset(nowX, nowY),
-            )
-            drawCircle(
-                color = surfaceColor,
-                radius = 4.2.dp.toPx(),
-                center = Offset(nowX, nowY),
-            )
-            drawCircle(
-                color = breathColor,
-                radius = 3.dp.toPx(),
-                center = Offset(nowX, nowY),
-            )
+            // Now-dot sits at the most recent breath sample and glides left with it
+            val latestBreath = visibleBreath.lastOrNull()
+            if (latestBreath != null) {
+                val nowX = xFor(latestBreath.tMillis)
+                val nowY = midY - (latestBreath.value * 2f - 1f) * breathAmp
+                drawCircle(color = breathColor.copy(alpha = 0.15f), radius = 10.dp.toPx(), center = Offset(nowX, nowY))
+                drawCircle(color = surfaceColor, radius = 4.2.dp.toPx(), center = Offset(nowX, nowY))
+                drawCircle(color = breathColor, radius = 3.dp.toPx(), center = Offset(nowX, nowY))
+            }
         }
 
-        // Legend
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -287,12 +274,25 @@ internal fun CouplingHeroCard(
     }
 }
 
-private fun previewBreathHistory(sampleRateHz: Int = 4, windowSec: Int = 22): List<Float> {
-    val count = sampleRateHz * windowSec
-    val cycleSamples = 10.8f * sampleRateHz
+private fun previewBreathSamples(sampleRateHz: Int = 4, windowMs: Long = 22_000L): List<Sample> {
+    val now = System.currentTimeMillis()
+    val count = sampleRateHz * (windowMs / 1000).toInt()
+    val intervalMs = 1000L / sampleRateHz
+    val cycleLengthMs = 10_800L
     return List(count) { i ->
-        val pos = (i % cycleSamples) / cycleSamples
-        (0.5f - 0.5f * kotlin.math.cos(kotlin.math.PI.toFloat() * 2f * pos)).coerceIn(0f, 1f)
+        val t = now - (count - 1 - i) * intervalMs
+        val pos = (t % cycleLengthMs).toFloat() / cycleLengthMs
+        Sample(t, (0.5f - 0.5f * cos(PI.toFloat() * 2f * pos)).coerceIn(0f, 1f))
+    }
+}
+
+private fun previewRrSamples(windowMs: Long = 22_000L): List<Sample> {
+    val now = System.currentTimeMillis()
+    val beatIntervalMs = 850L
+    val count = (windowMs / beatIntervalMs).toInt()
+    return List(count) { i ->
+        val t = now - (count - 1 - i) * beatIntervalMs
+        Sample(t, 920f + sin(i * 0.8).toFloat() * 80f)
     }
 }
 
@@ -302,10 +302,9 @@ private fun CouplingHeroTuningPreview() {
     AutoHrvTheme {
         CouplingHeroCard(
             currentPhase = BreathingPhase.Inhale,
-            breathHistory = previewBreathHistory(),
-            breathHistorySampleRateHz = 4,
-            rrsMsHistory = (0 until 30).map { i -> (920 + (kotlin.math.sin(i * 0.8) * 80).toInt()) },
-            lastRrSampleMs = 0L,
+            breathSamples = previewBreathSamples(),
+            rrSamples = previewRrSamples(),
+            windowMs = 22_000L,
             isInResonance = false,
         )
     }
@@ -317,10 +316,9 @@ private fun CouplingHeroLockedPreview() {
     AutoHrvTheme {
         CouplingHeroCard(
             currentPhase = BreathingPhase.Exhale,
-            breathHistory = previewBreathHistory(),
-            breathHistorySampleRateHz = 4,
-            rrsMsHistory = (0 until 30).map { i -> (920 + (kotlin.math.sin(i * 0.8) * 80).toInt()) },
-            lastRrSampleMs = 0L,
+            breathSamples = previewBreathSamples(),
+            rrSamples = previewRrSamples(),
+            windowMs = 22_000L,
             isInResonance = true,
         )
     }

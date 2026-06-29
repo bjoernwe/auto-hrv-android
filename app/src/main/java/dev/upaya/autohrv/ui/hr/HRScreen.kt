@@ -19,14 +19,12 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.upaya.autohrv.ui.hr.charts.AutoCorrelationChart
-import dev.upaya.autohrv.ui.hr.charts.TimeSeriesChart
 
 @Composable
 fun HRScreen(viewModel: HrvViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val currentPhaseStart by viewModel.currentPhaseStart.collectAsStateWithLifecycle()
-    val breathHistory by viewModel.breathHistory.collectAsStateWithLifecycle()
-    val currentPattern by viewModel.currentPattern.collectAsStateWithLifecycle()
+    val breathSamples by viewModel.breathSamples.collectAsStateWithLifecycle()
+    val rrSamples by viewModel.rrSamples.collectAsStateWithLifecycle()
     val targetCycleLengthRange by viewModel.targetCycleLengthRange.collectAsStateWithLifecycle()
 
     val view = LocalView.current
@@ -36,8 +34,8 @@ fun HRScreen(viewModel: HrvViewModel) {
     }
 
     val hrv = uiState.rmssd
-    val currentRR = uiState.rrsMsHistory.lastOrNull()
-    val cycleLengthSec = currentPattern.cycleLengthSeconds
+    val currentRR = uiState.currentRr
+    val cycleLengthSec = uiState.currentPattern.cycleLengthSeconds
     val breathsPerMin = if (cycleLengthSec > 0f) 60f / cycleLengthSec else null
 
     Scaffold(
@@ -62,11 +60,10 @@ fun HRScreen(viewModel: HrvViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             CouplingHeroCard(
-                currentPhase = currentPhaseStart.phase,
-                breathHistory = breathHistory,
-                breathHistorySampleRateHz = viewModel.breathHistorySampleRateHz,
-                rrsMsHistory = uiState.rrsMsHistory,
-                lastRrSampleMs = uiState.lastRrSampleMs,
+                currentPhase = uiState.currentPhaseStart.phase,
+                breathSamples = breathSamples,
+                rrSamples = rrSamples,
+                windowMs = viewModel.displayWindowMs,
                 isInResonance = uiState.isInResonance,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -82,12 +79,12 @@ fun HRScreen(viewModel: HrvViewModel) {
 
             Spacer(Modifier.height(12.dp))
 
-            HrvCard {
+            /*HrvCard {
                 RRIntervalHeader(swing = uiState.swing)
-                if (uiState.rrsMsHistory.size >= 2) {
+                if (rrSamples.size >= 2) {
                     TimeSeriesChart(
-                        ts = uiState.rrsMsHistory,
-                        lastRrSampleMs = uiState.lastRrSampleMs,
+                        samples = rrSamples,
+                        windowMs = viewModel.displayWindowMs,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(100.dp),
@@ -101,7 +98,7 @@ fun HRScreen(viewModel: HrvViewModel) {
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(12.dp))*/
 
             val acf = uiState.autoCorrelation
             val acfReady = acf != null && acf.size >= 2

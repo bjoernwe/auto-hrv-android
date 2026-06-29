@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.UUID
+import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class HrvRepository @Inject constructor(
@@ -70,7 +71,7 @@ class HrvRepository @Inject constructor(
     val hrBeatFlow: Flow<Int> = hrFlow.map { it.hr }
 
     /** Beat-indexed RR intervals (true NN intervals), one value per heartbeat. */
-    val rrMsBeatFlow: Flow<Int> = hrFlow.transform { sample -> sample.rrsMs.forEach { emit(it) } }
+    val rrMsBeatFlow: Flow<Int> = hrFlow.transform { sample -> sample.rrsMs.firstOrNull()?.let { emit(it) } }
 
     /** HR resampled onto a uniform 1 Hz grid (zero-order hold). */
     val hrResampled1Hz: Flow<Int> = hrBeatFlow.resampledTo1Hz()
@@ -187,7 +188,7 @@ class HrvRepository @Inject constructor(
         launch { collect { latest.value = it } }
         while (isActive) {
             latest.value?.let { send(it) }
-            delay(1000L / SAMPLES_PER_SECOND)
+            delay((1000L / SAMPLES_PER_SECOND).milliseconds)
         }
     }
 
@@ -196,7 +197,7 @@ class HrvRepository @Inject constructor(
             .subscribe(
                 // Emit every sample so no beats (and their RR intervals) are lost; consumers that
                 // want a uniform rate go through resampledTo1Hz instead.
-                { hrData -> hrData.samples.forEach { trySend(it) } },
+                { hrData -> hrData.samples.lastOrNull()?.let { trySend(it) } },
                 { error -> close(error) },
                 { close() }
             )
