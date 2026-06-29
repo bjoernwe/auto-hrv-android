@@ -18,49 +18,43 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import dev.upaya.autohrv.ui.hr.Sample
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 import kotlin.math.sin
 
 private const val RR_BASE = 945f
 
 @Composable
-fun TimeSeriesChart(ts: List<Int>, lastRrSampleMs: Long = 0L, modifier: Modifier = Modifier) {
-    if (ts.size < 2) return
+fun TimeSeriesChart(samples: List<Sample>, windowMs: Long, modifier: Modifier = Modifier) {
+    if (samples.size < 2) return
 
-    val minRR = ts.min().toFloat()
-    val maxRR = ts.max().toFloat()
+    val values = samples.map { it.value }
+    val minRR = values.min()
+    val maxRR = values.max()
     val rangeRR = (maxRR - minRR).coerceAtLeast(1f)
 
     val nowMs by produceState(System.currentTimeMillis()) {
         while (true) { withFrameMillis { value = System.currentTimeMillis() } }
     }
-    val scrollFrac = if (lastRrSampleMs > 0L) ((nowMs - lastRrSampleMs) / 1000f).coerceIn(0f, 1f) else 0f
 
-    // Heart side: the beat-to-beat R–R trace uses the warm tone.
     val accent = MaterialTheme.colorScheme.secondary
     val surface = MaterialTheme.colorScheme.surface
     val outlineColor = MaterialTheme.colorScheme.outlineVariant
 
-    Canvas(
-        modifier = modifier,
-    ) {
+    Canvas(modifier = modifier) {
         val padL = 4.dp.toPx()
         val padR = 4.dp.toPx()
         val padT = 16.dp.toPx()
         val padB = 16.dp.toPx()
         val chartW = size.width
         val chartH = size.height
-
-        val n = ts.size
         val plotW = chartW - padL - padR
-        // scrollFrac 0→1: newest point glides from right edge toward one slot left until next sample arrives
-        val xs = { i: Int -> padL + ((i - scrollFrac) / (n - 1).coerceAtLeast(1)) * plotW }
-        val ys = { rr: Int ->
-            padT + (1f - (rr.toFloat() - minRR) / rangeRR) * (chartH - padT - padB)
-        }
+
+        fun xFor(t: Long) = padL + (1f - (nowMs - t).toFloat() / windowMs) * plotW
+        fun yFor(v: Float) = padT + (1f - (v - minRR) / rangeRR) * (chartH - padT - padB)
 
         // Baseline dashed line at resting rate
-        val baseY = ys(RR_BASE.toInt())
+        val baseY = yFor(RR_BASE)
         drawLine(
             color = outlineColor,
             start = Offset(padL, baseY),
@@ -71,17 +65,17 @@ fun TimeSeriesChart(ts: List<Int>, lastRrSampleMs: Long = 0L, modifier: Modifier
 
         // Build line path
         val path = Path()
-        ts.forEachIndexed { i, rr ->
-            val x = xs(i)
-            val y = ys(rr)
+        samples.forEachIndexed { i, s ->
+            val x = xFor(s.tMillis)
+            val y = yFor(s.value)
             if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
         }
 
-        // Area fill — vertical gradient under the curve
+        // Area fill
         val areaPath = Path()
         areaPath.addPath(path)
-        areaPath.lineTo(xs(n - 1), chartH - padB)
-        areaPath.lineTo(xs(0), chartH - padB)
+        areaPath.lineTo(xFor(samples.last().tMillis), chartH - padB)
+        areaPath.lineTo(xFor(samples.first().tMillis), chartH - padB)
         areaPath.close()
         drawPath(
             path = areaPath,
@@ -111,20 +105,20 @@ fun TimeSeriesChart(ts: List<Int>, lastRrSampleMs: Long = 0L, modifier: Modifier
             ),
         )
 
-        // Beat dots fading left → right
-        ts.forEachIndexed { i, rr ->
-            val alpha = 0.15f + 0.6f * (i.toFloat() / (n - 1).coerceAtLeast(1))
+        // Beat dots fading older → newer
+        samples.forEach { s ->
+            val ageFrac = (nowMs - s.tMillis).toFloat() / windowMs
+            val alpha = (0.15f + 0.6f * (1f - ageFrac)).coerceIn(0f, 1f)
             drawCircle(
                 color = accent.copy(alpha = alpha),
                 radius = 1.7.dp.toPx(),
-                center = Offset(xs(i), ys(rr)),
+                center = Offset(xFor(s.tMillis), yFor(s.value)),
             )
         }
 
         // "Now" dot tracks the newest data point
-        val lastX = xs(n - 1)
-        val lastY = ys(ts.last())
-        val nowCenter = Offset(lastX, lastY)
+        val latest = samples.last()
+        val nowCenter = Offset(xFor(latest.tMillis), yFor(latest.value))
         drawCircle(color = accent.copy(alpha = 0.16f), radius = 10.dp.toPx(), center = nowCenter)
         drawCircle(color = surface, radius = 6.dp.toPx(), center = nowCenter)
         drawCircle(color = accent, radius = 4.2.dp.toPx(), center = nowCenter)
@@ -135,9 +129,13 @@ fun TimeSeriesChart(ts: List<Int>, lastRrSampleMs: Long = 0L, modifier: Modifier
 @Composable
 private fun TimeSeriesChartPreview() {
     AutoHrvTheme {
-        val ts = (0 until 30).map { i -> (900 + (sin(i * 0.8) * 60).toInt()) }
+        val now = System.currentTimeMillis()
+        val samples = (0 until 30).map { i ->
+            Sample(now - (29 - i) * 1000L, 900f + sin(i * 0.8).toFloat() * 60f)
+        }
         TimeSeriesChart(
-            ts = ts,
+            samples = samples,
+            windowMs = 30_000L,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp),
