@@ -89,7 +89,7 @@ internal fun ACFHeader() {
     ) {
         SectionLabel(text = "AUTOCORRELATION")
         Text(
-            text = "peak → pace",
+            text = "peak ➔ pace",
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp, color = muted),
         )
     }
