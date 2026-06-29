@@ -40,7 +40,6 @@ internal fun ResonancePill(
     cycleLengthSec: Float,
     breathsPerMin: Float?,
     lagSeconds: Float?,
-    isInResonance: Boolean,
 ) {
     val surface = MaterialTheme.colorScheme.surface
     val outline = MaterialTheme.colorScheme.outlineVariant
@@ -54,7 +53,7 @@ internal fun ResonancePill(
             .clip(shape)
             .border(1.dp, outline, shape)
             .background(surface)
-            .padding(start = 16.dp, end = 8.dp, top = 7.dp, bottom = 7.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 7.dp, bottom = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         PillNumber(value = "%.1f".format(cycleLengthSec), unit = "s", onSurface = onSurface, muted = muted)
@@ -72,16 +71,12 @@ internal fun ResonancePill(
 
         // τ lag readout — shown in heart color; "—" until cross-correlation is implemented
         PillNumber(
-            value = lagSeconds?.let { "%.1f".format(it) } ?: "—",
+            value = lagSeconds?.let { "%.0f".format(it) } ?: "—",
             unit = "s lag",
             onSurface = onSurface,
             muted = muted,
             valueColor = heart,
         )
-
-        Spacer(Modifier.width(11.dp))
-
-        ResonanceChip(isInResonance = isInResonance)
     }
 }
 
@@ -229,7 +224,6 @@ private fun ResonancePillPreview() {
             cycleLengthSec = 10.8f,
             breathsPerMin = 5.6f,
             lagSeconds = 2.3f,
-            isInResonance = true,
         )
     }
 }
@@ -242,7 +236,6 @@ private fun ResonancePillNoLagPreview() {
             cycleLengthSec = 10.0f,
             breathsPerMin = 6.0f,
             lagSeconds = null,
-            isInResonance = false,
         )
     }
 }
