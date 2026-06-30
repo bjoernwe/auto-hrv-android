@@ -160,12 +160,12 @@ class HrvRepository @Inject constructor(
         hrResampled1Hz.windowedTo(seconds * SAMPLES_PER_SECOND)
 
     /** RR-interval history on the uniform 1 Hz grid, covering the last [seconds] of real time. */
-    fun getRrsMsHistory(seconds: Int): Flow<List<Int>> =
+    fun getRrsMs1HzHistory(seconds: Int): Flow<List<Int>> =
         rrMsResampled1Hz.windowedTo(seconds * SAMPLES_PER_SECOND)
 
     /**
      * Beat-indexed RR-interval history (true NN intervals) covering roughly the last [seconds] of
-     * real time. Unlike [getRrsMsHistory] no resampling is applied, so each interval appears exactly
+     * real time. Unlike [getRrsMs1HzHistory] no resampling is applied, so each interval appears exactly
      * once — the right basis for beat-to-beat measures such as SDNN.
      */
     fun getRrsMsBeatHistory(seconds: Int): Flow<List<Int>> =
