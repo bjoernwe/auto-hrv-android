@@ -11,6 +11,7 @@ import com.polar.sdk.api.PolarBleApiCallback
 import com.polar.sdk.api.PolarBleApiDefaultImpl
 import com.polar.sdk.api.model.PolarDeviceInfo
 import com.polar.sdk.api.model.PolarHrData
+import dev.upaya.autohrv.domain.breathing.BreathingConfig
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.awaitClose
@@ -80,7 +81,7 @@ class HrvRepository @Inject constructor(
     @OptIn(FlowPreview::class)
     val rrMsBeatFlow: Flow<Int> = hrFlow
         .transform { sample -> sample.rrsMs.forEach { emit(it) } }
-        .filterOutliers(windowSize = 30)
+        .filterOutliers(windowSize = BreathingConfig.DEFAULT.windowLength)
         .debounce { 100.milliseconds }
 
     /** HR resampled onto a uniform 1 Hz grid (zero-order hold). */
@@ -178,12 +179,13 @@ class HrvRepository @Inject constructor(
     private fun Flow<Int>.filterOutliers(windowSize: Int): Flow<Int> = flow {
         val stats = DescriptiveStatistics(windowSize)
         collect { value ->
+            stats.addValue(value.toDouble())
             val mean = stats.mean
             val std = stats.standardDeviation
-            // Filter: 3 STDs away, with a 20ms minimum slack for stable sequences.
-            // Cold start: always accept the first few beats to build history.
-            if (stats.n < 10 || abs(value - mean) <= max(3 * std, 20.0)) {
-                stats.addValue(value.toDouble())
+            val delta = abs(value - mean)
+            val statsIncomplete = stats.n < 10
+            val isOutlier = delta <= max(3 * std, 20.0)
+            if (statsIncomplete || isOutlier) {
                 emit(value)
             } else {
                 Log.d(TAG, "Filtered outlier RR: $value ms (mean=${mean.toInt()}, std=${std.toInt()})")
