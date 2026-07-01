@@ -45,10 +45,10 @@ class BreathingBusiness @Inject internal constructor(
         _targetCycleLengthRange.value = range
     }
 
-    private val rrsMsHistory: StateFlow<List<Int>> = hrvRepository.getRrsMsHistory(breathingConfig.evaluationLengthSeconds)
+    private val rrsMsHistory: StateFlow<List<Int>> = hrvRepository.getRrsMs1HzHistory(breathingConfig.fftSize)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-    private val rrsMsBeatHistory: StateFlow<List<Int>> = hrvRepository.getRrsMsBeatHistory(breathingConfig.evaluationLengthSeconds)
+    private val rrsMsBeatHistory: StateFlow<List<Int>> = hrvRepository.getRrsMsBeatHistory(breathingConfig.windowLength)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -61,7 +61,7 @@ class BreathingBusiness @Inject internal constructor(
     private val smoothedTargetCycleLength: Flow<Float> = combine(stats, _targetCycleLengthRange) {
         s, range -> (s?.resampledRrsStats?.autoCorrelationPeak ?: breathingConfig.initialCycleLength).coerceIn(range)
     }
-        .scan(emptyList<Float>()) { window, cl -> (window + cl).takeLast(breathingConfig.evaluationLengthSeconds) }
+        .scan(emptyList<Float>()) { window, cl -> (window + cl).takeLast(breathingConfig.targetCycleLengthSmoothingWindow) }
         .filter { it.isNotEmpty() }
         .map { window -> window.reduce { a, b -> a + b } / window.size.toFloat() }
 
@@ -91,7 +91,7 @@ class BreathingBusiness @Inject internal constructor(
             delay(1000L)
         }
     }
-        .scan(emptyList<Float>()) { w, v -> (w + v).takeLast(breathingConfig.evaluationLengthSeconds) }
+        .scan(emptyList<Float>()) { w, v -> (w + v).takeLast(breathingConfig.fftSize) }
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     // Seconds by which the RR response lags behind the breath signal (positive = heart follows breath).

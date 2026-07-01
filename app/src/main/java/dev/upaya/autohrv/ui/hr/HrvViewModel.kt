@@ -9,6 +9,7 @@ import dev.upaya.autohrv.domain.breathing.BreathingPattern
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
 import dev.upaya.autohrv.domain.breathing.BreathingPhaseStart
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.upaya.autohrv.domain.breathing.BreathingConfig
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -41,7 +42,7 @@ data class HrUiState(
 const val AUTO_CORRELATION_SIZE = 20
 
 private const val BREATH_SAMPLE_RATE_HZ = 20
-private const val DISPLAY_WINDOW_MS = 22_000L
+private val DISPLAY_WINDOW_MS = BreathingConfig.DEFAULT.windowLength * 1000L
 
 @HiltViewModel
 class HrvViewModel @Inject constructor(

@@ -11,6 +11,7 @@ import com.polar.sdk.api.PolarBleApiCallback
 import com.polar.sdk.api.PolarBleApiDefaultImpl
 import com.polar.sdk.api.model.PolarDeviceInfo
 import com.polar.sdk.api.model.PolarHrData
+import dev.upaya.autohrv.domain.breathing.BreathingConfig
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.awaitClose
@@ -29,8 +30,12 @@ import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics
 import java.util.UUID
+import kotlin.math.abs
+import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.flow.flow
 
 @Singleton
 class HrvRepository @Inject constructor(
@@ -70,12 +75,13 @@ class HrvRepository @Inject constructor(
     }
 
     /** Beat-indexed HR: one value per sample, exactly as delivered by the sensor. */
-    val hrBeatFlow: Flow<Int> = hrFlow.map { it.hr }
+    private val hrBeatFlow: Flow<Int> = hrFlow.map { it.hr }
 
     /** Beat-indexed RR intervals (true NN intervals), one value per heartbeat. */
     @OptIn(FlowPreview::class)
     val rrMsBeatFlow: Flow<Int> = hrFlow
         .transform { sample -> sample.rrsMs.forEach { emit(it) } }
+        .filterOutliers(windowSize = BreathingConfig.DEFAULT.windowLength)
         .debounce { 100.milliseconds }
 
     /** HR resampled onto a uniform 1 Hz grid (zero-order hold). */
@@ -155,16 +161,37 @@ class HrvRepository @Inject constructor(
         hrResampled1Hz.windowedTo(seconds * SAMPLES_PER_SECOND)
 
     /** RR-interval history on the uniform 1 Hz grid, covering the last [seconds] of real time. */
-    fun getRrsMsHistory(seconds: Int): Flow<List<Int>> =
+    fun getRrsMs1HzHistory(seconds: Int): Flow<List<Int>> =
         rrMsResampled1Hz.windowedTo(seconds * SAMPLES_PER_SECOND)
 
     /**
      * Beat-indexed RR-interval history (true NN intervals) covering roughly the last [seconds] of
-     * real time. Unlike [getRrsMsHistory] no resampling is applied, so each interval appears exactly
+     * real time. Unlike [getRrsMs1HzHistory] no resampling is applied, so each interval appears exactly
      * once — the right basis for beat-to-beat measures such as SDNN.
      */
     fun getRrsMsBeatHistory(seconds: Int): Flow<List<Int>> =
         rrMsBeatFlow.scan(emptyList<Int>()) { acc, rr -> (acc + rr).takeLastWithinMs(seconds * 1000) }
+
+    /**
+     * Filters out RR intervals that are more than 2 standard deviations away from the recent mean.
+     * A minimum slack of 20ms is applied to prevent over-filtering in low-variance sequences.
+     */
+    private fun Flow<Int>.filterOutliers(windowSize: Int): Flow<Int> = flow {
+        val stats = DescriptiveStatistics(windowSize)
+        collect { value ->
+            stats.addValue(value.toDouble())
+            val mean = stats.mean
+            val std = stats.standardDeviation
+            val delta = abs(value - mean)
+            val statsIncomplete = stats.n < 10
+            val isOutlier = delta <= max(3 * std, 20.0)
+            if (statsIncomplete || isOutlier) {
+                emit(value)
+            } else {
+                Log.d(TAG, "Filtered outlier RR: $value ms (mean=${mean.toInt()}, std=${std.toInt()})")
+            }
+        }
+    }
 
     /** Accumulates a flow into a rolling window of the most recent [maxSamples] values. */
     private fun Flow<Int>.windowedTo(maxSamples: Int): Flow<List<Int>> =
