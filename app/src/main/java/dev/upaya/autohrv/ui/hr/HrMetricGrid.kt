@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.sp
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 @Composable
-fun MetricsRow(hr: Int?, hrv: String?, rr: Int?, modifier: Modifier = Modifier) {
+fun MetricsRow(hr: Int?, hrv: String?, breathCycleSec: Float?, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(18.dp)
     val outlineColor = MaterialTheme.colorScheme.outlineVariant
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -69,9 +69,9 @@ fun MetricsRow(hr: Int?, hrv: String?, rr: Int?, modifier: Modifier = Modifier) 
                 .background(outlineColor),
         )
         MetricCell(
-            label = "INTERVAL",
-            value = rr?.let { "$it" } ?: "—",
-            unit = "ms",
+            label = "BREATH",
+            value = breathCycleSec?.let { "%.1f".format(it) } ?: "—",
+            unit = "s",
             modifier = Modifier.weight(1f),
         )
     }
@@ -99,14 +99,6 @@ private fun MetricCell(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.5.sp,
-                    letterSpacing = 0.1.em,
-                    color = faint,
-                ),
-            )
             if (showHeart) {
                 Icon(
                     Icons.Filled.Favorite,
@@ -115,6 +107,14 @@ private fun MetricCell(
                     modifier = Modifier.size(11.dp),
                 )
             }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.5.sp,
+                    letterSpacing = 0.1.em,
+                    color = faint,
+                ),
+            )
         }
         Row(
             verticalAlignment = Alignment.Bottom,
@@ -144,7 +144,7 @@ private fun MetricCell(
 @Composable
 private fun MetricsRowPreview() {
     AutoHrvTheme {
-        MetricsRow(hr = 72, hrv = "42", rr = 833)
+        MetricsRow(hr = 72, hrv = "42", breathCycleSec = 10.8f)
     }
 }
 
@@ -152,6 +152,6 @@ private fun MetricsRowPreview() {
 @Composable
 private fun MetricsRowNoDataPreview() {
     AutoHrvTheme {
-        MetricsRow(hr = null, hrv = null, rr = null)
+        MetricsRow(hr = null, hrv = null, breathCycleSec = null)
     }
 }
