@@ -34,6 +34,8 @@ fun AutoCorrelationChart(
 ) {
     if (acf.size < 2) return
 
+    val displayedAcf = animateListAsState(acf)
+
     // The ACF curve is heart-derived → warm tone. The peak and band — which set
     // the breathing pace — use the cool breath tone. "peak → pace" made literal.
     val heart = MaterialTheme.colorScheme.secondary
@@ -58,7 +60,7 @@ fun AutoCorrelationChart(
         val plotW = chartW - padL - padR
         val plotH = chartH - padT - padB
 
-        val maxLag = (acf.size - 1).toFloat()
+        val maxLag = (displayedAcf.size - 1).toFloat()
         val xs = { t: Float -> padL + (t / maxLag).coerceIn(0f, 1f) * plotW }
         val yCenter = padT + plotH / 2f
         val yHalf = plotH / 2f
@@ -103,7 +105,7 @@ fun AutoCorrelationChart(
         )
 
         // ACF curve
-        val curvePoints = acf.mapIndexed { i, v -> Offset(xs(i.toFloat()), ys(v)) }
+        val curvePoints = displayedAcf.mapIndexed { i, v -> Offset(xs(i.toFloat()), ys(v)) }
 
         // Gradient fill between curve and zero line — heart tone, fades toward center
         val fillPath = Path().apply {
@@ -138,9 +140,9 @@ fun AutoCorrelationChart(
 
         // Peak marker
         if (peakLag != null) {
-            val peakIdx = peakLag.toInt().coerceIn(0, acf.size - 1)
+            val peakIdx = peakLag.toInt().coerceIn(0, displayedAcf.size - 1)
             val peakX = xs(peakIdx.toFloat())
-            val peakY = ys(acf[peakIdx])
+            val peakY = ys(displayedAcf[peakIdx])
 
             // Dashed vertical line at peak
             drawLine(
