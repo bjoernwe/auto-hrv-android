@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
@@ -39,7 +40,6 @@ fun AutoCorrelationChart(
     val breath = MaterialTheme.colorScheme.primary
     val surface = MaterialTheme.colorScheme.surface
     val outlineColor = MaterialTheme.colorScheme.outlineVariant
-    val bgColor = MaterialTheme.colorScheme.background
     val textMeasurer = rememberTextMeasurer()
 
     val labelStyle = MaterialTheme.typography.labelSmall.copy(
@@ -64,24 +64,14 @@ fun AutoCorrelationChart(
         val yHalf = plotH / 2f
         val ys = { v: Float -> yCenter - v.coerceIn(-1f, 1f) * yHalf }
 
-        // Out-of-band shading (regions outside [bandLo, bandHi])
+        // In-band highlight
         val bx0 = xs(bandLo.coerceAtMost(maxLag))
         val bx1 = xs(bandHi.coerceAtMost(maxLag))
-        val shadingColor = bgColor.copy(alpha = 0.52f)
-        if (bx0 > padL) {
-            drawRect(
-                color = shadingColor,
-                topLeft = Offset(padL, padT),
-                size = Size(bx0 - padL, plotH),
-            )
-        }
-        if (bx1 < chartW - padR) {
-            drawRect(
-                color = shadingColor,
-                topLeft = Offset(bx1, padT),
-                size = Size(chartW - padR - bx1, plotH),
-            )
-        }
+        drawRect(
+            color = breath.copy(alpha = 0.07f),
+            topLeft = Offset(bx0, padT),
+            size = Size((bx1 - bx0).coerceAtLeast(0f), plotH),
+        )
 
         // Band edge dashed lines
         val bandEdgeDash = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 4.dp.toPx()))
@@ -113,7 +103,29 @@ fun AutoCorrelationChart(
         )
 
         // ACF curve
-        val path = smoothPath(acf.mapIndexed { i, v -> Offset(xs(i.toFloat()), ys(v)) })
+        val curvePoints = acf.mapIndexed { i, v -> Offset(xs(i.toFloat()), ys(v)) }
+
+        // Gradient fill between curve and zero line — heart tone, fades toward center
+        val fillPath = Path().apply {
+            moveTo(curvePoints.first().x, yCenter)
+            curvePoints.forEach { lineTo(it.x, it.y) }
+            lineTo(curvePoints.last().x, yCenter)
+            close()
+        }
+        drawPath(
+            path = fillPath,
+            brush = Brush.verticalGradient(
+                colorStops = arrayOf(
+                    0f to heart.copy(alpha = 0.20f),
+                    0.5f to heart.copy(alpha = 0.03f),
+                    1f to heart.copy(alpha = 0.20f),
+                ),
+                startY = padT,
+                endY = padT + plotH,
+            ),
+        )
+
+        val path = smoothPath(curvePoints)
         drawPath(
             path = path,
             color = heart,
