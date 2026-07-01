@@ -265,28 +265,6 @@ internal fun CouplingHeroCard(
                 drawCircle(color = breathColor, radius = coreR, center = Offset(nowX, nowY))
             }
         }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 2.dp),
-        ) {
-            Text(
-                "heart",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
-                ),
-            )
-            Spacer(Modifier.weight(1f))
-            Text(
-                "breath",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                ),
-            )
-        }
     }
 }
 
