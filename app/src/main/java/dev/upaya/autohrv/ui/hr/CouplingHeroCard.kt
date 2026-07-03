@@ -1,5 +1,6 @@
 package dev.upaya.autohrv.ui.hr
 
+import android.graphics.RuntimeShader
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -22,23 +23,44 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
 import dev.upaya.autohrv.ui.hr.charts.smoothPath
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+
+// AGSL grain: per-pixel hash noise. "time" is a fixed seed (set once, not per-frame) so the
+// speckle pattern stays put instead of flickering.
+private const val GRAIN_SHADER_SRC = """
+    uniform float2 resolution;
+    uniform float time;
+    uniform float intensity;
+
+    float hash(float2 p) {
+        p = fract(p * float2(123.34, 456.21));
+        p += dot(p, p + 45.32);
+        return fract(p.x * p.y);
+    }
+
+    half4 main(float2 fragCoord) {
+        float n = hash(fragCoord + time);
+        return half4(n, n, n, intensity);
+    }
+"""
 
 @Composable
 internal fun CouplingHeroCard(
@@ -52,6 +74,10 @@ internal fun CouplingHeroCard(
     val nowMs by produceState(System.currentTimeMillis()) {
         while (true) { withFrameMillis { value = System.currentTimeMillis() } }
     }
+
+    // Fixed seed: static grain, not re-rolled every frame.
+    val grainShader = remember { RuntimeShader(GRAIN_SHADER_SRC).apply { setFloatUniform("time", 0f) } }
+    val grainBrush = remember(grainShader) { ShaderBrush(grainShader) }
 
     val lockStrength by animateFloatAsState(
         targetValue = if (isInResonance) 1f else 0f,
@@ -181,6 +207,11 @@ internal fun CouplingHeroCard(
                     endY = padT + plotH,
                 ),
             )
+            grainShader.setFloatUniform("resolution", size.width, size.height)
+            grainShader.setFloatUniform("intensity", 0.3f)
+            clipPath(breathAreaPath) {
+                drawRect(brush = grainBrush, blendMode = BlendMode.Overlay)
+            }
             val breathBright = lerp(breathColor, Color.White, lockStrength * 0.25f)
             drawPath(
                 path = breathPath,

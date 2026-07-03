@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Android app for real-time HRV (Heart Rate Variability) monitoring via Bluetooth LE using the [Polar BLE SDK](https://github.com/polarofficial/polar-ble-sdk).
 
 - **Language**: Kotlin, JVM 17
-- **Min SDK**: 24, **Target/Compile SDK**: 37/37
+- **Min SDK**: 33, **Target/Compile SDK**: 37/37
 - **Build tools**: AGP 9.2.1, Kotlin 2.2.10, Gradle 9.5.1
 
 The name is currently a left-over from a Polar example project (PolarSdkEcgHtDemo). The name should be replaced to become "Auto HRV" wherever possible and appropriate.
