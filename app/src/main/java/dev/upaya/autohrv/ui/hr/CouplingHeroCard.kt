@@ -152,11 +152,11 @@ internal fun CouplingHeroCard(
                 .height(180.dp),
         ) {
             val padL = 0f
-            val padR = 0f
             val padT = 8.dp.toPx()
             val padB = 22.dp.toPx()
-            val plotW = size.width - padL - padR
+            val plotW = size.width - padL
             val plotH = size.height - padT - padB
+            val dotGapPx = 5.dp.toPx()
             val midY = padT + plotH / 2f
             val breathAmp = plotH * 0.36f
             val heartAmp = plotH * 0.34f
@@ -180,22 +180,44 @@ internal fun CouplingHeroCard(
 
             // Breath trace
             val visibleBreath = breathSamples.filter { nowMs - it.tMillis <= windowMs }
-            val breathPath = Path()
-            if (visibleBreath.size >= 2) {
-                visibleBreath.forEachIndexed { i, s ->
-                    val x = xFor(s.tMillis)
-                    val y = midY - (s.value * 2f - 1f) * breathAmp
-                    if (i == 0) breathPath.moveTo(x, y) else breathPath.lineTo(x, y)
+            val breathPoints = visibleBreath.map { s ->
+                Offset(xFor(s.tMillis), midY - (s.value * 2f - 1f) * breathAmp)
+            }
+
+            // Stroke stops dotGapPx short of the edge so the now-dot's glow stays on-screen.
+            // Found by walking points until one crosses the cut line, then interpolating the
+            // exact crossing so the stroke — and the dot riding on it — end at the same spot.
+            val strokeCutX = size.width - dotGapPx
+            val strokePoints = buildList {
+                for (i in breathPoints.indices) {
+                    val p = breathPoints[i]
+                    if (p.x <= strokeCutX) {
+                        add(p)
+                    } else {
+                        val prev = breathPoints.getOrNull(i - 1)
+                        if (prev != null && prev.x < strokeCutX) {
+                            val frac = (strokeCutX - prev.x) / (p.x - prev.x)
+                            add(Offset(strokeCutX, prev.y + (p.y - prev.y) * frac))
+                        }
+                        break
+                    }
                 }
             }
+            val breathPath = Path()
+            strokePoints.forEachIndexed { i, p ->
+                if (i == 0) breathPath.moveTo(p.x, p.y) else breathPath.lineTo(p.x, p.y)
+            }
+
+            // Area fill uses the untruncated points and is held flat out to the true right edge,
+            // so the gradient never leaves a black gap even where the stroke has pulled back.
             val breathAreaPath = Path().apply {
-                if (visibleBreath.size <= 2) {
+                if (breathPoints.size <= 2) {
                     return@apply
                 }
-                val firstX = xFor(visibleBreath.first().tMillis)
-                val lastX = xFor(visibleBreath.last().tMillis)
-                addPath(breathPath)
-                lineTo(lastX, padT + plotH)
+                val firstX = breathPoints.first().x
+                breathPoints.forEachIndexed { i, p -> if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y) }
+                lineTo(size.width, breathPoints.last().y)
+                lineTo(size.width, padT + plotH)
                 lineTo(firstX, padT + plotH)
                 close()
             }
@@ -283,10 +305,12 @@ internal fun CouplingHeroCard(
             )
 
             // Now-dot: size breathes with the signal — larger on inhale, smaller on exhale.
+            // Sits at the same trimmed endpoint as the stroke, so it never overhangs the line.
             val latestBreath = visibleBreath.lastOrNull()
-            if (latestBreath != null) {
-                val nowX = xFor(latestBreath.tMillis)
-                val nowY = midY - (latestBreath.value * 2f - 1f) * breathAmp
+            val nowPoint = strokePoints.lastOrNull()
+            if (latestBreath != null && nowPoint != null) {
+                val nowX = nowPoint.x
+                val nowY = nowPoint.y
                 val v = latestBreath.value
                 val coreR = (2f + v * 2.5f).dp.toPx()
                 val ringR = (3.5f + v * 3f).dp.toPx()
