@@ -34,9 +34,7 @@ fun HRScreen(viewModel: HrvViewModel) {
     }
 
     val hrv = uiState.rmssd
-    val currentRR = uiState.currentRr
     val cycleLengthSec = uiState.currentPattern.cycleLengthSeconds
-    val breathsPerMin = if (cycleLengthSec > 0f) 60f / cycleLengthSec else null
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -76,13 +74,14 @@ fun HRScreen(viewModel: HrvViewModel) {
 
             Spacer(Modifier.height(12.dp))
 
-            ResonancePill(
-                cycleLengthSec = cycleLengthSec,
-                breathsPerMin = breathsPerMin,
-                lagSeconds = uiState.lagSeconds,
+            MetricsRow(
+                hr = uiState.hr,
+                hrv = hrv?.let { "%.0f".format(it) },
+                breathCycleSec = cycleLengthSec.takeIf { it > 0f },
+                modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(20.dp))
 
             val acf = uiState.autoCorrelation
             val acfReady = acf != null && acf.size >= 2
@@ -115,14 +114,6 @@ fun HRScreen(viewModel: HrvViewModel) {
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
-
-            MetricsRow(
-                hr = uiState.hr,
-                hrv = hrv?.let { "%.0f".format(it) },
-                rr = currentRR,
-                modifier = Modifier.fillMaxWidth(),
-            )
             } // end padded column
         }
     }
