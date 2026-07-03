@@ -39,7 +39,8 @@ data class HrUiState(
     val currentPattern: BreathingPattern = BreathingPattern(1f, 8f),
 )
 
-const val AUTO_CORRELATION_SIZE = 20
+// The direct ACF returns lags 0..acfMaxLagSeconds, so the chart shows the full searchable range.
+private val AUTO_CORRELATION_SIZE = BreathingConfig.DEFAULT.acfMaxLagSeconds + 1
 
 private const val BREATH_SAMPLE_RATE_HZ = 20
 private val DISPLAY_WINDOW_MS = BreathingConfig.DEFAULT.windowLength * 1000L

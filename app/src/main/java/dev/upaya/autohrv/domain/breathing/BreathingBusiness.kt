@@ -45,7 +45,7 @@ class BreathingBusiness @Inject internal constructor(
         _targetCycleLengthRange.value = range
     }
 
-    private val rrsMsHistory: StateFlow<List<Int>> = hrvRepository.getRrsMs1HzHistory(breathingConfig.fftSize)
+    private val rrsMsHistory: StateFlow<List<Int>> = hrvRepository.getRrsMs1HzHistory(breathingConfig.acfWindowSeconds)
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     private val rrsMsBeatHistory: StateFlow<List<Int>> = hrvRepository.getRrsMsBeatHistory(breathingConfig.windowLength)
@@ -53,7 +53,13 @@ class BreathingBusiness @Inject internal constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val stats: StateFlow<TimeSeriesStats?> = _targetCycleLengthRange.flatMapLatest { range ->
-        timeSeriesStatsUseCase(rrsMsHistory, rrsMsBeatHistory, range)
+        timeSeriesStatsUseCase(
+            rrsMsHistory,
+            rrsMsBeatHistory,
+            range,
+            breathingConfig.acfMaxLagSeconds,
+            breathingConfig.acfHalfLifeSeconds,
+        )
     }.stateIn(scope, SharingStarted.Eagerly, null)
 
     private val initialBreathingPattern = breathingConfig.defaultPattern()
@@ -91,7 +97,7 @@ class BreathingBusiness @Inject internal constructor(
             delay(1000L)
         }
     }
-        .scan(emptyList<Float>()) { w, v -> (w + v).takeLast(breathingConfig.fftSize) }
+        .scan(emptyList<Float>()) { w, v -> (w + v).takeLast(breathingConfig.acfWindowSeconds) }
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
     // Seconds by which the RR response lags behind the breath signal (positive = heart follows breath).
