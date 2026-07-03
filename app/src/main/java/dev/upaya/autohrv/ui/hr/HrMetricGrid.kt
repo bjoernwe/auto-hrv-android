@@ -51,21 +51,8 @@ fun MetricsRow(hr: Int?, hrv: String?, breathCycleSec: Float?, modifier: Modifie
             label = "HEART RATE",
             value = hr?.let { "$it" } ?: "—",
             unit = "bpm",
-            leadingIcon = Icons.Filled.Favorite,
+            trailingIcon = Icons.Filled.Favorite,
             iconTint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.weight(1f),
-        )
-        Box(
-            Modifier
-                .width(1.dp)
-                .height(38.dp)
-                .background(outlineColor),
-        )
-        MetricCell(
-            label = "HRV",
-            value = hrv ?: "—",
-            unit = "ms",
-            valueColor = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.weight(1f),
         )
         Box(
@@ -80,6 +67,19 @@ fun MetricsRow(hr: Int?, hrv: String?, breathCycleSec: Float?, modifier: Modifie
             unit = "s",
             trailingIcon = ImageVector.vectorResource(R.drawable.ic_airwave),
             iconTint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f),
+        )
+        Box(
+            Modifier
+                .width(1.dp)
+                .height(38.dp)
+                .background(outlineColor),
+        )
+        MetricCell(
+            label = "HRV",
+            value = hrv ?: "—",
+            unit = "ms",
+            valueColor = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.weight(1f),
         )
     }
