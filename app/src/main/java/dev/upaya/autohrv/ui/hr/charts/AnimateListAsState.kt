@@ -2,6 +2,7 @@ package dev.upaya.autohrv.ui.hr.charts
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -14,7 +15,7 @@ import androidx.compose.ui.util.lerp
 @Composable
 fun animateListAsState(
     target: List<Float>,
-    animationSpec: AnimationSpec<Float> = tween(5000),
+    animationSpec: AnimationSpec<Float> = tween(1500, easing = LinearEasing),
 ): List<Float> {
     var prev by remember { mutableStateOf(target) }
     var current by remember { mutableStateOf(target) }
