@@ -21,11 +21,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import dev.upaya.autohrv.R
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 @Composable
@@ -47,7 +51,8 @@ fun MetricsRow(hr: Int?, hrv: String?, breathCycleSec: Float?, modifier: Modifie
             label = "HEART RATE",
             value = hr?.let { "$it" } ?: "—",
             unit = "bpm",
-            showHeart = true,
+            leadingIcon = Icons.Filled.Favorite,
+            iconTint = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.weight(1f),
         )
         Box(
@@ -60,6 +65,7 @@ fun MetricsRow(hr: Int?, hrv: String?, breathCycleSec: Float?, modifier: Modifie
             label = "HRV",
             value = hrv ?: "—",
             unit = "ms",
+            valueColor = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.weight(1f),
         )
         Box(
@@ -72,6 +78,8 @@ fun MetricsRow(hr: Int?, hrv: String?, breathCycleSec: Float?, modifier: Modifie
             label = "BREATH",
             value = breathCycleSec?.let { "%.1f".format(it) } ?: "—",
             unit = "s",
+            trailingIcon = ImageVector.vectorResource(R.drawable.ic_airwave),
+            iconTint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f),
         )
     }
@@ -83,10 +91,11 @@ private fun MetricCell(
     value: String,
     unit: String,
     modifier: Modifier = Modifier,
-    showHeart: Boolean = false,
+    leadingIcon: ImageVector? = null,
+    trailingIcon: ImageVector? = null,
+    iconTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface,
 ) {
-    // Heart side: the heart-rate marker uses the warm tone.
-    val accent = MaterialTheme.colorScheme.secondary
     val faint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -99,11 +108,11 @@ private fun MetricCell(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            if (showHeart) {
+            if (leadingIcon != null) {
                 Icon(
-                    Icons.Filled.Favorite,
+                    leadingIcon,
                     contentDescription = null,
-                    tint = accent,
+                    tint = iconTint,
                     modifier = Modifier.size(11.dp),
                 )
             }
@@ -115,6 +124,14 @@ private fun MetricCell(
                     color = faint,
                 ),
             )
+            if (trailingIcon != null) {
+                Icon(
+                    trailingIcon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(11.dp),
+                )
+            }
         }
         Row(
             verticalAlignment = Alignment.Bottom,
@@ -125,7 +142,7 @@ private fun MetricCell(
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontSize = 19.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = valueColor,
                 ),
             )
             Text(
