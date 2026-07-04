@@ -12,6 +12,9 @@ data class BreathingConfig(
     val resonancePeakToleranceSeconds: Float,
     val resonanceMinPeakValue: Float,
     val windowLength: Int,
+    val acfHistogramExpGain: Float,
+    val acfHistogramSigmoidSteepness: Float,
+    val acfHistogramSigmoidMidpoint: Float,
 ) {
     init {
         require(acfMaxLagSeconds >= maxCycleLengthRange.endInclusive) {
@@ -39,6 +42,11 @@ data class BreathingConfig(
                 resonancePeakToleranceSeconds = 1.5f,
                 resonanceMinPeakValue = 0.35f,
                 windowLength = 20,
+                // Shaping of the accumulated ACF histogram: exp sharpens the dominant lags, the
+                // closing sigmoid keeps secondary peaks visible. Tune on-device.
+                acfHistogramExpGain = 4f,
+                acfHistogramSigmoidSteepness = 8f,
+                acfHistogramSigmoidMidpoint = 0.35f,
             )
     }
 }

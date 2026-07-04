@@ -8,8 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -28,6 +26,7 @@ import kotlin.math.exp
 fun AutoCorrelationChart(
     acf: List<Float>,
     modifier: Modifier = Modifier,
+    histogram: List<Float> = emptyList(),
     peakLag: Float? = null,
     bandLo: Float = 0f,
     bandHi: Float = Float.MAX_VALUE,
@@ -35,6 +34,10 @@ fun AutoCorrelationChart(
     if (acf.size < 2) return
 
     val displayedAcf = animateListAsState(acf)
+    // animateListAsState zips prev/current and truncates on a size mismatch, so a possibly-empty
+    // histogram is padded to the ACF length — this also gives a grow-from-zero animation.
+    val histTarget = if (histogram.size == acf.size) histogram else List(acf.size) { 0f }
+    val displayedHistogram = animateListAsState(histTarget)
 
     // The ACF curve is heart-derived → warm tone. The peak and band — which set
     // the breathing pace — use the cool breath tone. "peak → pace" made literal.
@@ -67,33 +70,19 @@ fun AutoCorrelationChart(
         val yHalf = plotH / 2f
         val ys = { v: Float -> yCenter - v.coerceIn(-1f, 1f) * yHalf }
 
-        // In-band highlight
-        val bx0 = xs(bandLo.coerceAtMost(maxLag))
-        val bx1 = xs(bandHi.coerceAtMost(maxLag))
-        drawRect(
-            color = breath.copy(alpha = 0.07f),
-            topLeft = Offset(bx0, padT),
-            size = Size((bx1 - bx0).coerceAtLeast(0f), plotH),
-        )
-
-        // Band edge dashed lines
-        val bandEdgeDash = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 4.dp.toPx()))
-        if (bandLo > 0f && bandLo <= maxLag) {
-            drawLine(
-                color = breath.copy(alpha = 0.35f),
-                start = Offset(bx0, padT),
-                end = Offset(bx0, chartH - padB),
-                strokeWidth = 1.dp.toPx(),
-                pathEffect = bandEdgeDash,
-            )
-        }
-        if (bandHi < maxLag) {
-            drawLine(
-                color = breath.copy(alpha = 0.35f),
-                start = Offset(bx1, padT),
-                end = Offset(bx1, chartH - padB),
-                strokeWidth = 1.dp.toPx(),
-                pathEffect = bandEdgeDash,
+        // Accumulated-ACF histogram: gray bars behind everything, in-band bars tinted breath.
+        // Lag 0 is skipped — its correlation is always 1 and would dominate the whole plot.
+        val barW = (plotW / maxLag) * 0.7f
+        val plotBottom = padT + plotH
+        displayedHistogram.forEachIndexed { i, v ->
+            if (i == 0) return@forEachIndexed
+            val h = v.coerceIn(0f, 1f) * plotH
+            if (h <= 0f) return@forEachIndexed
+            val inBand = i.toFloat() in bandLo..bandHi
+            drawRect(
+                color = if (inBand) breath.copy(alpha = 0.30f) else outlineColor.copy(alpha = 0.40f),
+                topLeft = Offset(xs(i.toFloat()) - barW / 2f, plotBottom - h),
+                size = Size(barW, h),
             )
         }
 
@@ -107,29 +96,6 @@ fun AutoCorrelationChart(
 
         // ACF curve
         val curvePoints = displayedAcf.mapIndexed { i, v -> Offset(xs(i.toFloat()), ys(v)) }
-
-        // Gradient fill between curve and zero line — heart tone, fades toward center
-        val fillPath =
-            Path().apply {
-                moveTo(curvePoints.first().x, yCenter)
-                curvePoints.forEach { lineTo(it.x, it.y) }
-                lineTo(curvePoints.last().x, yCenter)
-                close()
-            }
-        drawPath(
-            path = fillPath,
-            brush =
-                Brush.verticalGradient(
-                    colorStops =
-                        arrayOf(
-                            0f to heart.copy(alpha = 0.20f),
-                            0.5f to heart.copy(alpha = 0.03f),
-                            1f to heart.copy(alpha = 0.20f),
-                        ),
-                    startY = padT,
-                    endY = padT + plotH,
-                ),
-        )
 
         val path = smoothPath(curvePoints)
         drawPath(
@@ -185,8 +151,14 @@ private fun AutoCorrelationChartPreview() {
             (0..60).map { i ->
                 (cos(2 * PI * i / 10.0) * exp(-i * 0.05)).toFloat()
             }
+        // Faint background stubble plus a peak near lag 10 (inside the band).
+        val histogram =
+            acf.indices.map { i ->
+                (0.15 + 0.8 * exp(-((i - 10) * (i - 10)) / 18.0)).toFloat()
+            }
         AutoCorrelationChart(
             acf = acf,
+            histogram = histogram,
             peakLag = 10f,
             bandLo = 7f,
             bandHi = 13f,

@@ -92,6 +92,7 @@ fun HRScreen(viewModel: HrvViewModel) {
                     if (acfReady) {
                         AutoCorrelationChart(
                             acf = acf,
+                            histogram = uiState.acfHistogram,
                             peakLag =
                                 uiState.autoCorrelationPeak
                                     ?.coerceIn(targetCycleLengthRange),
@@ -105,7 +106,7 @@ fun HRScreen(viewModel: HrvViewModel) {
                         BandRangeSlider(
                             value = targetCycleLengthRange,
                             onValueChange = { viewModel.setTargetCycleLengthRange(it) },
-                            valueRange = 0f..(acf.size - 1).toFloat(),
+                            valueRange = 1f..(acf.size - 1).toFloat(),
                             allowedRange = viewModel.cycleLengthAllowedRange,
                         )
                     } else {
