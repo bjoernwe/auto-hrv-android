@@ -54,7 +54,7 @@ private fun BiasHeader() {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SectionLabel(text = "BIAS")
+        SectionLabel(text = "IN-OUT BIAS")
         Text(
             text = "inhale ↔ exhale",
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp, color = muted),
