@@ -18,10 +18,12 @@ data class BreathingPattern(
     val outToInRatio: Float,
     val cycleLengthSeconds: Float,
 ) {
-    operator fun plus(other: BreathingPattern) = BreathingPattern(
-        outToInRatio + other.outToInRatio,
-        cycleLengthSeconds + other.cycleLengthSeconds,
-    )
+    operator fun plus(other: BreathingPattern) =
+        BreathingPattern(
+            outToInRatio + other.outToInRatio,
+            cycleLengthSeconds + other.cycleLengthSeconds,
+        )
+
     operator fun div(x: Float) = BreathingPattern(outToInRatio / x, cycleLengthSeconds / x)
 }
 
@@ -44,38 +46,45 @@ class PacerOutput(
     val currentPattern: StateFlow<BreathingPattern>,
 )
 
-class BreathingPacerUseCase @Inject constructor() {
+class BreathingPacerUseCase
+    @Inject
+    constructor() {
 
-    operator fun invoke(scope: CoroutineScope, targetPattern: StateFlow<BreathingPattern>): PacerOutput {
-        val currentBreathingPattern = MutableStateFlow(targetPattern.value)
+        operator fun invoke(
+            scope: CoroutineScope,
+            targetPattern: StateFlow<BreathingPattern>,
+        ): PacerOutput {
+            val currentBreathingPattern = MutableStateFlow(targetPattern.value)
 
-        val currentPhaseStart = flow {
-            while (true) {
-                val inhalePattern = targetPattern.value
-                currentBreathingPattern.value = inhalePattern
-                val inhaleMs = inhalePattern.inhaleMs()
-                emit(BreathingPhaseStart(BreathingPhase.Inhale, System.currentTimeMillis(), inhaleMs))
-                delay(inhaleMs)
+            val currentPhaseStart =
+                flow {
+                    while (true) {
+                        val inhalePattern = targetPattern.value
+                        currentBreathingPattern.value = inhalePattern
+                        val inhaleMs = inhalePattern.inhaleMs()
+                        emit(BreathingPhaseStart(BreathingPhase.Inhale, System.currentTimeMillis(), inhaleMs))
+                        delay(inhaleMs)
 
-                val exhalePattern = targetPattern.value
-                currentBreathingPattern.value = exhalePattern
-                val exhaleMs = exhalePattern.exhaleMs()
-                emit(BreathingPhaseStart(BreathingPhase.Exhale, System.currentTimeMillis(), exhaleMs))
-                delay(exhaleMs)
-            }
-        }.stateIn(
-            scope = scope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = BreathingPhaseStart(
-                BreathingPhase.Inhale,
-                System.currentTimeMillis(),
-                targetPattern.value.inhaleMs(),
-            ),
-        )
+                        val exhalePattern = targetPattern.value
+                        currentBreathingPattern.value = exhalePattern
+                        val exhaleMs = exhalePattern.exhaleMs()
+                        emit(BreathingPhaseStart(BreathingPhase.Exhale, System.currentTimeMillis(), exhaleMs))
+                        delay(exhaleMs)
+                    }
+                }.stateIn(
+                    scope = scope,
+                    started = SharingStarted.WhileSubscribed(5_000),
+                    initialValue =
+                        BreathingPhaseStart(
+                            BreathingPhase.Inhale,
+                            System.currentTimeMillis(),
+                            targetPattern.value.inhaleMs(),
+                        ),
+                )
 
-        return PacerOutput(currentPhaseStart, currentBreathingPattern.asStateFlow())
+            return PacerOutput(currentPhaseStart, currentBreathingPattern.asStateFlow())
+        }
     }
-}
 
 private fun BreathingPattern.inhaleMs(): Long {
     val cycleMs = (cycleLengthSeconds * 1000.0).toLong()

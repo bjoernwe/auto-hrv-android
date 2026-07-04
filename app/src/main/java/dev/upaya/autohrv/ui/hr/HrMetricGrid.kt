@@ -33,18 +33,24 @@ import dev.upaya.autohrv.R
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 @Composable
-fun MetricsRow(hr: Int?, hrv: String?, breathCycleSec: Float?, modifier: Modifier = Modifier) {
+fun MetricsRow(
+    hr: Int?,
+    hrv: String?,
+    breathCycleSec: Float?,
+    modifier: Modifier = Modifier,
+) {
     val shape = RoundedCornerShape(18.dp)
     val outlineColor = MaterialTheme.colorScheme.outlineVariant
     val surfaceColor = MaterialTheme.colorScheme.surface
 
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .border(1.dp, outlineColor, shape)
-            .background(surfaceColor)
-            .padding(vertical = 11.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .border(1.dp, outlineColor, shape)
+                .background(surfaceColor)
+                .padding(vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         MetricCell(
@@ -118,11 +124,12 @@ private fun MetricCell(
             }
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.5.sp,
-                    letterSpacing = 0.1.em,
-                    color = faint,
-                ),
+                style =
+                    MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.5.sp,
+                        letterSpacing = 0.1.em,
+                        color = faint,
+                    ),
             )
             if (trailingIcon != null) {
                 Icon(
@@ -139,18 +146,20 @@ private fun MetricCell(
         ) {
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = valueColor,
-                ),
+                style =
+                    MaterialTheme.typography.titleLarge.copy(
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = valueColor,
+                    ),
             )
             Text(
                 text = unit,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.5.sp,
-                    color = muted,
-                ),
+                style =
+                    MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.5.sp,
+                        color = muted,
+                    ),
                 modifier = Modifier.padding(bottom = 3.dp),
             )
         }

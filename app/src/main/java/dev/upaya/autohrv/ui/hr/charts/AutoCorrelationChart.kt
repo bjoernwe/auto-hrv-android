@@ -44,10 +44,11 @@ fun AutoCorrelationChart(
     val outlineColor = MaterialTheme.colorScheme.outlineVariant
     val textMeasurer = rememberTextMeasurer()
 
-    val labelStyle = MaterialTheme.typography.labelSmall.copy(
-        fontWeight = FontWeight.SemiBold,
-        color = breath,
-    )
+    val labelStyle =
+        MaterialTheme.typography.labelSmall.copy(
+            fontWeight = FontWeight.SemiBold,
+            color = breath,
+        )
     Canvas(
         modifier = modifier,
     ) {
@@ -108,34 +109,38 @@ fun AutoCorrelationChart(
         val curvePoints = displayedAcf.mapIndexed { i, v -> Offset(xs(i.toFloat()), ys(v)) }
 
         // Gradient fill between curve and zero line — heart tone, fades toward center
-        val fillPath = Path().apply {
-            moveTo(curvePoints.first().x, yCenter)
-            curvePoints.forEach { lineTo(it.x, it.y) }
-            lineTo(curvePoints.last().x, yCenter)
-            close()
-        }
+        val fillPath =
+            Path().apply {
+                moveTo(curvePoints.first().x, yCenter)
+                curvePoints.forEach { lineTo(it.x, it.y) }
+                lineTo(curvePoints.last().x, yCenter)
+                close()
+            }
         drawPath(
             path = fillPath,
-            brush = Brush.verticalGradient(
-                colorStops = arrayOf(
-                    0f to heart.copy(alpha = 0.20f),
-                    0.5f to heart.copy(alpha = 0.03f),
-                    1f to heart.copy(alpha = 0.20f),
+            brush =
+                Brush.verticalGradient(
+                    colorStops =
+                        arrayOf(
+                            0f to heart.copy(alpha = 0.20f),
+                            0.5f to heart.copy(alpha = 0.03f),
+                            1f to heart.copy(alpha = 0.20f),
+                        ),
+                    startY = padT,
+                    endY = padT + plotH,
                 ),
-                startY = padT,
-                endY = padT + plotH,
-            ),
         )
 
         val path = smoothPath(curvePoints)
         drawPath(
             path = path,
             color = heart,
-            style = Stroke(
-                width = 2.dp.toPx(),
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round,
-            ),
+            style =
+                Stroke(
+                    width = 2.dp.toPx(),
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round,
+                ),
         )
 
         // Peak marker
@@ -162,10 +167,11 @@ fun AutoCorrelationChart(
             val measured = textMeasurer.measure(peakLabel, style = labelStyle)
             drawText(
                 measured,
-                topLeft = Offset(
-                    (peakX - measured.size.width / 2f).coerceIn(padL, chartW - padR - measured.size.width),
-                    padT + 2.dp.toPx(),
-                ),
+                topLeft =
+                    Offset(
+                        (peakX - measured.size.width / 2f).coerceIn(padL, chartW - padR - measured.size.width),
+                        padT + 2.dp.toPx(),
+                    ),
             )
         }
     }
@@ -175,17 +181,19 @@ fun AutoCorrelationChart(
 @Composable
 private fun AutoCorrelationChartPreview() {
     AutoHrvTheme {
-        val acf = (0..60).map { i ->
-            (cos(2 * PI * i / 10.0) * exp(-i * 0.05)).toFloat()
-        }
+        val acf =
+            (0..60).map { i ->
+                (cos(2 * PI * i / 10.0) * exp(-i * 0.05)).toFloat()
+            }
         AutoCorrelationChart(
             acf = acf,
             peakLag = 10f,
             bandLo = 7f,
             bandHi = 13f,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(120.dp),
         )
     }
 }

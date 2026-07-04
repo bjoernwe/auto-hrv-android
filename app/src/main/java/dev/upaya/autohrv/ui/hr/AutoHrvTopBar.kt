@@ -43,10 +43,11 @@ internal fun AutoHrvTopBar(
     val isConnected = connectionState is ConnectionState.Connected
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -55,10 +56,11 @@ internal fun AutoHrvTopBar(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .clip(RoundedCornerShape(9.dp))
-                    .background(accent.copy(alpha = 0.18f)),
+                modifier =
+                    Modifier
+                        .size(30.dp)
+                        .clip(RoundedCornerShape(9.dp))
+                        .background(accent.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -70,20 +72,22 @@ internal fun AutoHrvTopBar(
             }
             Text(
                 "Auto HRV",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    color = onSurface,
-                    letterSpacing = (-0.01).em,
-                ),
+                style =
+                    MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = onSurface,
+                        letterSpacing = (-0.01).em,
+                    ),
             )
         }
 
         Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .border(1.dp, outlineStrong, RoundedCornerShape(999.dp))
-                .background(surface2)
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+            modifier =
+                Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .border(1.dp, outlineStrong, RoundedCornerShape(999.dp))
+                    .background(surface2)
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -112,9 +116,10 @@ private fun AutoHrvTopBarConnectedPreview() {
     AutoHrvTheme {
         AutoHrvTopBar(
             deviceId = "E7A9AB27",
-            connectionState = ConnectionState.Connected(
-                PolarDeviceInfo("E7A9AB27", "AA:BB:CC:DD:EE:FF", -60, "Polar H10", true)
-            ),
+            connectionState =
+                ConnectionState.Connected(
+                    PolarDeviceInfo("E7A9AB27", "AA:BB:CC:DD:EE:FF", -60, "Polar H10", true),
+                ),
             batteryLevel = 82,
         )
     }

@@ -48,13 +48,14 @@ fun HRScreen(viewModel: HrvViewModel) {
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    top = innerPadding.calculateTopPadding() + 8.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 16.dp,
-                ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        top = innerPadding.calculateTopPadding() + 8.dp,
+                        bottom = innerPadding.calculateBottomPadding() + 16.dp,
+                    ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             CouplingHeroCard(
@@ -67,22 +68,22 @@ fun HRScreen(viewModel: HrvViewModel) {
             )
 
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                Spacer(Modifier.height(12.dp))
 
-            Spacer(Modifier.height(12.dp))
+                MetricsRow(
+                    hr = uiState.hr,
+                    hrv = hrv?.let { "%.0f".format(it) },
+                    breathCycleSec = cycleLengthSec.takeIf { it > 0f },
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-            MetricsRow(
-                hr = uiState.hr,
-                hrv = hrv?.let { "%.0f".format(it) },
-                breathCycleSec = cycleLengthSec.takeIf { it > 0f },
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(20.dp))
 
             val acf = uiState.autoCorrelation
             val acfReady = acf != null && acf.size >= 2
@@ -122,7 +123,6 @@ fun HRScreen(viewModel: HrvViewModel) {
                 onOutToInRatioChange = { viewModel.setTargetOutToInRatio(it) },
                 modifier = Modifier.fillMaxWidth(),
             )
-
             } // end padded column
         }
     }

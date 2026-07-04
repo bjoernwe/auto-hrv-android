@@ -25,7 +25,11 @@ import kotlin.math.sin
 private const val RR_BASE = 945f
 
 @Composable
-fun TimeSeriesChart(samples: List<Sample>, windowMs: Long, modifier: Modifier = Modifier) {
+fun TimeSeriesChart(
+    samples: List<Sample>,
+    windowMs: Long,
+    modifier: Modifier = Modifier,
+) {
     if (samples.size < 2) return
 
     val values = samples.map { it.value }
@@ -34,7 +38,9 @@ fun TimeSeriesChart(samples: List<Sample>, windowMs: Long, modifier: Modifier = 
     val rangeRR = (maxRR - minRR).coerceAtLeast(1f)
 
     val nowMs by produceState(System.currentTimeMillis()) {
-        while (true) { withFrameMillis { value = System.currentTimeMillis() } }
+        while (true) {
+            withFrameMillis { value = System.currentTimeMillis() }
+        }
     }
 
     val accent = MaterialTheme.colorScheme.secondary
@@ -51,6 +57,7 @@ fun TimeSeriesChart(samples: List<Sample>, windowMs: Long, modifier: Modifier = 
         val plotW = chartW - padL - padR
 
         fun xFor(t: Long) = padL + (1f - (nowMs - t).toFloat() / windowMs) * plotW
+
         fun yFor(v: Float) = padT + (1f - (v - minRR) / rangeRR) * (chartH - padT - padB)
 
         // Baseline dashed line at resting rate
@@ -79,30 +86,34 @@ fun TimeSeriesChart(samples: List<Sample>, windowMs: Long, modifier: Modifier = 
         areaPath.close()
         drawPath(
             path = areaPath,
-            brush = Brush.verticalGradient(
-                colors = listOf(accent.copy(alpha = 0.30f), accent.copy(alpha = 0f)),
-                startY = padT,
-                endY = chartH - padB,
-            ),
+            brush =
+                Brush.verticalGradient(
+                    colors = listOf(accent.copy(alpha = 0.30f), accent.copy(alpha = 0f)),
+                    startY = padT,
+                    endY = chartH - padB,
+                ),
         )
 
         // Line — horizontal fade: transparent at left → opaque at right
         drawPath(
             path = path,
-            brush = Brush.horizontalGradient(
-                colorStops = arrayOf(
-                    0f to accent.copy(alpha = 0f),
-                    0.12f to accent.copy(alpha = 0.9f),
-                    1f to accent,
+            brush =
+                Brush.horizontalGradient(
+                    colorStops =
+                        arrayOf(
+                            0f to accent.copy(alpha = 0f),
+                            0.12f to accent.copy(alpha = 0.9f),
+                            1f to accent,
+                        ),
+                    startX = 0f,
+                    endX = chartW,
                 ),
-                startX = 0f,
-                endX = chartW,
-            ),
-            style = Stroke(
-                width = 2.4.dp.toPx(),
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round,
-            ),
+            style =
+                Stroke(
+                    width = 2.4.dp.toPx(),
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round,
+                ),
         )
 
         // Beat dots fading older → newer
@@ -130,15 +141,17 @@ fun TimeSeriesChart(samples: List<Sample>, windowMs: Long, modifier: Modifier = 
 private fun TimeSeriesChartPreview() {
     AutoHrvTheme {
         val now = System.currentTimeMillis()
-        val samples = (0 until 30).map { i ->
-            Sample(now - (29 - i) * 1000L, 900f + sin(i * 0.8).toFloat() * 60f)
-        }
+        val samples =
+            (0 until 30).map { i ->
+                Sample(now - (29 - i) * 1000L, 900f + sin(i * 0.8).toFloat() * 60f)
+            }
         TimeSeriesChart(
             samples = samples,
             windowMs = 30_000L,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(120.dp),
         )
     }
 }
