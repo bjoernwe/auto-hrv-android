@@ -76,8 +76,8 @@ fun AutoCorrelationChart(
         val ys = { v: Float -> yCenter - v.coerceIn(-1f, 1f) * yHalf }
 
         // Accumulated-ACF histogram: gray bars behind everything, in-band bars tinted breath.
-        // The lowest lags are shaped to zero upstream (their correlation is always high and would
-        // dominate the whole plot), so no explicit skip is needed here.
+        // Lag 0 is shaped to zero upstream (its correlation is always 1 and carries no
+        // information), so no explicit skip is needed here.
         val barW = (plotW / maxLag) * 0.7f
         val plotBottom = padT + plotH
         val barCorner = CornerRadius(barW * 0.35f, barW * 0.35f)
@@ -101,8 +101,8 @@ fun AutoCorrelationChart(
             strokeWidth = 1.dp.toPx(),
         )
 
-        // ACF curve
-        val curvePoints = displayedAcf.mapIndexed { i, v -> Offset(xs(i.toFloat()), ys(v)) }
+        // ACF curve. Lag 0 is skipped — its correlation is always 1 and carries no information.
+        val curvePoints = (1 until displayedAcf.size).map { i -> Offset(xs(i.toFloat()), ys(displayedAcf[i])) }
 
         val path = smoothPath(curvePoints)
         drawPath(
@@ -158,10 +158,11 @@ private fun AutoCorrelationChartPreview() {
             (0..60).map { i ->
                 (cos(2 * PI * i / 10.0) * exp(-i * 0.05)).toFloat()
             }
-        // Faint background stubble plus a peak near lag 10 (inside the band).
+        // Faint background stubble plus a peak near lag 10 (inside the band). Lag 0 stays zero,
+        // matching the real shaping pipeline.
         val histogram =
             acf.indices.map { i ->
-                (0.15 + 0.8 * exp(-((i - 10) * (i - 10)) / 18.0)).toFloat()
+                if (i == 0) 0f else (0.15 + 0.8 * exp(-((i - 10) * (i - 10)) / 18.0)).toFloat()
             }
         AutoCorrelationChart(
             acf = acf,

@@ -26,11 +26,16 @@ internal fun accumulateAcf(
 
 /**
  * Shapes accumulated per-lag ACF sums into display heights in `[0, 1]`:
- * `normalize → exp(expGain · x) → normalize → sigmoid(sigmoidSteepness · (x − sigmoidMidpoint))`.
+ * `cap → exp(expGain · x) → normalize → sigmoid(sigmoidSteepness · (x − sigmoidMidpoint))`.
  *
- * The leading [ignoredLeadingLags] bins (e.g. lag 0's fixed 1.0 and the naturally-high lag 1/2
- * autocorrelation) are excluded from the shaping pipeline and forced to `0f`, so they can't set
- * the normalization ceiling and squash the real breathing-range peaks.
+ * Lag 0 is always excluded — its correlation is fixed at 1.0 and carries no information — and its
+ * output is always `0f`. [ignoredLeadingLags] reads as "ignore up to this lag": lags
+ * `1..ignoredLeadingLags` are naturally high (short-lag autocorrelation) and are excluded from
+ * *establishing* the normalization range, so they can't compress the real breathing-range peaks
+ * down to noise. They are not dropped from the output though — they're capped to the `[0, 1]`
+ * range established by the remaining lags (so they read as "at least as tall as the tallest real
+ * peak" rather than disappearing) before continuing through the same exp/sigmoid shaping as every
+ * other bin.
  *
  * The exponential sharpens the dominant lags; the closing sigmoid flattens the noise floor and
  * caps the winner so secondary and tertiary peaks stay visible instead of being swallowed by the
@@ -44,15 +49,20 @@ internal fun shapeAcfHistogram(
     sigmoidMidpoint: Float,
 ): List<Float> {
     if (sums.isEmpty()) return sums
-    if (ignoredLeadingLags >= sums.size) return List(sums.size) { 0f }
+    val lagsBeyondZero = sums.drop(1)
+    if (lagsBeyondZero.isEmpty()) return List(sums.size) { 0f }
+
+    // Leave at least one lag to establish the range even if ignoredLeadingLags covers everything.
+    val effectiveIgnored = ignoredLeadingLags.coerceIn(0, lagsBeyondZero.size - 1)
+    val normRange = lagsBeyondZero.drop(effectiveIgnored)
+    val capped = lagsBeyondZero.normalizeMinMax(normRange.min(), normRange.max())
+
     val shaped =
-        sums
-            .drop(ignoredLeadingLags)
-            .normalizeMinMax()
+        capped
             .map { exp(expGain * it) }
             .normalizeMinMax()
             .map { sigmoid(sigmoidSteepness * (it - sigmoidMidpoint)) }
-    return List(ignoredLeadingLags) { 0f } + shaped
+    return listOf(0f) + shaped
 }
 
 private fun sigmoid(x: Float): Float = 1f / (1f + exp(-x))
