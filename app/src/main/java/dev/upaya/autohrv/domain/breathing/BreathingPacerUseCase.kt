@@ -11,20 +11,21 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.pow
 
 enum class BreathingPhase { Inhale, Exhale }
 
 data class BreathingPattern(
-    val outToInRatio: Float,
+    val bias: Float,
     val cycleLengthSeconds: Float,
 ) {
     operator fun plus(other: BreathingPattern) =
         BreathingPattern(
-            outToInRatio + other.outToInRatio,
+            bias + other.bias,
             cycleLengthSeconds + other.cycleLengthSeconds,
         )
 
-    operator fun div(x: Float) = BreathingPattern(outToInRatio / x, cycleLengthSeconds / x)
+    operator fun div(x: Float) = BreathingPattern(bias / x, cycleLengthSeconds / x)
 }
 
 data class BreathingPhaseStart(
@@ -86,9 +87,11 @@ class BreathingPacerUseCase
         }
     }
 
+private fun BreathingPattern.outToInRatio(): Float = 2f.pow(bias.coerceIn(-1f, 1f))
+
 private fun BreathingPattern.inhaleMs(): Long {
     val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
-    return (cycleMs / (1.0 + outToInRatio)).toLong().coerceAtLeast(200L)
+    return (cycleMs / (1.0 + outToInRatio())).toLong().coerceAtLeast(200L)
 }
 
 private fun BreathingPattern.exhaleMs(): Long {

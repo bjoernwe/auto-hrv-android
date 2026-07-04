@@ -36,7 +36,7 @@ data class HrUiState(
     val isInResonance: Boolean = false,
     val lagSeconds: Float? = null,
     val currentPhaseStart: BreathingPhaseStart = BreathingPhaseStart(BreathingPhase.Inhale, System.currentTimeMillis(), 4000L),
-    val currentPattern: BreathingPattern = BreathingPattern(1f, 8f),
+    val currentPattern: BreathingPattern = BreathingPattern(0f, 8f),
 )
 
 // The direct ACF returns lags 0..acfMaxLagSeconds, so the chart shows the full searchable range.
@@ -143,7 +143,7 @@ class HrvViewModel
 
     val targetCycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = breathingBusiness.targetCycleLengthRange
     val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = breathingBusiness.cycleLengthAllowedRange
-    val targetOutToInRatio: StateFlow<Float> = breathingBusiness.targetOutToInRatio
+    val targetInOutBias: StateFlow<Float> = breathingBusiness.targetInOutBias
 
         fun connect() = hrvRepository.connect()
 
@@ -151,5 +151,5 @@ class HrvViewModel
 
     fun setTargetCycleLengthRange(range: ClosedFloatingPointRange<Float>) = breathingBusiness.setTargetCycleLengthRange(range)
 
-    fun setTargetOutToInRatio(ratio: Float) = breathingBusiness.setTargetOutToInRatio(ratio)
+    fun setTargetInOutBias(bias: Float) = breathingBusiness.setTargetInOutBias(bias)
 }

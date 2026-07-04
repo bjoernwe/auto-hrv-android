@@ -29,31 +29,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
-import kotlin.math.log2
-import kotlin.math.pow
-
-// The BIAS slider is a log2-scaled view onto the out-to-in ratio: -1 ("fast") is a short,
-// energizing exhale, 0 is the symmetric default, +1 ("slow") is an extended, calming exhale.
-private const val MIN_OUT_TO_IN_RATIO = 0.5f
-private const val MAX_OUT_TO_IN_RATIO = 2f
-
-private fun ratioToBias(ratio: Float): Float =
-    log2(ratio.coerceIn(MIN_OUT_TO_IN_RATIO, MAX_OUT_TO_IN_RATIO)).coerceIn(-1f, 1f)
-
-private fun biasToRatio(bias: Float): Float = 2f.pow(bias.coerceIn(-1f, 1f))
 
 @Composable
-internal fun BiasCard(
-    outToInRatio: Float,
-    onOutToInRatioChange: (Float) -> Unit,
+internal fun InOutBiasCard(
+    bias: Float,
+    onBiasChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     HrvCard(modifier = modifier) {
         BiasHeader()
         Spacer(Modifier.height(10.dp))
         BiasSlider(
-            bias = ratioToBias(outToInRatio),
-            onBiasChange = { onOutToInRatioChange(biasToRatio(it)) },
+            bias = bias,
+            onBiasChange = onBiasChange,
         )
     }
 }
@@ -144,17 +132,17 @@ private fun BiasThumb(accent: Color) {
 
 @Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "Bias — centered")
 @Composable
-private fun BiasCardPreview() {
-    var ratio by remember { mutableFloatStateOf(1f) }
+private fun InOutBiasCardPreview() {
+    var bias by remember { mutableFloatStateOf(0f) }
     AutoHrvTheme {
-        BiasCard(outToInRatio = ratio, onOutToInRatioChange = { ratio = it })
+        InOutBiasCard(bias = bias, onBiasChange = { bias = it })
     }
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "Bias — slow exhale")
 @Composable
-private fun BiasCardSlowPreview() {
+private fun InOutBiasCardSlowPreview() {
     AutoHrvTheme {
-        BiasCard(outToInRatio = 1.6f, onOutToInRatioChange = {})
+        InOutBiasCard(bias = 0.68f, onBiasChange = {})
     }
 }
