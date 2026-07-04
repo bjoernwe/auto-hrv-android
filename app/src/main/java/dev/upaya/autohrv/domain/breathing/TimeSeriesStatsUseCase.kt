@@ -37,7 +37,7 @@ internal class TimeSeriesStatsUseCase
         operator fun invoke(
             resampledRrsMs: Flow<List<Int>>,
             beatRrsMs: Flow<List<Int>>,
-            cycleLengthRange: ClosedFloatingPointRange<Float>,
+            cycleLengthRange: IntRange,
             maxLagSeconds: Int,
             halfLifeSeconds: Float?,
         ): Flow<TimeSeriesStats> {
@@ -59,10 +59,10 @@ internal class TimeSeriesStatsUseCase
         // The RR stream is resampled to a uniform 1 Hz grid upstream, so lag == cycle length in seconds.
         internal fun findBreathingCycleLength(
             acf: List<Float>,
-            range: ClosedFloatingPointRange<Float>,
+            range: IntRange,
         ): Float? {
-            val minLag = range.start.toInt()
-            val maxLag = range.endInclusive.toInt().coerceAtMost(acf.size - 1)
+            val minLag = range.first
+            val maxLag = range.last.coerceAtMost(acf.size - 1)
             if (minLag > maxLag) return null
             val peakLag = (minLag..maxLag).maxByOrNull { acf[it] } ?: return null
             return peakLag.toFloat()

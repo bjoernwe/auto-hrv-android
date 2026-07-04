@@ -71,21 +71,23 @@ private fun BiasSlider(
     val accent = MaterialTheme.colorScheme.primary
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
 
-    val sliderColors = SliderDefaults.colors(
-        thumbColor = accent,
-        activeTrackColor = accent.copy(alpha = 0.38f),
-        inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant,
-    )
+    val sliderColors =
+        SliderDefaults.colors(
+            thumbColor = accent,
+            activeTrackColor = accent.copy(alpha = 0.38f),
+            inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant,
+        )
 
     Column {
         Slider(
             value = bias,
             onValueChange = onBiasChange,
             valueRange = -1f..1f,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(16.dp)
-                .padding(top = 2.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(16.dp)
+                    .padding(top = 2.dp),
             colors = sliderColors,
             thumb = { BiasThumb(accent = accent) },
             track = { sliderState ->
@@ -122,10 +124,11 @@ private fun BiasSlider(
 private fun BiasThumb(accent: Color) {
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(12.dp)) {
         Box(
-            modifier = Modifier
-                .size(12.dp)
-                .shadow(2.dp, CircleShape)
-                .background(accent, CircleShape),
+            modifier =
+                Modifier
+                    .size(12.dp)
+                    .shadow(2.dp, CircleShape)
+                    .background(accent, CircleShape),
         )
     }
 }

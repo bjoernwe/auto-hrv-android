@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.abs
+import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class BreathingBusiness
@@ -38,12 +39,12 @@ class BreathingBusiness
             _targetInOutBias.value = bias
         }
 
-        val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = breathingConfig.maxCycleLengthRange
+        val cycleLengthAllowedRange: IntRange = breathingConfig.maxCycleLengthRange
 
         private val _targetCycleLengthRange = MutableStateFlow(breathingConfig.initialCycleLengthRange)
-        val targetCycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = _targetCycleLengthRange
+        val targetCycleLengthRange: StateFlow<IntRange> = _targetCycleLengthRange
 
-        fun setTargetCycleLengthRange(range: ClosedFloatingPointRange<Float>) {
+        fun setTargetCycleLengthRange(range: IntRange) {
             _targetCycleLengthRange.value = range
         }
 
@@ -87,7 +88,8 @@ class BreathingBusiness
 
         private val smoothedTargetCycleLength: Flow<Float> =
             combine(stats, _targetCycleLengthRange) { s, range ->
-                (s?.resampledRrsStats?.autoCorrelationPeak ?: breathingConfig.initialCycleLength).coerceIn(range)
+                (s?.resampledRrsStats?.autoCorrelationPeak ?: breathingConfig.initialCycleLength)
+                    .coerceIn(range.first.toFloat(), range.last.toFloat())
             }.scan(emptyList<Float>()) { window, cl -> (window + cl).takeLast(breathingConfig.targetCycleLengthSmoothingWindow) }
                 .filter { it.isNotEmpty() }
                 .map { window -> window.reduce { a, b -> a + b } / window.size.toFloat() }
@@ -117,7 +119,7 @@ class BreathingBusiness
                 while (true) {
                     val now = System.currentTimeMillis()
                     emit(currentPhaseStart.value.valueAt(now))
-                    delay(1000L)
+                    delay(1000L.milliseconds)
                 }
             }.scan(emptyList<Float>()) { w, v -> (w + v).takeLast(breathingConfig.acfWindowSeconds) }
                 .stateIn(scope, SharingStarted.Eagerly, emptyList())
@@ -125,7 +127,7 @@ class BreathingBusiness
         // Seconds by which the RR response lags behind the breath signal (positive = heart follows breath).
         val lagSeconds: StateFlow<Float?> =
             combine(breathHistory, rrsMsHistory) { breath, rr ->
-                computeLag(breath, rr, breathingConfig.maxCycleLengthRange.endInclusive)
+                computeLag(breath, rr, breathingConfig.maxCycleLengthRange.last.toFloat())
             }.stateIn(scope, SharingStarted.Eagerly, null)
 
         private fun computeLag(

@@ -24,6 +24,7 @@ import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.exp
+import kotlin.math.roundToInt
 
 @Composable
 fun AutoCorrelationChart(
@@ -118,7 +119,7 @@ fun AutoCorrelationChart(
 
         // Peak marker
         if (peakLag != null) {
-            val peakIdx = peakLag.toInt().coerceIn(0, displayedAcf.size - 1)
+            val peakIdx = peakLag.roundToInt().coerceIn(0, displayedAcf.size - 1)
             val peakX = xs(peakIdx.toFloat())
             val peakY = ys(displayedAcf[peakIdx])
 

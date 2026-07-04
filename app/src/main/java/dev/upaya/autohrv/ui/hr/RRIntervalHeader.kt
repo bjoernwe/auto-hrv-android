@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
+import kotlin.math.roundToInt
 
 @Composable
 internal fun RRIntervalHeader(swing: Int?) {
@@ -100,15 +101,15 @@ internal fun ACFHeader() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun BandRangeSlider(
-    value: ClosedFloatingPointRange<Float>,
-    onValueChange: (ClosedFloatingPointRange<Float>) -> Unit,
-    valueRange: ClosedFloatingPointRange<Float>,
-    allowedRange: ClosedFloatingPointRange<Float>,
+    value: IntRange,
+    onValueChange: (IntRange) -> Unit,
+    valueRange: IntRange,
+    allowedRange: IntRange,
 ) {
     val accent = MaterialTheme.colorScheme.primary
-    val safeValueRange = if (valueRange.start < valueRange.endInclusive) valueRange else 0f..1f
-    val coercedValue =
-        value.start.coerceIn(allowedRange).coerceIn(safeValueRange)..value.endInclusive.coerceIn(allowedRange).coerceIn(safeValueRange)
+    val safeValueRange = if (valueRange.first < valueRange.last) valueRange else 0..1
+    val lo = value.first.coerceIn(allowedRange).coerceIn(safeValueRange)
+    val hi = value.last.coerceIn(allowedRange).coerceIn(safeValueRange)
 
     val sliderColors =
         SliderDefaults.colors(
@@ -118,15 +119,17 @@ internal fun BandRangeSlider(
         )
 
     Column {
-        val intSteps = maxOf(0, (safeValueRange.endInclusive - safeValueRange.start).toInt() - 1)
+        val intSteps = maxOf(0, (safeValueRange.last - safeValueRange.first) - 1)
         RangeSlider(
-            value = coercedValue,
+            // Compose's RangeSlider works in Float; the band is integer lags by type, so we
+            // convert to Float here and round back to whole seconds in onValueChange.
+            value = lo.toFloat()..hi.toFloat(),
             onValueChange = { new ->
-                onValueChange(
-                    new.start.coerceIn(allowedRange)..new.endInclusive.coerceIn(allowedRange),
-                )
+                val newLo = new.start.roundToInt().coerceIn(allowedRange)
+                val newHi = new.endInclusive.roundToInt().coerceIn(allowedRange)
+                onValueChange(newLo..newHi)
             },
-            valueRange = safeValueRange,
+            valueRange = safeValueRange.first.toFloat()..safeValueRange.last.toFloat(),
             steps = intSteps,
             modifier =
                 Modifier
@@ -134,8 +137,8 @@ internal fun BandRangeSlider(
                     .height(16.dp)
                     .padding(top = 2.dp, start = 4.dp, end = 4.dp),
             colors = sliderColors,
-            startThumb = { ThumbWithLabel(label = "%.0f".format(coercedValue.start), accent = accent) },
-            endThumb = { ThumbWithLabel(label = "%.0f".format(coercedValue.endInclusive), accent = accent) },
+            startThumb = { ThumbWithLabel(label = lo.toString(), accent = accent) },
+            endThumb = { ThumbWithLabel(label = hi.toString(), accent = accent) },
             track = { rangeSliderState ->
                 Box(
                     contentAlignment = Alignment.Center,

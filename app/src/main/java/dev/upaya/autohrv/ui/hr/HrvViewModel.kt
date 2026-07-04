@@ -147,15 +147,15 @@ class HrvViewModel
 
         val displayWindowMs: Long = DISPLAY_WINDOW_MS
 
-    val targetCycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = breathingBusiness.targetCycleLengthRange
-    val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = breathingBusiness.cycleLengthAllowedRange
-    val targetInOutBias: StateFlow<Float> = breathingBusiness.targetInOutBias
+        val targetCycleLengthRange: StateFlow<IntRange> = breathingBusiness.targetCycleLengthRange
+        val cycleLengthAllowedRange: IntRange = breathingBusiness.cycleLengthAllowedRange
+        val targetInOutBias: StateFlow<Float> = breathingBusiness.targetInOutBias
 
         fun connect() = hrvRepository.connect()
 
         fun disconnect() = hrvRepository.disconnect()
 
-    fun setTargetCycleLengthRange(range: ClosedFloatingPointRange<Float>) = breathingBusiness.setTargetCycleLengthRange(range)
+        fun setTargetCycleLengthRange(range: IntRange) = breathingBusiness.setTargetCycleLengthRange(range)
 
-    fun setTargetInOutBias(bias: Float) = breathingBusiness.setTargetInOutBias(bias)
-}
+        fun setTargetInOutBias(bias: Float) = breathingBusiness.setTargetInOutBias(bias)
+    }
