@@ -76,6 +76,8 @@ class BreathingBusiness
             stats
                 .map { it?.resampledRrsStats?.autoCorrelation }
                 .accumulatedAcfHistogram(
+                    breathingConfig.acfHistogramHalfLifeSeconds,
+                    breathingConfig.acfHistogramIgnoredLeadingLags,
                     breathingConfig.acfHistogramExpGain,
                     breathingConfig.acfHistogramSigmoidSteepness,
                     breathingConfig.acfHistogramSigmoidMidpoint,

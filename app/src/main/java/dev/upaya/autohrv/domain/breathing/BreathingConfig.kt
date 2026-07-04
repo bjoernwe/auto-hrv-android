@@ -15,6 +15,8 @@ data class BreathingConfig(
     val acfHistogramExpGain: Float,
     val acfHistogramSigmoidSteepness: Float,
     val acfHistogramSigmoidMidpoint: Float,
+    val acfHistogramHalfLifeSeconds: Float?,
+    val acfHistogramIgnoredLeadingLags: Int,
 ) {
     init {
         require(acfMaxLagSeconds >= maxCycleLengthRange.endInclusive) {
@@ -44,9 +46,14 @@ data class BreathingConfig(
                 windowLength = 20,
                 // Shaping of the accumulated ACF histogram: exp sharpens the dominant lags, the
                 // closing sigmoid keeps secondary peaks visible. Tune on-device.
-                acfHistogramExpGain = 4f,
+                acfHistogramExpGain = 2f,
                 acfHistogramSigmoidSteepness = 8f,
-                acfHistogramSigmoidMidpoint = 0.35f,
+                acfHistogramSigmoidMidpoint = 0.2f,
+                // Old peaks fade over ~1.5 min so the histogram tracks the recent session.
+                acfHistogramHalfLifeSeconds = 90f,
+                // Lags 0-2 are naturally high (short-lag autocorrelation) and would otherwise
+                // dominate the shaping normalization, squashing the real breathing-range peaks.
+                acfHistogramIgnoredLeadingLags = 3,
             )
     }
 }

@@ -13,27 +13,35 @@ class AcfHistogramTest {
     private val steepness = BreathingConfig.DEFAULT.acfHistogramSigmoidSteepness
     private val midpoint = BreathingConfig.DEFAULT.acfHistogramSigmoidMidpoint
 
-    private fun shape(sums: List<Float>) = shapeAcfHistogram(sums, expGain, steepness, midpoint)
+    private fun shape(sums: List<Float>) = shapeAcfHistogram(sums, ignoredLeadingLags = 0, expGain, steepness, midpoint)
 
     // --- accumulateAcf ---
 
     @Test
     fun `empty accumulator starts from the first emission`() {
-        assertEquals(listOf(1f, 2f, 3f), accumulateAcf(emptyList(), listOf(1f, 2f, 3f)))
+        assertEquals(listOf(1f, 2f, 3f), accumulateAcf(emptyList(), listOf(1f, 2f, 3f), decay = 1f))
     }
 
     @Test
     fun `sums element-wise across emissions`() {
-        var acc = accumulateAcf(emptyList(), listOf(1f, 2f, 3f))
-        acc = accumulateAcf(acc, listOf(0.5f, -1f, 4f))
-        acc = accumulateAcf(acc, listOf(-1.5f, 3f, 0f))
+        var acc = accumulateAcf(emptyList(), listOf(1f, 2f, 3f), decay = 1f)
+        acc = accumulateAcf(acc, listOf(0.5f, -1f, 4f), decay = 1f)
+        acc = accumulateAcf(acc, listOf(-1.5f, 3f, 0f), decay = 1f)
         assertEquals(listOf(0f, 4f, 7f), acc)
     }
 
     @Test
     fun `size mismatch restarts the sum`() {
-        val acc = accumulateAcf(listOf(1f, 2f, 3f), listOf(9f, 9f))
+        val acc = accumulateAcf(listOf(1f, 2f, 3f), listOf(9f, 9f), decay = 1f)
         assertEquals(listOf(9f, 9f), acc)
+    }
+
+    @Test
+    fun `decay shrinks the prior accumulator before adding`() {
+        var acc = accumulateAcf(emptyList(), listOf(1f, 2f, 3f), decay = 0.5f)
+        acc = accumulateAcf(acc, listOf(1f, 2f, 3f), decay = 0.5f)
+        // acc*0.5 + new = [0.5,1,1.5] + [1,2,3]
+        assertEquals(listOf(1.5f, 3f, 4.5f), acc)
     }
 
     // --- shapeAcfHistogram ---
@@ -41,6 +49,23 @@ class AcfHistogramTest {
     @Test
     fun `empty shapes to empty`() {
         assertTrue(shape(emptyList()).isEmpty())
+    }
+
+    @Test
+    fun `ignored leading lags are zeroed and excluded from normalization`() {
+        val sums = listOf(100f, 90f, 0.1f, 0.5f, 1f)
+        val out = shapeAcfHistogram(sums, ignoredLeadingLags = 2, expGain, steepness, midpoint)
+        assertEquals(0f, out[0], 1e-6f)
+        assertEquals(0f, out[1], 1e-6f)
+        // The remaining bins should use the full [floor, 1] range instead of being squashed
+        // under the much larger ignored values.
+        assertTrue("tallest remaining bin should approach the top", out[4] > 0.9f)
+    }
+
+    @Test
+    fun `ignoring all lags shapes to all zero`() {
+        val out = shapeAcfHistogram(listOf(1f, 2f, 3f), ignoredLeadingLags = 3, expGain, steepness, midpoint)
+        assertEquals(listOf(0f, 0f, 0f), out)
     }
 
     @Test
@@ -87,7 +112,7 @@ class AcfHistogramTest {
                     listOf(1f, 0f, 0f),
                     listOf(0f, 1f, 0f),
                     listOf(0f, 0f, 1f),
-                ).accumulatedAcfHistogram(expGain, steepness, midpoint).toList()
+                ).accumulatedAcfHistogram(null, 0, expGain, steepness, midpoint).toList()
 
             // scan seeds with the empty accumulator, then one emission per input.
             assertEquals(4, results.size)
@@ -106,12 +131,12 @@ class AcfHistogramTest {
                     listOf(1f, 0f, 0f),
                     listOf(1f, 0f, 0f),
                     listOf(1f, 0f, 0f),
-                ).accumulatedAcfHistogram(expGain, steepness, midpoint).toList()
+                ).accumulatedAcfHistogram(null, 0, expGain, steepness, midpoint).toList()
 
             val single =
                 flowOf<List<Float>?>(
                     listOf(1f, 0f, 0f),
-                ).accumulatedAcfHistogram(expGain, steepness, midpoint).toList()
+                ).accumulatedAcfHistogram(null, 0, expGain, steepness, midpoint).toList()
 
             // Duplicates collapse via distinctUntilChanged: same accumulated result as a single emit.
             assertEquals(single.last(), repeated.last())
@@ -125,10 +150,27 @@ class AcfHistogramTest {
                     null,
                     null,
                     listOf(2f, 1f, 0f),
-                ).accumulatedAcfHistogram(expGain, steepness, midpoint).toList()
+                ).accumulatedAcfHistogram(null, 0, expGain, steepness, midpoint).toList()
 
             // Only the initial empty seed and the single real emission survive.
             assertEquals(2, results.size)
             assertEquals(shape(listOf(2f, 1f, 0f)), results.last())
+        }
+
+    @Test
+    fun `finite half-life de-weights older emissions`() =
+        runTest {
+            // Same magnitude repeated at bin 0 vs. a later single spike at bin 1: with decay, the
+            // recent bin-1 spike should outweigh the decayed history of bin-0 emissions.
+            val results =
+                flowOf<List<Float>?>(
+                    listOf(1f, 0f),
+                    listOf(1f, 0f),
+                    listOf(1f, 0f),
+                    listOf(0f, 1f),
+                ).accumulatedAcfHistogram(1f, 0, expGain, steepness, midpoint).toList()
+
+            val last = results.last()
+            assertTrue("recent bin should outshine the decayed history: $last", last[1] > last[0])
         }
 }

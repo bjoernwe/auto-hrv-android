@@ -18,6 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import dev.upaya.autohrv.ui.hr.acfInRangeColor
+import dev.upaya.autohrv.ui.hr.acfOutRangeColor
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 import kotlin.math.PI
 import kotlin.math.cos
@@ -46,6 +48,8 @@ fun AutoCorrelationChart(
     val breath = MaterialTheme.colorScheme.primary
     val surface = MaterialTheme.colorScheme.surface
     val outlineColor = MaterialTheme.colorScheme.outlineVariant
+    val inRangeColor = acfInRangeColor()
+    val outRangeColor = acfOutRangeColor()
     val textMeasurer = rememberTextMeasurer()
 
     val labelStyle =
@@ -72,17 +76,17 @@ fun AutoCorrelationChart(
         val ys = { v: Float -> yCenter - v.coerceIn(-1f, 1f) * yHalf }
 
         // Accumulated-ACF histogram: gray bars behind everything, in-band bars tinted breath.
-        // Lag 0 is skipped — its correlation is always 1 and would dominate the whole plot.
+        // The lowest lags are shaped to zero upstream (their correlation is always high and would
+        // dominate the whole plot), so no explicit skip is needed here.
         val barW = (plotW / maxLag) * 0.7f
         val plotBottom = padT + plotH
         val barCorner = CornerRadius(barW * 0.35f, barW * 0.35f)
         displayedHistogram.forEachIndexed { i, v ->
-            if (i == 0) return@forEachIndexed
             val h = v.coerceIn(0f, 1f) * plotH
             if (h <= 0f) return@forEachIndexed
             val inBand = i.toFloat() in bandLo..bandHi
             drawRoundRect(
-                color = if (inBand) breath.copy(alpha = 0.40f) else outlineColor.copy(alpha = 0.15f),
+                color = if (inBand) inRangeColor else outRangeColor,
                 topLeft = Offset(xs(i.toFloat()) - barW / 2f, plotBottom - h),
                 size = Size(barW, h),
                 cornerRadius = barCorner,

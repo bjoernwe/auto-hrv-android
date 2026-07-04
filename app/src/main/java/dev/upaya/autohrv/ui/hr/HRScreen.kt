@@ -106,7 +106,7 @@ fun HRScreen(viewModel: HrvViewModel) {
                         BandRangeSlider(
                             value = targetCycleLengthRange,
                             onValueChange = { viewModel.setTargetCycleLengthRange(it) },
-                            valueRange = 1f..(acf.size - 1).toFloat(),
+                            valueRange = 0f..(acf.size - 1).toFloat(),
                             allowedRange = viewModel.cycleLengthAllowedRange,
                         )
                     } else {
