@@ -33,6 +33,7 @@ data class HrUiState(
     val swing: Int? = null,
     val autoCorrelation: List<Float>? = null,
     val autoCorrelationPeak: Float? = null,
+    val acfHistogram: List<Float> = emptyList(),
     val isInResonance: Boolean = false,
     val lagSeconds: Float? = null,
     val currentPhaseStart: BreathingPhaseStart = BreathingPhaseStart(BreathingPhase.Inhale, System.currentTimeMillis(), 4000L),
@@ -104,6 +105,11 @@ class HrvViewModel
                             autoCorrelationPeak = peak,
                         )
                     }
+                }
+            }
+            viewModelScope.launch {
+                breathingBusiness.acfHistogram.collect { histogram ->
+                    _uiState.update { it.copy(acfHistogram = histogram) }
                 }
             }
             viewModelScope.launch {

@@ -113,8 +113,8 @@ internal fun BandRangeSlider(
     val sliderColors =
         SliderDefaults.colors(
             thumbColor = accent,
-            activeTrackColor = accent.copy(alpha = 0.38f),
-            inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant,
+            activeTrackColor = acfInRangeColor(),
+            inactiveTrackColor = acfOutRangeColor(),
         )
 
     Column {
@@ -132,7 +132,7 @@ internal fun BandRangeSlider(
                 Modifier
                     .fillMaxWidth()
                     .height(16.dp)
-                    .padding(top = 2.dp),
+                    .padding(top = 2.dp, start = 4.dp, end = 4.dp),
             colors = sliderColors,
             startThumb = { ThumbWithLabel(label = "%.0f".format(coercedValue.start), accent = accent) },
             endThumb = { ThumbWithLabel(label = "%.0f".format(coercedValue.endInclusive), accent = accent) },
