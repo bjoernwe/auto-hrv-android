@@ -132,10 +132,13 @@ class HrvViewModel @Inject constructor(
 
     val targetCycleLengthRange: StateFlow<ClosedFloatingPointRange<Float>> = breathingBusiness.targetCycleLengthRange
     val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = breathingBusiness.cycleLengthAllowedRange
+    val targetOutToInRatio: StateFlow<Float> = breathingBusiness.targetOutToInRatio
 
     fun connect() = hrvRepository.connect()
 
     fun disconnect() = hrvRepository.disconnect()
 
     fun setTargetCycleLengthRange(range: ClosedFloatingPointRange<Float>) = breathingBusiness.setTargetCycleLengthRange(range)
+
+    fun setTargetOutToInRatio(ratio: Float) = breathingBusiness.setTargetOutToInRatio(ratio)
 }

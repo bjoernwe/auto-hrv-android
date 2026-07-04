@@ -26,6 +26,7 @@ fun HRScreen(viewModel: HrvViewModel) {
     val breathSamples by viewModel.breathSamples.collectAsStateWithLifecycle()
     val rrSamples by viewModel.rrSamples.collectAsStateWithLifecycle()
     val targetCycleLengthRange by viewModel.targetCycleLengthRange.collectAsStateWithLifecycle()
+    val targetOutToInRatio by viewModel.targetOutToInRatio.collectAsStateWithLifecycle()
 
     val view = LocalView.current
     DisposableEffect(Unit) {
@@ -113,6 +114,14 @@ fun HRScreen(viewModel: HrvViewModel) {
                     )
                 }
             }
+
+            Spacer(Modifier.height(20.dp))
+
+            BiasCard(
+                outToInRatio = targetOutToInRatio,
+                onOutToInRatioChange = { viewModel.setTargetOutToInRatio(it) },
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             } // end padded column
         }
