@@ -14,8 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -24,10 +22,12 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
 import dev.upaya.autohrv.domain.breathing.BreathingPhaseStart
+import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 @Composable
 fun BreathingPacerOrb(
@@ -53,16 +53,18 @@ fun BreathingPacerOrb(
         }
     }
 
-    val label = when (phaseStart.phase) {
-        BreathingPhase.Inhale -> "inhale"
-        BreathingPhase.Exhale -> "exhale"
-    }
+    val label =
+        when (phaseStart.phase) {
+            BreathingPhase.Inhale -> "inhale"
+            BreathingPhase.Exhale -> "exhale"
+        }
 
-    val labelStyle = MaterialTheme.typography.titleLarge.copy(
-        fontWeight = FontWeight.Bold,
-        color = colorScheme.onPrimary,
-        letterSpacing = 0.02.em,
-    )
+    val labelStyle =
+        MaterialTheme.typography.titleLarge.copy(
+            fontWeight = FontWeight.Bold,
+            color = colorScheme.onPrimary,
+            letterSpacing = 0.02.em,
+        )
 
     Canvas(modifier = modifier) {
         val maxRadius = size.minDimension / 2f
@@ -79,11 +81,12 @@ fun BreathingPacerOrb(
         val glowColor = lerp(breath, heart, convergence * 0.55f)
         val glowRadius = orbRadius * (1.4f + 0.15f * convergence)
         drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(glowColor.copy(alpha = 0.25f + 0.10f * convergence), Color.Transparent),
-                center = c,
-                radius = glowRadius,
-            ),
+            brush =
+                Brush.radialGradient(
+                    colors = listOf(glowColor.copy(alpha = 0.25f + 0.10f * convergence), Color.Transparent),
+                    center = c,
+                    radius = glowRadius,
+                ),
             radius = glowRadius,
             center = c,
         )
@@ -92,15 +95,17 @@ fun BreathingPacerOrb(
         val rim = lerp(lerp(breath, Color.Black, 0.3f), heart, convergence * 0.5f)
         val gradientCenter = Offset(c.x, c.y - orbRadius * 0.2f)
         drawCircle(
-            brush = Brush.radialGradient(
-                colorStops = arrayOf(
-                    0.0f to lerp(core, Color.White, 0.15f),
-                    0.5f to core,
-                    1.0f to rim,
+            brush =
+                Brush.radialGradient(
+                    colorStops =
+                        arrayOf(
+                            0.0f to lerp(core, Color.White, 0.15f),
+                            0.5f to core,
+                            1.0f to rim,
+                        ),
+                    center = gradientCenter,
+                    radius = orbRadius,
                 ),
-                center = gradientCenter,
-                radius = orbRadius,
-            ),
             radius = orbRadius,
             center = c,
         )
@@ -108,10 +113,11 @@ fun BreathingPacerOrb(
         val measured = textMeasurer.measure(label, style = labelStyle)
         drawText(
             measured,
-            topLeft = Offset(
-                c.x - measured.size.width / 2f,
-                c.y - measured.size.height / 2f,
-            ),
+            topLeft =
+                Offset(
+                    c.x - measured.size.width / 2f,
+                    c.y - measured.size.height / 2f,
+                ),
         )
     }
 }

@@ -39,10 +39,14 @@ internal fun weightedAutoCorrelation(
     if (maxLag < 0 || n < maxLag + MIN_OVERLAP) return null
 
     val x = DoubleArray(n) { values[it].toDouble() }
-    val w = DoubleArray(n) { i ->
-        if (halfLifeSeconds == null) 1.0
-        else 0.5.pow((n - 1 - i).toDouble() / halfLifeSeconds.toDouble())
-    }
+    val w =
+        DoubleArray(n) { i ->
+            if (halfLifeSeconds == null) {
+                1.0
+            } else {
+                0.5.pow((n - 1 - i).toDouble() / halfLifeSeconds.toDouble())
+            }
+        }
 
     // Reject a constant signal up front using the full-window weighted variance.
     if (weightedVariance(x, w, 0, n) < VARIANCE_EPSILON) return null
@@ -51,7 +55,11 @@ internal fun weightedAutoCorrelation(
 }
 
 /** Weighted Pearson correlation of `(x[t], x[t + k])` over the overlapping range. */
-private fun pearsonAtLag(x: DoubleArray, w: DoubleArray, k: Int): Float {
+private fun pearsonAtLag(
+    x: DoubleArray,
+    w: DoubleArray,
+    k: Int,
+): Float {
     val n = x.size
     val m = n - k // number of overlapping pairs
 
@@ -87,7 +95,12 @@ private fun pearsonAtLag(x: DoubleArray, w: DoubleArray, k: Int): Float {
 }
 
 /** Weighted variance of `x` over `[from, to)`. */
-private fun weightedVariance(x: DoubleArray, w: DoubleArray, from: Int, to: Int): Double {
+private fun weightedVariance(
+    x: DoubleArray,
+    w: DoubleArray,
+    from: Int,
+    to: Int,
+): Double {
     var sumW = 0.0
     var sumX = 0.0
     for (t in from until to) {
