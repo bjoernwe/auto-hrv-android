@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
@@ -74,15 +75,17 @@ fun AutoCorrelationChart(
         // Lag 0 is skipped — its correlation is always 1 and would dominate the whole plot.
         val barW = (plotW / maxLag) * 0.7f
         val plotBottom = padT + plotH
+        val barCorner = CornerRadius(barW * 0.35f, barW * 0.35f)
         displayedHistogram.forEachIndexed { i, v ->
             if (i == 0) return@forEachIndexed
             val h = v.coerceIn(0f, 1f) * plotH
             if (h <= 0f) return@forEachIndexed
             val inBand = i.toFloat() in bandLo..bandHi
-            drawRect(
-                color = if (inBand) breath.copy(alpha = 0.30f) else outlineColor.copy(alpha = 0.40f),
+            drawRoundRect(
+                color = if (inBand) breath.copy(alpha = 0.40f) else outlineColor.copy(alpha = 0.15f),
                 topLeft = Offset(xs(i.toFloat()) - barW / 2f, plotBottom - h),
                 size = Size(barW, h),
+                cornerRadius = barCorner,
             )
         }
 
