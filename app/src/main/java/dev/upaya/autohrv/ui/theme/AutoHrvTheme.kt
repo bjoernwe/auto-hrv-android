@@ -26,19 +26,20 @@ val AutoHrvFaint = Color(0xFF5C626C)
 val AutoHrvOutline = Color(0x12FFFFFF)
 val AutoHrvOutlineStrong = Color(0x21FFFFFF)
 
-private val DarkColors = darkColorScheme(
-    primary = AutoHrvBreath,
-    onPrimary = AutoHrvOnBreath,
-    secondary = AutoHrvHeart,
-    onSecondary = AutoHrvOnHeart,
-    background = AutoHrvBg,
-    surface = AutoHrvSurface,
-    surfaceVariant = AutoHrvSurface2,
-    onSurface = AutoHrvOnSurface,
-    onSurfaceVariant = AutoHrvMuted,
-    outline = AutoHrvOutlineStrong,
-    outlineVariant = AutoHrvOutline,
-)
+private val DarkColors =
+    darkColorScheme(
+        primary = AutoHrvBreath,
+        onPrimary = AutoHrvOnBreath,
+        secondary = AutoHrvHeart,
+        onSecondary = AutoHrvOnHeart,
+        background = AutoHrvBg,
+        surface = AutoHrvSurface,
+        surfaceVariant = AutoHrvSurface2,
+        onSurface = AutoHrvOnSurface,
+        onSurfaceVariant = AutoHrvMuted,
+        outline = AutoHrvOutlineStrong,
+        outlineVariant = AutoHrvOutline,
+    )
 
 @Composable
 fun AutoHrvTheme(content: @Composable () -> Unit) {

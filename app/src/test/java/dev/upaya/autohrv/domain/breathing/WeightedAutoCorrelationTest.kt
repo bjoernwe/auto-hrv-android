@@ -12,10 +12,17 @@ import kotlin.random.Random
 class WeightedAutoCorrelationTest {
 
     /** Sine on a 1 Hz grid with a constant offset to mimic RR intervals in ms. */
-    private fun sine(count: Int, periodSeconds: Double, amplitude: Double = 30.0, offset: Double = 800.0) =
-        List(count) { t -> (offset + amplitude * sin(2.0 * PI * t / periodSeconds)).toFloat() }
+    private fun sine(
+        count: Int,
+        periodSeconds: Double,
+        amplitude: Double = 30.0,
+        offset: Double = 800.0,
+    ) = List(count) { t -> (offset + amplitude * sin(2.0 * PI * t / periodSeconds)).toFloat() }
 
-    private fun argmaxLag(acf: List<Float>, range: IntRange) = range.maxByOrNull { acf[it] }!!
+    private fun argmaxLag(
+        acf: List<Float>,
+        range: IntRange,
+    ) = range.maxByOrNull { acf[it] }!!
 
     @Test
     fun `peak lands at the sine period`() {

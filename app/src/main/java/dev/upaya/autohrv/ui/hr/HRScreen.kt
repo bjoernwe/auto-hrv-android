@@ -47,13 +47,14 @@ fun HRScreen(viewModel: HrvViewModel) {
         },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    top = innerPadding.calculateTopPadding() + 8.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 16.dp,
-                ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        top = innerPadding.calculateTopPadding() + 8.dp,
+                        bottom = innerPadding.calculateBottomPadding() + 16.dp,
+                    ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             CouplingHeroCard(
@@ -66,54 +67,56 @@ fun HRScreen(viewModel: HrvViewModel) {
             )
 
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                Spacer(Modifier.height(12.dp))
 
-            Spacer(Modifier.height(12.dp))
+                MetricsRow(
+                    hr = uiState.hr,
+                    hrv = hrv?.let { "%.0f".format(it) },
+                    breathCycleSec = cycleLengthSec.takeIf { it > 0f },
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-            MetricsRow(
-                hr = uiState.hr,
-                hrv = hrv?.let { "%.0f".format(it) },
-                breathCycleSec = cycleLengthSec.takeIf { it > 0f },
-                modifier = Modifier.fillMaxWidth(),
-            )
+                Spacer(Modifier.height(20.dp))
 
-            Spacer(Modifier.height(20.dp))
-
-            val acf = uiState.autoCorrelation
-            val acfReady = acf != null && acf.size >= 2
-            HrvCard {
-                ACFHeader()
-                Spacer(Modifier.height(6.dp))
-                if (acfReady) {
-                    AutoCorrelationChart(
-                        acf = acf,
-                        peakLag = uiState.autoCorrelationPeak
-                            ?.coerceIn(targetCycleLengthRange),
-                        bandLo = targetCycleLengthRange.start,
-                        bandHi = targetCycleLengthRange.endInclusive,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                    )
-                    BandRangeSlider(
-                        value = targetCycleLengthRange,
-                        onValueChange = { viewModel.setTargetCycleLengthRange(it) },
-                        valueRange = 0f..(acf.size - 1).toFloat(),
-                        allowedRange = viewModel.cycleLengthAllowedRange,
-                    )
-                } else {
-                    ChartPlaceholder(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                    )
+                val acf = uiState.autoCorrelation
+                val acfReady = acf != null && acf.size >= 2
+                HrvCard {
+                    ACFHeader()
+                    Spacer(Modifier.height(6.dp))
+                    if (acfReady) {
+                        AutoCorrelationChart(
+                            acf = acf,
+                            peakLag =
+                                uiState.autoCorrelationPeak
+                                    ?.coerceIn(targetCycleLengthRange),
+                            bandLo = targetCycleLengthRange.start,
+                            bandHi = targetCycleLengthRange.endInclusive,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(100.dp),
+                        )
+                        BandRangeSlider(
+                            value = targetCycleLengthRange,
+                            onValueChange = { viewModel.setTargetCycleLengthRange(it) },
+                            valueRange = 0f..(acf.size - 1).toFloat(),
+                            allowedRange = viewModel.cycleLengthAllowedRange,
+                        )
+                    } else {
+                        ChartPlaceholder(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(100.dp),
+                        )
+                    }
                 }
-            }
-
             } // end padded column
         }
     }

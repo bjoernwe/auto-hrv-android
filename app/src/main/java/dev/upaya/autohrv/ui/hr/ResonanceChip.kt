@@ -31,32 +31,45 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun ResonanceChip(isInResonance: Boolean) {
-    val accent = if (isInResonance) MaterialTheme.colorScheme.primary
-                 else MaterialTheme.colorScheme.onSurfaceVariant
-    val background = if (isInResonance) accent.copy(alpha = 0.10f)
-                     else MaterialTheme.colorScheme.surfaceVariant
+    val accent =
+        if (isInResonance) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
+    val background =
+        if (isInResonance) {
+            accent.copy(alpha = 0.10f)
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant
+        }
     Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(background)
-            .padding(6.dp)
-            .padding(end = 4.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(background)
+                .padding(6.dp)
+                .padding(end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         ResonanceBeacon(accent = accent, pulsing = isInResonance)
         Text(
             text = if (isInResonance) "LOCKED" else "TUNING",
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = FontWeight.SemiBold,
-                color = accent,
-            ),
+            style =
+                MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = accent,
+                ),
         )
     }
 }
 
 @Composable
-private fun ResonanceBeacon(accent: Color, pulsing: Boolean) {
+private fun ResonanceBeacon(
+    accent: Color,
+    pulsing: Boolean,
+) {
     val dotSize = 7.dp
     val beaconSize = 18.dp
 
@@ -69,37 +82,45 @@ private fun ResonanceBeacon(accent: Color, pulsing: Boolean) {
 
     val transition = rememberInfiniteTransition(label = "resonance-beacon")
     val glowProgress by transition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2400),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(durationMillis = 2400),
+                repeatMode = RepeatMode.Reverse,
+            ),
         label = "glow",
     )
     val dotScale by transition.animateFloat(
-        initialValue = 0.82f, targetValue = 1.1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2400),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        initialValue = 0.82f,
+        targetValue = 1.1f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(durationMillis = 2400),
+                repeatMode = RepeatMode.Reverse,
+            ),
         label = "dot",
     )
     val ringScale by transition.animateFloat(
-        initialValue = 0.3f, targetValue = 1.4f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2400, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-            initialStartOffset = StartOffset(1200),
-        ),
+        initialValue = 0.3f,
+        targetValue = 1.4f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(durationMillis = 2400, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+                initialStartOffset = StartOffset(1200),
+            ),
         label = "ring-scale",
     )
     val ringAlpha by transition.animateFloat(
-        initialValue = 0.65f, targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2400, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-            initialStartOffset = StartOffset(1200),
-        ),
+        initialValue = 0.65f,
+        targetValue = 0f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(durationMillis = 2400, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+                initialStartOffset = StartOffset(1200),
+            ),
         label = "ring-alpha",
     )
 
@@ -110,10 +131,11 @@ private fun ResonanceBeacon(accent: Color, pulsing: Boolean) {
                 .scale(0.7f + glowProgress * 0.6f)
                 .background(
                     Brush.radialGradient(
-                        colors = listOf(
-                            accent.copy(alpha = 0.45f * (1f - glowProgress * 0.7f)),
-                            Color.Transparent,
-                        ),
+                        colors =
+                            listOf(
+                                accent.copy(alpha = 0.45f * (1f - glowProgress * 0.7f)),
+                                Color.Transparent,
+                            ),
                     ),
                     CircleShape,
                 ),

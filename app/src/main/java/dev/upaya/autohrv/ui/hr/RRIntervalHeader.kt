@@ -56,10 +56,11 @@ internal fun RRIntervalHeader(swing: Int?) {
             ) {
                 Text(
                     text = swing?.let { "$it" } ?: "—",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = accent,
-                    ),
+                    style =
+                        MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = accent,
+                        ),
                 )
                 Text(
                     text = "ms",
@@ -69,11 +70,12 @@ internal fun RRIntervalHeader(swing: Int?) {
             }
             Text(
                 text = "SWING",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.5.sp,
-                    letterSpacing = 0.1.em,
-                    color = faint,
-                ),
+                style =
+                    MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.5.sp,
+                        letterSpacing = 0.1.em,
+                        color = faint,
+                    ),
             )
         }
     }
@@ -106,14 +108,14 @@ internal fun BandRangeSlider(
     val accent = MaterialTheme.colorScheme.primary
     val safeValueRange = if (valueRange.start < valueRange.endInclusive) valueRange else 0f..1f
     val coercedValue =
-        value.start.coerceIn(allowedRange).coerceIn(safeValueRange)..
-        value.endInclusive.coerceIn(allowedRange).coerceIn(safeValueRange)
+        value.start.coerceIn(allowedRange).coerceIn(safeValueRange)..value.endInclusive.coerceIn(allowedRange).coerceIn(safeValueRange)
 
-    val sliderColors = SliderDefaults.colors(
-        thumbColor = accent,
-        activeTrackColor = accent.copy(alpha = 0.38f),
-        inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant,
-    )
+    val sliderColors =
+        SliderDefaults.colors(
+            thumbColor = accent,
+            activeTrackColor = accent.copy(alpha = 0.38f),
+            inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant,
+        )
 
     Column {
         val intSteps = maxOf(0, (safeValueRange.endInclusive - safeValueRange.start).toInt() - 1)
@@ -121,15 +123,16 @@ internal fun BandRangeSlider(
             value = coercedValue,
             onValueChange = { new ->
                 onValueChange(
-                    new.start.coerceIn(allowedRange)..new.endInclusive.coerceIn(allowedRange)
+                    new.start.coerceIn(allowedRange)..new.endInclusive.coerceIn(allowedRange),
                 )
             },
             valueRange = safeValueRange,
             steps = intSteps,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(16.dp)
-                .padding(top = 2.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(16.dp)
+                    .padding(top = 2.dp),
             colors = sliderColors,
             startThumb = { ThumbWithLabel(label = "%.0f".format(coercedValue.start), accent = accent) },
             endThumb = { ThumbWithLabel(label = "%.0f".format(coercedValue.endInclusive), accent = accent) },
@@ -151,7 +154,10 @@ internal fun BandRangeSlider(
 }
 
 @Composable
-private fun ThumbWithLabel(label: String, accent: Color) {
+private fun ThumbWithLabel(
+    label: String,
+    accent: Color,
+) {
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
     Box(
         contentAlignment = Alignment.Center,
@@ -164,10 +170,11 @@ private fun ThumbWithLabel(label: String, accent: Color) {
         )
         Box(contentAlignment = Alignment.Center, modifier = Modifier.size(12.dp)) {
             Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .shadow(2.dp, CircleShape)
-                    .background(accent, CircleShape),
+                modifier =
+                    Modifier
+                        .size(12.dp)
+                        .shadow(2.dp, CircleShape)
+                        .background(accent, CircleShape),
             )
         }
     }

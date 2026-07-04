@@ -54,7 +54,9 @@ internal fun CouplingHeroCard(
     modifier: Modifier = Modifier,
 ) {
     val nowMs by produceState(System.currentTimeMillis()) {
-        while (true) { withFrameMillis { value = System.currentTimeMillis() } }
+        while (true) {
+            withFrameMillis { value = System.currentTimeMillis() }
+        }
     }
 
     val grainBrush = rememberGrainBrush()
@@ -71,12 +73,12 @@ internal fun CouplingHeroCard(
     val animatedMean by animateFloatAsState(
         targetValue = rrStats.mean,
         animationSpec = tween(5000, easing = LinearEasing),
-        label = "rr-mean"
+        label = "rr-mean",
     )
     val animatedHalfRange by animateFloatAsState(
         targetValue = rrStats.halfRange,
         animationSpec = tween(5000, easing = LinearEasing),
-        label = "rr-half-range"
+        label = "rr-half-range",
     )
 
     val breathColor = MaterialTheme.colorScheme.primary
@@ -94,25 +96,28 @@ internal fun CouplingHeroCard(
         Spacer(Modifier.height(10.dp))
 
         Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(180.dp),
         ) {
-            val geom = ChartGeometry(
-                size = size,
-                padTop = 8.dp.toPx(),
-                padBottom = 22.dp.toPx(),
-                dotGap = 5.dp.toPx(),
-                nowMs = nowMs,
-                windowMs = windowMs,
-            )
+            val geom =
+                ChartGeometry(
+                    size = size,
+                    padTop = 8.dp.toPx(),
+                    padBottom = 22.dp.toPx(),
+                    dotGap = 5.dp.toPx(),
+                    nowMs = nowMs,
+                    windowMs = windowMs,
+                )
 
             drawTimeGrid(geom)
 
             val visibleBreath = breathSamples.filter { nowMs - it.tMillis <= windowMs }
-            val breathPoints = visibleBreath.map { s ->
-                Offset(geom.xFor(s.tMillis), geom.midY - (s.value * 2f - 1f) * geom.breathAmp)
-            }
+            val breathPoints =
+                visibleBreath.map { s ->
+                    Offset(geom.xFor(s.tMillis), geom.midY - (s.value * 2f - 1f) * geom.breathAmp)
+                }
             // Stroke stops dotGap short of the edge so the now-dot's glow stays on-screen.
             val strokePoints = trimAtX(breathPoints, cutX = size.width - geom.dotGap)
 
@@ -146,19 +151,21 @@ private fun CouplingHeader(
     val phaseLabelColor = lerp(onSurface.copy(alpha = 0.2f), breathColor, animatedBreathValue)
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 18.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ResonanceChip(isInResonance = isInResonance)
         Spacer(Modifier.weight(1f))
         Text(
             text = if (currentPhase == BreathingPhase.Inhale) "inhale" else "exhale",
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.SemiBold,
-                color = phaseLabelColor,
-            ),
+            style =
+                MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = phaseLabelColor,
+                ),
         )
     }
 }
@@ -184,7 +191,10 @@ private class ChartGeometry(
     fun xFor(t: Long) = (1f - (nowMs - t).toFloat() / windowMs) * plotW
 }
 
-private data class RrStats(val mean: Float, val halfRange: Float)
+private data class RrStats(
+    val mean: Float,
+    val halfRange: Float,
+)
 
 private fun rrStats(rrSamples: List<Sample>): RrStats {
     val rrValues = rrSamples.map { it.value }
@@ -201,25 +211,30 @@ private fun rrStats(rrSamples: List<Sample>): RrStats {
  * Truncates a polyline at [cutX]: keeps points left of the cut and interpolates the exact
  * crossing so the stroke — and the now-dot riding on its endpoint — end at the same spot.
  */
-private fun trimAtX(points: List<Offset>, cutX: Float): List<Offset> = buildList {
-    for (i in points.indices) {
-        val p = points[i]
-        if (p.x <= cutX) {
-            add(p)
-        } else {
-            val prev = points.getOrNull(i - 1)
-            if (prev != null && prev.x < cutX) {
-                val frac = (cutX - prev.x) / (p.x - prev.x)
-                add(Offset(cutX, prev.y + (p.y - prev.y) * frac))
+private fun trimAtX(
+    points: List<Offset>,
+    cutX: Float,
+): List<Offset> =
+    buildList {
+        for (i in points.indices) {
+            val p = points[i]
+            if (p.x <= cutX) {
+                add(p)
+            } else {
+                val prev = points.getOrNull(i - 1)
+                if (prev != null && prev.x < cutX) {
+                    val frac = (cutX - prev.x) / (p.x - prev.x)
+                    add(Offset(cutX, prev.y + (p.y - prev.y) * frac))
+                }
+                break
             }
-            break
         }
     }
-}
 
-private fun polylinePath(points: List<Offset>) = Path().apply {
-    points.forEachIndexed { i, p -> if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y) }
-}
+private fun polylinePath(points: List<Offset>) =
+    Path().apply {
+        points.forEachIndexed { i, p -> if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y) }
+    }
 
 // --- Drawing stages ---------------------------------------------------------
 
@@ -247,24 +262,26 @@ private fun DrawScope.drawBreathTrace(
 ) {
     // Area fill uses the untruncated points and is held flat out to the true right edge,
     // so the gradient never leaves a black gap even where the stroke has pulled back.
-    val breathAreaPath = Path().apply {
-        if (breathPoints.size <= 2) {
-            return@apply
+    val breathAreaPath =
+        Path().apply {
+            if (breathPoints.size <= 2) {
+                return@apply
+            }
+            val firstX = breathPoints.first().x
+            breathPoints.forEachIndexed { i, p -> if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y) }
+            lineTo(size.width, breathPoints.last().y)
+            lineTo(size.width, geom.padTop + geom.plotH)
+            lineTo(firstX, geom.padTop + geom.plotH)
+            close()
         }
-        val firstX = breathPoints.first().x
-        breathPoints.forEachIndexed { i, p -> if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y) }
-        lineTo(size.width, breathPoints.last().y)
-        lineTo(size.width, geom.padTop + geom.plotH)
-        lineTo(firstX, geom.padTop + geom.plotH)
-        close()
-    }
     drawPath(
         path = breathAreaPath,
-        brush = Brush.verticalGradient(
-            colors = listOf(breathColor.copy(alpha = 0.18f), breathColor.copy(alpha = 0f)),
-            startY = geom.midY - geom.breathAmp,
-            endY = geom.padTop + geom.plotH,
-        ),
+        brush =
+            Brush.verticalGradient(
+                colors = listOf(breathColor.copy(alpha = 0.18f), breathColor.copy(alpha = 0f)),
+                startY = geom.midY - geom.breathAmp,
+                endY = geom.padTop + geom.plotH,
+            ),
     )
     clipPath(breathAreaPath) {
         drawRect(brush = grainBrush, blendMode = BlendMode.Overlay)
@@ -287,14 +304,16 @@ private fun DrawScope.drawHeartTrace(
 ) {
     // Keep a point if it or its successor is on-screen so no segment is dropped prematurely.
     // Time-based heuristics fail for irregular gaps, so we check x directly.
-    val visibleRr = rrSamples.filterIndexed { i, s ->
-        geom.xFor(s.tMillis) >= 0f || (i + 1 < rrSamples.size && geom.xFor(rrSamples[i + 1].tMillis) >= 0f)
-    }
+    val visibleRr =
+        rrSamples.filterIndexed { i, s ->
+            geom.xFor(s.tMillis) >= 0f || (i + 1 < rrSamples.size && geom.xFor(rrSamples[i + 1].tMillis) >= 0f)
+        }
     if (visibleRr.size < 2) return
 
-    val heartPoints = visibleRr.map { s ->
-        s.tMillis to Offset(geom.xFor(s.tMillis), geom.midY - norm(s.value) * geom.heartAmp)
-    }
+    val heartPoints =
+        visibleRr.map { s ->
+            s.tMillis to Offset(geom.xFor(s.tMillis), geom.midY - norm(s.value) * geom.heartAmp)
+        }
     val heartPath = smoothPath(heartPoints.map { it.second })
 
     val heartBright = lerp(heartColor, Color.White, lockStrength * 0.35f)
@@ -306,11 +325,12 @@ private fun DrawScope.drawHeartTrace(
     drawPath(
         path = heartPath,
         color = heartBright,
-        style = Stroke(
-            width = (1.8f + lockStrength * 0.6f).dp.toPx(),
-            cap = StrokeCap.Round,
-            join = StrokeJoin.Round,
-        ),
+        style =
+            Stroke(
+                width = (1.8f + lockStrength * 0.6f).dp.toPx(),
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round,
+            ),
     )
     for ((t, pt) in heartPoints) {
         val ageFrac = (geom.nowMs - t).toFloat() / geom.windowMs
@@ -320,29 +340,37 @@ private fun DrawScope.drawHeartTrace(
 }
 
 /** White bloom at lock. */
-private fun DrawScope.drawLockBloom(geom: ChartGeometry, lockStrength: Float) {
+private fun DrawScope.drawLockBloom(
+    geom: ChartGeometry,
+    lockStrength: Float,
+) {
     if (lockStrength <= 0.02f) return
     val bloomCenter = Offset(geom.plotW * 0.72f, geom.midY)
     drawCircle(
-        brush = Brush.radialGradient(
-            colors = listOf(Color.White.copy(alpha = lockStrength * 0.09f), Color.Transparent),
-            center = bloomCenter,
-            radius = geom.plotW * 0.55f,
-        ),
+        brush =
+            Brush.radialGradient(
+                colors = listOf(Color.White.copy(alpha = lockStrength * 0.09f), Color.Transparent),
+                center = bloomCenter,
+                radius = geom.plotW * 0.55f,
+            ),
         radius = geom.plotW * 0.55f,
         center = bloomCenter,
     )
 }
 
 /** Left-edge fade overlay — masks entering curve segments cleanly regardless of gap size. */
-private fun DrawScope.drawLeftEdgeFade(geom: ChartGeometry, backgroundColor: Color) {
+private fun DrawScope.drawLeftEdgeFade(
+    geom: ChartGeometry,
+    backgroundColor: Color,
+) {
     val fadeWidth = geom.plotW * 0.2f
     drawRect(
-        brush = Brush.horizontalGradient(
-            colors = listOf(backgroundColor, Color.Transparent),
-            startX = 0f,
-            endX = fadeWidth,
-        ),
+        brush =
+            Brush.horizontalGradient(
+                colors = listOf(backgroundColor, Color.Transparent),
+                startX = 0f,
+                endX = fadeWidth,
+            ),
         topLeft = Offset(0f, geom.padTop),
         size = Size(fadeWidth, geom.plotH),
     )
@@ -389,18 +417,22 @@ private const val GRAIN_SHADER_SRC = """
 """
 
 @Composable
-private fun rememberGrainBrush(intensity: Float = 0.3f): Brush = remember(intensity) {
-    ShaderBrush(
-        RuntimeShader(GRAIN_SHADER_SRC).apply {
-            setFloatUniform("time", 0f)
-            setFloatUniform("intensity", intensity)
-        },
-    )
-}
+private fun rememberGrainBrush(intensity: Float = 0.3f): Brush =
+    remember(intensity) {
+        ShaderBrush(
+            RuntimeShader(GRAIN_SHADER_SRC).apply {
+                setFloatUniform("time", 0f)
+                setFloatUniform("intensity", intensity)
+            },
+        )
+    }
 
 // --- Previews ----------------------------------------------------------------
 
-private fun previewBreathSamples(sampleRateHz: Int = 4, windowMs: Long = 22_000L): List<Sample> {
+private fun previewBreathSamples(
+    sampleRateHz: Int = 4,
+    windowMs: Long = 22_000L,
+): List<Sample> {
     val now = System.currentTimeMillis()
     val count = sampleRateHz * (windowMs / 1000).toInt()
     val intervalMs = 1000L / sampleRateHz
