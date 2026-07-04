@@ -70,6 +70,19 @@ class BreathingBusiness
                     )
                 }.stateIn(scope, SharingStarted.Eagerly, null)
 
+        // Session-accumulated ACF "histogram": every emitted ACF summed element-wise and shaped
+        // into per-lag heights in [0, 1] for the chart background.
+        val acfHistogram: StateFlow<List<Float>> =
+            stats
+                .map { it?.resampledRrsStats?.autoCorrelation }
+                .accumulatedAcfHistogram(
+                    breathingConfig.acfHistogramHalfLifeSeconds,
+                    breathingConfig.acfHistogramIgnoredLeadingLags,
+                    breathingConfig.acfHistogramExpGain,
+                    breathingConfig.acfHistogramSigmoidSteepness,
+                    breathingConfig.acfHistogramSigmoidMidpoint,
+                ).stateIn(scope, SharingStarted.Eagerly, emptyList())
+
         private val initialBreathingPattern = breathingConfig.defaultPattern()
 
         private val smoothedTargetCycleLength: Flow<Float> =

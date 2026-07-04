@@ -92,6 +92,7 @@ fun HRScreen(viewModel: HrvViewModel) {
                     if (acfReady) {
                         AutoCorrelationChart(
                             acf = acf,
+                            histogram = uiState.acfHistogram,
                             peakLag =
                                 uiState.autoCorrelationPeak
                                     ?.coerceIn(targetCycleLengthRange),
