@@ -6,8 +6,8 @@ data class BreathingConfig(
     val acfHalfLifeSeconds: Float?,
     val inOutBias: Float,
     val initialCycleLength: Float,
-    val initialCycleLengthRange: ClosedFloatingPointRange<Float>,
-    val maxCycleLengthRange: ClosedFloatingPointRange<Float>,
+    val initialCycleLengthRange: IntRange,
+    val maxCycleLengthRange: IntRange,
     val targetCycleLengthSmoothingWindow: Int,
     val resonancePeakToleranceSeconds: Float,
     val resonanceMinPeakValue: Float,
@@ -19,7 +19,7 @@ data class BreathingConfig(
     val acfHistogramIgnoredLeadingLags: Int,
 ) {
     init {
-        require(acfMaxLagSeconds >= maxCycleLengthRange.endInclusive) {
+        require(acfMaxLagSeconds >= maxCycleLengthRange.last) {
             "acfMaxLagSeconds must cover the whole cycle-length search range"
         }
         // Needs headroom above the longest lag so the shortest-overlap estimate stays reliable.
@@ -38,8 +38,8 @@ data class BreathingConfig(
                 acfHalfLifeSeconds = 12f,
                 inOutBias = 0f,
                 initialCycleLength = 8f,
-                initialCycleLengthRange = 6f..10f,
-                maxCycleLengthRange = 4f..20f,
+                initialCycleLengthRange = 6..10,
+                maxCycleLengthRange = 4..20,
                 targetCycleLengthSmoothingWindow = 40,
                 resonancePeakToleranceSeconds = 1.5f,
                 resonanceMinPeakValue = 0.35f,

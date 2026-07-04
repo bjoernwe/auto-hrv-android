@@ -85,44 +85,51 @@ fun HRScreen(viewModel: HrvViewModel) {
 
                 Spacer(Modifier.height(20.dp))
 
-            val acf = uiState.autoCorrelation
-            val acfReady = acf != null && acf.size >= 2
-            HrvCard {
-                ACFHeader()
-                Spacer(Modifier.height(6.dp))
-                if (acfReady) {
-                    AutoCorrelationChart(
-                        acf = acf,
-                        histogram = uiState.acfHistogram,peakLag = uiState.autoCorrelationPeak
-                            ?.coerceIn(targetCycleLengthRange),
-                        bandLo = targetCycleLengthRange.start,
-                        bandHi = targetCycleLengthRange.endInclusive,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                    )
-                    BandRangeSlider(
-                        value = targetCycleLengthRange,
-                        onValueChange = { viewModel.setTargetCycleLengthRange(it) },
-                        valueRange = 0f..(acf.size - 1).toFloat(),
-                        allowedRange = viewModel.cycleLengthAllowedRange,
-                    )
-                } else {
-                    ChartPlaceholder(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp),
-                    )
+                val acf = uiState.autoCorrelation
+                val acfReady = acf != null && acf.size >= 2
+                HrvCard {
+                    ACFHeader()
+                    Spacer(Modifier.height(6.dp))
+                    if (acfReady) {
+                        AutoCorrelationChart(
+                            acf = acf,
+                            histogram = uiState.acfHistogram,
+                            peakLag =
+                                uiState.autoCorrelationPeak
+                                    ?.coerceIn(
+                                        targetCycleLengthRange.first.toFloat(),
+                                        targetCycleLengthRange.last.toFloat(),
+                                    ),
+                            bandLo = targetCycleLengthRange.first.toFloat(),
+                            bandHi = targetCycleLengthRange.last.toFloat(),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(100.dp),
+                        )
+                        BandRangeSlider(
+                            value = targetCycleLengthRange,
+                            onValueChange = { viewModel.setTargetCycleLengthRange(it) },
+                            valueRange = 0..(acf.size - 1),
+                            allowedRange = viewModel.cycleLengthAllowedRange,
+                        )
+                    } else {
+                        ChartPlaceholder(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(100.dp),
+                        )
+                    }
                 }
-            }
 
-            Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(20.dp))
 
-            InOutBiasCard(
-                bias = targetInOutBias,
-                onBiasChange = { viewModel.setTargetInOutBias(it) },
-                modifier = Modifier.fillMaxWidth(),
-            )
+                InOutBiasCard(
+                    bias = targetInOutBias,
+                    onBiasChange = { viewModel.setTargetInOutBias(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             } // end padded column
         }
     }
