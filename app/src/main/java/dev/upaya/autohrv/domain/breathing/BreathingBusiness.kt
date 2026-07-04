@@ -31,11 +31,11 @@ class BreathingBusiness
     ) {
         private val breathingConfig = BreathingConfig.DEFAULT
 
-        private val _targetOutToInRatio = MutableStateFlow(breathingConfig.outToInRatio)
-        val targetOutToInRatio: StateFlow<Float> = _targetOutToInRatio
+        private val _targetInOutBias = MutableStateFlow(breathingConfig.inOutBias)
+        val targetInOutBias: StateFlow<Float> = _targetInOutBias
 
-        fun setTargetOutToInRatio(ratio: Float) {
-            _targetOutToInRatio.value = ratio
+        fun setTargetInOutBias(bias: Float) {
+            _targetInOutBias.value = bias
         }
 
         val cycleLengthAllowedRange: ClosedFloatingPointRange<Float> = breathingConfig.maxCycleLengthRange
@@ -93,8 +93,8 @@ class BreathingBusiness
                 .map { window -> window.reduce { a, b -> a + b } / window.size.toFloat() }
 
         private val targetBreathingPattern: StateFlow<BreathingPattern> =
-            combine(smoothedTargetCycleLength, targetOutToInRatio) { cl, ratio ->
-                BreathingPattern(ratio, cl)
+            combine(smoothedTargetCycleLength, targetInOutBias) { cl, bias ->
+                BreathingPattern(bias, cl)
             }.stateIn(scope, SharingStarted.Eagerly, initialBreathingPattern)
 
         private val pacerOutput = breathingPacerUseCase(scope, targetBreathingPattern)

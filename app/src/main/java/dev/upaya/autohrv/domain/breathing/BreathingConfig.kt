@@ -4,7 +4,7 @@ data class BreathingConfig(
     val acfWindowSeconds: Int,
     val acfMaxLagSeconds: Int,
     val acfHalfLifeSeconds: Float?,
-    val outToInRatio: Float,
+    val inOutBias: Float,
     val initialCycleLength: Float,
     val initialCycleLengthRange: ClosedFloatingPointRange<Float>,
     val maxCycleLengthRange: ClosedFloatingPointRange<Float>,
@@ -36,7 +36,7 @@ data class BreathingConfig(
                 acfWindowSeconds = 35,
                 acfMaxLagSeconds = 20,
                 acfHalfLifeSeconds = 12f,
-                outToInRatio = 1f,
+                inOutBias = 0f,
                 initialCycleLength = 8f,
                 initialCycleLengthRange = 6f..10f,
                 maxCycleLengthRange = 4f..20f,
@@ -60,4 +60,4 @@ data class BreathingConfig(
     }
 }
 
-fun BreathingConfig.defaultPattern() = BreathingPattern(outToInRatio, initialCycleLength)
+fun BreathingConfig.defaultPattern() = BreathingPattern(inOutBias, initialCycleLength)
