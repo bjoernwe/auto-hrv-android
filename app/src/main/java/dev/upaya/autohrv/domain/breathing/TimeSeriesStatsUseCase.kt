@@ -31,19 +31,19 @@ internal class TimeSeriesStatsUseCase
          *   [BeatRrsStats.rmssd], which would be biased by the zero-order-hold resampling of
          *   [resampledRrsMs].
          * @param cycleLengthRange the lag range (seconds) searched for the breathing-cycle peak.
-         * @param maxLagSeconds highest lag computed for the autocorrelation curve.
-         * @param halfLifeSeconds recency half-life for the autocorrelation; `null` = uniform weights.
+         * @param config supplies [BreathingConfig.acfMaxLagSeconds] (highest lag computed for the
+         *   autocorrelation curve) and [BreathingConfig.acfHalfLifeSeconds] (recency half-life;
+         *   `null` = uniform weights).
          */
         operator fun invoke(
             resampledRrsMs: Flow<List<Int>>,
             beatRrsMs: Flow<List<Int>>,
             cycleLengthRange: IntRange,
-            maxLagSeconds: Int,
-            halfLifeSeconds: Float?,
+            config: BreathingConfig,
         ): Flow<TimeSeriesStats> {
             val resampledStats =
                 resampledRrsMs.map { ts ->
-                    val acf = weightedAutoCorrelation(ts.map { it.toFloat() }, maxLagSeconds, halfLifeSeconds)
+                    val acf = weightedAutoCorrelation(ts.map { it.toFloat() }, config.acfMaxLagSeconds, config.acfHalfLifeSeconds)
                     ResampledRrsStats(
                         autoCorrelation = acf,
                         autoCorrelationPeak = acf?.let { findBreathingCycleLength(it, cycleLengthRange) },

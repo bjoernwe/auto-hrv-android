@@ -43,25 +43,22 @@ internal fun accumulateAcf(
  */
 internal fun shapeAcfHistogram(
     sums: List<Float>,
-    ignoredLeadingLags: Int,
-    expGain: Float,
-    sigmoidSteepness: Float,
-    sigmoidMidpoint: Float,
+    config: BreathingConfig,
 ): List<Float> {
     if (sums.isEmpty()) return sums
     val lagsBeyondZero = sums.drop(1)
     if (lagsBeyondZero.isEmpty()) return List(sums.size) { 0f }
 
     // Leave at least one lag to establish the range even if ignoredLeadingLags covers everything.
-    val effectiveIgnored = ignoredLeadingLags.coerceIn(0, lagsBeyondZero.size - 1)
+    val effectiveIgnored = config.acfHistogramIgnoredLeadingLags.coerceIn(0, lagsBeyondZero.size - 1)
     val normRange = lagsBeyondZero.drop(effectiveIgnored)
     val capped = lagsBeyondZero.normalizeMinMax(normRange.min(), normRange.max())
 
     val shaped =
         capped
-            .map { exp(expGain * it) }
+            .map { exp(config.acfHistogramExpGain * it) }
             .normalizeMinMax()
-            .map { sigmoid(sigmoidSteepness * (it - sigmoidMidpoint)) }
+            .map { sigmoid(config.acfHistogramSigmoidSteepness * (it - config.acfHistogramSigmoidMidpoint)) }
     return listOf(0f) + shaped
 }
 
@@ -72,20 +69,16 @@ private fun sigmoid(x: Float): Float = 1f / (1f + exp(-x))
  * sums into histogram heights. `null` values (no ACF yet) are ignored, and consecutive identical
  * ACFs are deduplicated so slider-driven recomputations of the same window are not double-counted.
  *
- * [halfLifeSeconds], if non-null, decays older emissions so the histogram tracks the recent
- * session rather than accumulating indefinitely. Emissions arrive roughly once per second (after
- * dedup), so the half-life in seconds roughly matches the half-life in emissions.
+ * [BreathingConfig.acfHistogramHalfLifeSeconds], if non-null, decays older emissions so the
+ * histogram tracks the recent session rather than accumulating indefinitely. Emissions arrive
+ * roughly once per second (after dedup), so the half-life in seconds roughly matches the
+ * half-life in emissions.
  */
-internal fun Flow<List<Float>?>.accumulatedAcfHistogram(
-    halfLifeSeconds: Float?,
-    ignoredLeadingLags: Int,
-    expGain: Float,
-    sigmoidSteepness: Float,
-    sigmoidMidpoint: Float,
-): Flow<List<Float>> {
+internal fun Flow<List<Float>?>.accumulatedAcfHistogram(config: BreathingConfig): Flow<List<Float>> {
+    val halfLifeSeconds = config.acfHistogramHalfLifeSeconds
     val decay = if (halfLifeSeconds == null) 1f else 0.5f.pow(1f / halfLifeSeconds)
     return mapNotNull { it }
         .distinctUntilChanged()
         .scan(emptyList<Float>()) { acc, acf -> accumulateAcf(acc, acf, decay) }
-        .map { shapeAcfHistogram(it, ignoredLeadingLags, expGain, sigmoidSteepness, sigmoidMidpoint) }
+        .map { shapeAcfHistogram(it, config) }
 }
