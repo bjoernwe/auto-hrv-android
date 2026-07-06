@@ -150,6 +150,7 @@ class HrvViewModel
         val targetCycleLengthRange: StateFlow<IntRange> = breathingBusiness.targetCycleLengthRange
         val cycleLengthAllowedRange: IntRange = breathingBusiness.cycleLengthAllowedRange
         val targetInOutBias: StateFlow<Float> = breathingBusiness.targetInOutBias
+        val isSweeping: StateFlow<Boolean> = breathingBusiness.isSweeping
 
         fun connect() = hrvRepository.connect()
 
@@ -158,4 +159,6 @@ class HrvViewModel
         fun setTargetCycleLengthRange(range: IntRange) = breathingBusiness.setTargetCycleLengthRange(range)
 
         fun setTargetInOutBias(bias: Float) = breathingBusiness.setTargetInOutBias(bias)
+
+        fun toggleSweep() = breathingBusiness.toggleSweep()
     }

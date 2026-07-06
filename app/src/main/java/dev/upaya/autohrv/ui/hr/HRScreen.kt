@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +29,7 @@ fun HRScreen(viewModel: HrvViewModel) {
     val rrSamples by viewModel.rrSamples.collectAsStateWithLifecycle()
     val targetCycleLengthRange by viewModel.targetCycleLengthRange.collectAsStateWithLifecycle()
     val targetInOutBias by viewModel.targetInOutBias.collectAsStateWithLifecycle()
+    val isSweeping by viewModel.isSweeping.collectAsStateWithLifecycle()
 
     val view = LocalView.current
     DisposableEffect(Unit) {
@@ -112,6 +115,7 @@ fun HRScreen(viewModel: HrvViewModel) {
                             onValueChange = { viewModel.setTargetCycleLengthRange(it) },
                             valueRange = 0..(acf.size - 1),
                             allowedRange = viewModel.cycleLengthAllowedRange,
+                            enabled = !isSweeping,
                         )
                     } else {
                         ChartPlaceholder(
@@ -130,6 +134,15 @@ fun HRScreen(viewModel: HrvViewModel) {
                     onBiasChange = { viewModel.setTargetInOutBias(it) },
                     modifier = Modifier.fillMaxWidth(),
                 )
+
+                Spacer(Modifier.height(20.dp))
+
+                Button(
+                    onClick = { viewModel.toggleSweep() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (isSweeping) "Stop sweep" else "Sweep")
+                }
             } // end padded column
         }
     }
