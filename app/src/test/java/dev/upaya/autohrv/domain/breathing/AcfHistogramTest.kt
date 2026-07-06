@@ -9,11 +9,9 @@ import org.junit.Test
 
 class AcfHistogramTest {
 
-    private val expGain = BreathingConfig.DEFAULT.acfHistogramExpGain
-    private val steepness = BreathingConfig.DEFAULT.acfHistogramSigmoidSteepness
-    private val midpoint = BreathingConfig.DEFAULT.acfHistogramSigmoidMidpoint
+    private val defaultConfig = BreathingConfig.DEFAULT.copy(acfHistogramIgnoredLeadingLags = 0)
 
-    private fun shape(sums: List<Float>) = shapeAcfHistogram(sums, ignoredLeadingLags = 0, expGain, steepness, midpoint)
+    private fun shape(sums: List<Float>) = shapeAcfHistogram(sums, defaultConfig)
 
     // --- accumulateAcf ---
 
@@ -60,7 +58,7 @@ class AcfHistogramTest {
     @Test
     fun `ignored leading lags are capped into range instead of zeroed`() {
         val sums = listOf(0f, 100f, 90f, 0.1f, 0.5f, 1f) // lag 0 placeholder, then lags 1-5
-        val out = shapeAcfHistogram(sums, ignoredLeadingLags = 2, expGain, steepness, midpoint)
+        val out = shapeAcfHistogram(sums, defaultConfig.copy(acfHistogramIgnoredLeadingLags = 2))
         assertEquals(0f, out[0], 1e-6f)
         // Lags 1-2 are excluded from establishing the range (which is set by lags 3-5) but are
         // capped to its ceiling rather than dropped, so they read as "at least as tall as the
@@ -74,7 +72,7 @@ class AcfHistogramTest {
 
     @Test
     fun `ignoredLeadingLags beyond available lags is clamped to leave a normalization range`() {
-        val out = shapeAcfHistogram(listOf(0f, 1f, 2f, 3f), ignoredLeadingLags = 10, expGain, steepness, midpoint)
+        val out = shapeAcfHistogram(listOf(0f, 1f, 2f, 3f), defaultConfig.copy(acfHistogramIgnoredLeadingLags = 10))
         assertEquals(0f, out[0], 1e-6f)
         // Clamped to leave the last lag as the (degenerate, single-element) range, so the rest
         // collapse to the same neutral shape instead of crashing or vanishing.
@@ -133,7 +131,7 @@ class AcfHistogramTest {
                     listOf(1f, 0f, 0f),
                     listOf(0f, 1f, 0f),
                     listOf(0f, 0f, 1f),
-                ).accumulatedAcfHistogram(null, 0, expGain, steepness, midpoint).toList()
+                ).accumulatedAcfHistogram(defaultConfig.copy(acfHistogramHalfLifeSeconds = null)).toList()
 
             // scan seeds with the empty accumulator, then one emission per input.
             assertEquals(4, results.size)
@@ -154,12 +152,12 @@ class AcfHistogramTest {
                     listOf(1f, 0f, 0f),
                     listOf(1f, 0f, 0f),
                     listOf(1f, 0f, 0f),
-                ).accumulatedAcfHistogram(null, 0, expGain, steepness, midpoint).toList()
+                ).accumulatedAcfHistogram(defaultConfig.copy(acfHistogramHalfLifeSeconds = null)).toList()
 
             val single =
                 flowOf<List<Float>?>(
                     listOf(1f, 0f, 0f),
-                ).accumulatedAcfHistogram(null, 0, expGain, steepness, midpoint).toList()
+                ).accumulatedAcfHistogram(defaultConfig.copy(acfHistogramHalfLifeSeconds = null)).toList()
 
             // Duplicates collapse via distinctUntilChanged: same accumulated result as a single emit.
             assertEquals(single.last(), repeated.last())
@@ -173,7 +171,7 @@ class AcfHistogramTest {
                     null,
                     null,
                     listOf(2f, 1f, 0f),
-                ).accumulatedAcfHistogram(null, 0, expGain, steepness, midpoint).toList()
+                ).accumulatedAcfHistogram(defaultConfig.copy(acfHistogramHalfLifeSeconds = null)).toList()
 
             // Only the initial empty seed and the single real emission survive.
             assertEquals(2, results.size)
@@ -192,7 +190,7 @@ class AcfHistogramTest {
                     listOf(0f, 1f, 0f),
                     listOf(0f, 1f, 0f),
                     listOf(0f, 0f, 1f),
-                ).accumulatedAcfHistogram(1f, 0, expGain, steepness, midpoint).toList()
+                ).accumulatedAcfHistogram(defaultConfig.copy(acfHistogramHalfLifeSeconds = 1f)).toList()
 
             val last = results.last()
             assertTrue("recent lag should outshine the decayed history: $last", last[2] > last[1])
