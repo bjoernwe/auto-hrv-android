@@ -66,8 +66,7 @@ class BreathingBusiness
                         rrsMsHistory,
                         rrsMsBeatHistory,
                         range,
-                        breathingConfig.acfMaxLagSeconds,
-                        breathingConfig.acfHalfLifeSeconds,
+                        breathingConfig,
                     )
                 }.stateIn(scope, SharingStarted.Eagerly, null)
 
@@ -76,13 +75,8 @@ class BreathingBusiness
         val acfHistogram: StateFlow<List<Float>> =
             stats
                 .map { it?.resampledRrsStats?.autoCorrelation }
-                .accumulatedAcfHistogram(
-                    breathingConfig.acfHistogramHalfLifeSeconds,
-                    breathingConfig.acfHistogramIgnoredLeadingLags,
-                    breathingConfig.acfHistogramExpGain,
-                    breathingConfig.acfHistogramSigmoidSteepness,
-                    breathingConfig.acfHistogramSigmoidMidpoint,
-                ).stateIn(scope, SharingStarted.Eagerly, emptyList())
+                .accumulatedAcfHistogram(breathingConfig)
+                .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
         private val initialBreathingPattern = breathingConfig.defaultPattern()
 
@@ -127,13 +121,12 @@ class BreathingBusiness
         // Seconds by which the RR response lags behind the breath signal (positive = heart follows breath).
         val lagSeconds: StateFlow<Float?> =
             combine(breathHistory, rrsMsHistory) { breath, rr ->
-                computeLag(breath, rr, breathingConfig.maxCycleLengthRange.last.toFloat())
+                computeLag(breath, rr)
             }.stateIn(scope, SharingStarted.Eagerly, null)
 
         private fun computeLag(
             breath: List<Float>,
             rr: List<Int>,
-            maxCycleLengthSeconds: Float,
         ): Float? {
             val n = minOf(breath.size, rr.size)
             if (n < 4) return null
@@ -145,7 +138,7 @@ class BreathingBusiness
             val rNorm = r.map { it.toFloat() - rMean }
             // RR is anti-phase to breath (HR rises on inhale → RR drops), so correlate breath vs –RR.
             // Peak at lag τ means the heart responds τ seconds after the breath signal.
-            val maxLag = maxCycleLengthSeconds.toInt().coerceAtMost(n / 2)
+            val maxLag = breathingConfig.maxCycleLengthRange.last.coerceAtMost(n / 2)
             return (0..maxLag)
                 .maxByOrNull { lag ->
                     (0 until n - lag).sumOf { t -> (bNorm[t] * (-rNorm[t + lag])).toDouble() }
