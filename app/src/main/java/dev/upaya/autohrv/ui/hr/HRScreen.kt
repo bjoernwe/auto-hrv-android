@@ -114,7 +114,6 @@ fun HRScreen(viewModel: HrvViewModel) {
                             onValueChange = { viewModel.setTargetCycleLengthRange(it) },
                             valueRange = 0..(acf.size - 1),
                             allowedRange = viewModel.cycleLengthAllowedRange,
-                            enabled = !isExerciseRunning,
                         )
                     } else {
                         ChartPlaceholder(
