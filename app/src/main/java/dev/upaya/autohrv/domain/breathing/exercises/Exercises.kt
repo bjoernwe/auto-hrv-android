@@ -17,7 +17,7 @@ class Exercises
         @param:ApplicationScope private val scope: CoroutineScope,
         private val business: BreathingBusiness,
     ) {
-        private val _selectedExercise = MutableStateFlow<Exercise>(SlowResonance)
+        private val _selectedExercise = MutableStateFlow<Exercise>(FreeRange)
         val selectedExercise: StateFlow<Exercise> = _selectedExercise
 
         private val _isRunning = MutableStateFlow(false)
