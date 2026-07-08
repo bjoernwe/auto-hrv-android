@@ -8,6 +8,6 @@ sealed interface Exercise {
     suspend fun run(business: BreathingBusiness)
 
     companion object {
-        val all: List<Exercise> = listOf(FreeRange, SlowResonance, NonResonance, FastResonance, Sweep)
+        val all: List<Exercise> = listOf(FastResonance, NonResonance, SlowResonance, Sweep, FreeRange)
     }
 }
