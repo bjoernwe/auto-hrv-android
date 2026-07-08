@@ -10,8 +10,8 @@ import dev.upaya.autohrv.domain.breathing.BreathingConfig
 import dev.upaya.autohrv.domain.breathing.BreathingPattern
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
 import dev.upaya.autohrv.domain.breathing.BreathingPhaseStart
-import dev.upaya.autohrv.domain.breathing.Exercise
-import dev.upaya.autohrv.domain.breathing.Exercises
+import dev.upaya.autohrv.domain.breathing.exercises.Exercise
+import dev.upaya.autohrv.domain.breathing.exercises.Exercises
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

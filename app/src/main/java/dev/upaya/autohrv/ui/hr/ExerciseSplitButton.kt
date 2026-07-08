@@ -22,7 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
-import dev.upaya.autohrv.domain.breathing.Exercise
+import dev.upaya.autohrv.domain.breathing.exercises.Exercise
 
 // SplitButtonLayout measures its leading/trailing buttons with loose constraints and only
 // stretches its own outer bounds to fill available width, leaving the buttons at their natural
