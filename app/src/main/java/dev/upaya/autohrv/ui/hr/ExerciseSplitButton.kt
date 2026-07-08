@@ -24,8 +24,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
 import dev.upaya.autohrv.domain.breathing.Exercise
 
-private val EXERCISES = listOf(Exercise.SlowResonance, Exercise.FastResonance, Exercise.Sweep)
-
 // SplitButtonLayout measures its leading/trailing buttons with loose constraints and only
 // stretches its own outer bounds to fill available width, leaving the buttons at their natural
 // size with dead space beside them. A Row with weight(1f) on the leading button grows it into
@@ -82,7 +80,7 @@ private fun ExerciseMenu(
     onDismiss: () -> Unit,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-        EXERCISES.forEach { exercise ->
+        Exercise.all.forEach { exercise ->
             DropdownMenuItem(
                 text = { Text(exercise.label) },
                 onClick = {

@@ -15,27 +15,95 @@ import kotlin.time.Duration.Companion.milliseconds
 sealed interface Exercise {
     val label: String
 
+    suspend fun run(business: BreathingBusiness)
+
     data object SlowResonance : Exercise {
         override val label = "Slow resonance (8-12s)"
+        val cycleLengthRange = 8..12
+
+        override suspend fun run(business: BreathingBusiness) {
+            business.setTargetCycleLengthRange(cycleLengthRange)
+        }
     }
 
     data object NonResonance : Exercise {
         override val label = "Non-resonance (6-7s)"
+        val cycleLengthRange = 6..7
+
+        override suspend fun run(business: BreathingBusiness) {
+            business.setTargetCycleLengthRange(cycleLengthRange)
+        }
     }
 
     data object FastResonance : Exercise {
         override val label = "Fast resonance (4-5s)"
+        val cycleLengthRange = 4..5
+
+        override suspend fun run(business: BreathingBusiness) {
+            business.setTargetCycleLengthRange(cycleLengthRange)
+        }
     }
 
     data object Sweep : Exercise {
         override val label = "Sweep"
+
+        // A full sweep (start -> fastest -> slowest -> start) always covers 2*(20-4)=32s of range,
+        // so a constant speed gives even pacing on every leg regardless of the starting rate.
+        val durationMs = 90_000L
+        val tickMs = 100L
+        val slowCap = 9
+
+        override suspend fun run(business: BreathingBusiness) {
+            val original = business.targetCycleLengthRange.value
+            val allowed = business.cycleLengthAllowedRange.first..slowCap
+            val start =
+                business.currentBreathingPattern.value.cycleLengthSeconds
+                    .coerceIn(allowed.first.toFloat(), allowed.last.toFloat())
+            try {
+                runSweep(business, start, allowed)
+            } finally {
+                business.setTargetCycleLengthRange(original)
+            }
+        }
+
+        // Walks the swept center from `start` down to the fastest allowed rate, up to the
+        // slowest, then back to `start`, over durationMs at a constant speed.
+        private suspend fun runSweep(
+            business: BreathingBusiness,
+            start: Float,
+            allowed: IntRange,
+        ) {
+            val fast = allowed.first.toFloat()
+            val slow = allowed.last.toFloat()
+            val legToFast = start - fast
+            val legToSlow = slow - fast
+            val legToStart = slow - start
+            val totalDistance = legToFast + legToSlow + legToStart
+            if (totalDistance <= 0f) return
+            val t0 = System.currentTimeMillis()
+            while (true) {
+                val elapsed = System.currentTimeMillis() - t0
+                if (elapsed >= durationMs) break
+                val distanceTravelled = totalDistance * (elapsed.toFloat() / durationMs)
+                val center =
+                    when {
+                        distanceTravelled <= legToFast -> start - distanceTravelled
+                        distanceTravelled <= legToFast + legToSlow -> fast + (distanceTravelled - legToFast)
+                        else -> slow - (distanceTravelled - legToFast - legToSlow)
+                    }
+                val centerRounded = center.roundToInt()
+                business.setTargetCycleLengthRange(
+                    (centerRounded - 1).coerceIn(allowed)..(centerRounded + 1).coerceIn(allowed),
+                )
+                delay(tickMs.milliseconds)
+            }
+        }
+    }
+
+    companion object {
+        val all: List<Exercise> = listOf(SlowResonance, NonResonance, FastResonance, Sweep)
     }
 }
-
-// A full sweep (start -> fastest -> slowest -> start) always covers 2*(20-4)=32s of range,
-// so a constant speed gives even pacing on every leg regardless of the starting rate.
-private const val SWEEP_DURATION_MS = 90_000L
-private const val SWEEP_TICK_MS = 100L
 
 @Singleton
 class Exercises
@@ -57,65 +125,18 @@ class Exercises
         }
 
         fun toggle() {
-            if (_isRunning.value) job?.cancel() else run(_selectedExercise.value)
-        }
-
-        private fun run(exercise: Exercise) {
-            when (exercise) {
-                Exercise.FastResonance -> business.setTargetCycleLengthRange(4..5)
-                Exercise.NonResonance -> business.setTargetCycleLengthRange(6..7)
-                Exercise.SlowResonance -> business.setTargetCycleLengthRange(8..12)
-                Exercise.Sweep -> startSweep()
-            }
-        }
-
-        private fun startSweep() {
-            val original = business.targetCycleLengthRange.value
-            val allowed = business.cycleLengthAllowedRange.first..9
-            val start =
-                business.currentBreathingPattern.value.cycleLengthSeconds
-                    .coerceIn(allowed.first.toFloat(), allowed.last.toFloat())
-            _isRunning.value = true
-            job =
-                scope.launch {
-                    try {
-                        runSweep(start, allowed)
-                    } finally {
-                        business.setTargetCycleLengthRange(original)
-                        _isRunning.value = false
+            if (job?.isActive == true) {
+                job?.cancel()
+            } else {
+                job =
+                    scope.launch {
+                        _isRunning.value = true
+                        try {
+                            _selectedExercise.value.run(business)
+                        } finally {
+                            _isRunning.value = false
+                        }
                     }
-                }
-        }
-
-        // Walks the swept center from `start` down to the fastest allowed rate, up to the
-        // slowest, then back to `start`, over SWEEP_DURATION_MS at a constant speed.
-        private suspend fun runSweep(
-            start: Float,
-            allowed: IntRange,
-        ) {
-            val fast = allowed.first.toFloat()
-            val slow = allowed.last.toFloat()
-            val legToFast = start - fast
-            val legToSlow = slow - fast
-            val legToStart = slow - start
-            val totalDistance = legToFast + legToSlow + legToStart
-            if (totalDistance <= 0f) return
-            val t0 = System.currentTimeMillis()
-            while (true) {
-                val elapsed = System.currentTimeMillis() - t0
-                if (elapsed >= SWEEP_DURATION_MS) break
-                val distanceTravelled = totalDistance * (elapsed.toFloat() / SWEEP_DURATION_MS)
-                val center =
-                    when {
-                        distanceTravelled <= legToFast -> start - distanceTravelled
-                        distanceTravelled <= legToFast + legToSlow -> fast + (distanceTravelled - legToFast)
-                        else -> slow - (distanceTravelled - legToFast - legToSlow)
-                    }
-                val centerRounded = center.roundToInt()
-                business.setTargetCycleLengthRange(
-                    (centerRounded - 1).coerceIn(allowed)..(centerRounded + 1).coerceIn(allowed),
-                )
-                delay(SWEEP_TICK_MS.milliseconds)
             }
         }
     }
