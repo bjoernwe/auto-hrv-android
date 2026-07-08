@@ -6,7 +6,7 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
 data object Sweep : Exercise {
-    override val label = "Sweep"
+    override val label = "sweep"
 
     // A full sweep (start -> fastest -> slowest -> start) always covers 2*(20-4)=32s of range,
     // so a constant speed gives even pacing on every leg regardless of the starting rate.
