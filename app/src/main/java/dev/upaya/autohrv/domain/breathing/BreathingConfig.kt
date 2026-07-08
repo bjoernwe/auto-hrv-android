@@ -37,7 +37,7 @@ data class BreathingConfig(
                 acfMaxLagSeconds = 16,
                 acfHalfLifeSeconds = 12f,
                 inOutBias = 0f,
-                initialCycleLength = 8f,
+                initialCycleLength = 9f,
                 initialCycleLengthRange = 4..16,
                 maxCycleLengthRange = 4..16,
                 targetCycleLengthSmoothingWindow = 40,
