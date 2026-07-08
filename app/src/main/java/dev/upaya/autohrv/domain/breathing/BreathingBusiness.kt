@@ -26,7 +26,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 // A full sweep (start -> fastest -> slowest -> start) always covers 2*(20-4)=32s of range,
 // so a constant speed gives even pacing on every leg regardless of the starting rate.
-private const val SWEEP_DURATION_MS = 180_000L
+private const val SWEEP_DURATION_MS = 90_000L
 private const val SWEEP_TICK_MS = 100L
 
 @Singleton
@@ -117,7 +117,7 @@ class BreathingBusiness
 
         private fun startSweep() {
             val original = _targetCycleLengthRange.value
-            val allowed = cycleLengthAllowedRange
+            val allowed = cycleLengthAllowedRange.first.. 9
             val start =
                 currentBreathingPattern.value.cycleLengthSeconds
                     .coerceIn(allowed.first.toFloat(), allowed.last.toFloat())
