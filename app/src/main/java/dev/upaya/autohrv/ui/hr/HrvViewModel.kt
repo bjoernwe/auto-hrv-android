@@ -10,6 +10,8 @@ import dev.upaya.autohrv.domain.breathing.BreathingConfig
 import dev.upaya.autohrv.domain.breathing.BreathingPattern
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
 import dev.upaya.autohrv.domain.breathing.BreathingPhaseStart
+import dev.upaya.autohrv.domain.breathing.Exercise
+import dev.upaya.autohrv.domain.breathing.Exercises
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -52,6 +54,7 @@ class HrvViewModel
     constructor(
         private val hrvRepository: HrvRepository,
         private val breathingBusiness: BreathingBusiness,
+        private val exercises: Exercises,
     ) : ViewModel() {
 
         val deviceId: String = HrvRepository.DEVICE_ID
@@ -150,7 +153,8 @@ class HrvViewModel
         val targetCycleLengthRange: StateFlow<IntRange> = breathingBusiness.targetCycleLengthRange
         val cycleLengthAllowedRange: IntRange = breathingBusiness.cycleLengthAllowedRange
         val targetInOutBias: StateFlow<Float> = breathingBusiness.targetInOutBias
-        val isSweeping: StateFlow<Boolean> = breathingBusiness.isSweeping
+        val selectedExercise: StateFlow<Exercise> = exercises.selectedExercise
+        val isExerciseRunning: StateFlow<Boolean> = exercises.isRunning
 
         fun connect() = hrvRepository.connect()
 
@@ -160,5 +164,7 @@ class HrvViewModel
 
         fun setTargetInOutBias(bias: Float) = breathingBusiness.setTargetInOutBias(bias)
 
-        fun toggleSweep() = breathingBusiness.toggleSweep()
+        fun selectExercise(exercise: Exercise) = exercises.select(exercise)
+
+        fun toggleExercise() = exercises.toggle()
     }

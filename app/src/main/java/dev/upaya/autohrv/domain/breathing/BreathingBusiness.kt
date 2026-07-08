@@ -4,7 +4,6 @@ import dev.upaya.autohrv.data.repository.HrvRepository
 import dev.upaya.autohrv.di.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,17 +16,10 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.abs
-import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
-
-// A full sweep (start -> fastest -> slowest -> start) always covers 2*(20-4)=32s of range,
-// so a constant speed gives even pacing on every leg regardless of the starting rate.
-private const val SWEEP_DURATION_MS = 90_000L
-private const val SWEEP_TICK_MS = 100L
 
 @Singleton
 class BreathingBusiness
@@ -55,11 +47,6 @@ class BreathingBusiness
         fun setTargetCycleLengthRange(range: IntRange) {
             _targetCycleLengthRange.value = range
         }
-
-        private val _isSweeping = MutableStateFlow(false)
-        val isSweeping: StateFlow<Boolean> = _isSweeping
-
-        private var sweepJob: Job? = null
 
         private val rrsMsHistory: StateFlow<List<Int>> =
             hrvRepository
@@ -110,59 +97,6 @@ class BreathingBusiness
 
         val currentPhaseStart: StateFlow<BreathingPhaseStart> = pacerOutput.currentPhaseStart
         val currentBreathingPattern: StateFlow<BreathingPattern> = pacerOutput.currentPattern
-
-        fun toggleSweep() {
-            if (_isSweeping.value) sweepJob?.cancel() else startSweep()
-        }
-
-        private fun startSweep() {
-            val original = _targetCycleLengthRange.value
-            val allowed = cycleLengthAllowedRange.first.. 9
-            val start =
-                currentBreathingPattern.value.cycleLengthSeconds
-                    .coerceIn(allowed.first.toFloat(), allowed.last.toFloat())
-            _isSweeping.value = true
-            sweepJob =
-                scope.launch {
-                    try {
-                        runSweep(start, allowed)
-                    } finally {
-                        _targetCycleLengthRange.value = original
-                        _isSweeping.value = false
-                    }
-                }
-        }
-
-        // Walks the swept center from `start` down to the fastest allowed rate, up to the
-        // slowest, then back to `start`, over SWEEP_DURATION_MS at a constant speed.
-        private suspend fun runSweep(
-            start: Float,
-            allowed: IntRange,
-        ) {
-            val fast = allowed.first.toFloat()
-            val slow = allowed.last.toFloat()
-            val legToFast = start - fast
-            val legToSlow = slow - fast
-            val legToStart = slow - start
-            val totalDistance = legToFast + legToSlow + legToStart
-            if (totalDistance <= 0f) return
-            val t0 = System.currentTimeMillis()
-            while (true) {
-                val elapsed = System.currentTimeMillis() - t0
-                if (elapsed >= SWEEP_DURATION_MS) break
-                val distanceTravelled = totalDistance * (elapsed.toFloat() / SWEEP_DURATION_MS)
-                val center =
-                    when {
-                        distanceTravelled <= legToFast -> start - distanceTravelled
-                        distanceTravelled <= legToFast + legToSlow -> fast + (distanceTravelled - legToFast)
-                        else -> slow - (distanceTravelled - legToFast - legToSlow)
-                    }
-                val centerRounded = center.roundToInt()
-                _targetCycleLengthRange.value =
-                    (centerRounded - 1).coerceIn(allowed)..(centerRounded + 1).coerceIn(allowed)
-                delay(SWEEP_TICK_MS.milliseconds)
-            }
-        }
 
         val isInResonance: StateFlow<Boolean> =
             combine(stats, currentBreathingPattern) { stats, breathingPattern ->
