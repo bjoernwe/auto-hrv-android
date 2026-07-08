@@ -4,6 +4,7 @@ import dev.upaya.autohrv.di.ApplicationScope
 import dev.upaya.autohrv.domain.breathing.BreathingBusiness
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -27,21 +28,35 @@ class Exercises
 
         fun select(exercise: Exercise) {
             _selectedExercise.value = exercise
+            start()
+        }
+
+        private fun stop() {
+            job?.cancel()
+        }
+
+        private fun start() {
+            val previous = job
+            job =
+                scope.launch {
+                    // Let the previous run's `finally` complete before we take ownership of
+                    // `_isRunning`, otherwise a stale cancellation cleanup can clobber it back
+                    // to false after we've set it true.
+                    previous?.cancelAndJoin()
+                    _isRunning.value = true
+                    try {
+                        _selectedExercise.value.run(business)
+                    } finally {
+                        _isRunning.value = false
+                    }
+                }
         }
 
         fun toggle() {
             if (job?.isActive == true) {
-                job?.cancel()
+                stop()
             } else {
-                job =
-                    scope.launch {
-                        _isRunning.value = true
-                        try {
-                            _selectedExercise.value.run(business)
-                        } finally {
-                            _isRunning.value = false
-                        }
-                    }
+                start()
             }
         }
     }
