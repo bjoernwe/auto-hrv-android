@@ -16,11 +16,15 @@ sealed interface Exercise {
     val label: String
 
     data object SlowResonance : Exercise {
-        override val label = "Slow resonance"
+        override val label = "Slow resonance (8-12s)"
+    }
+
+    data object NonResonance : Exercise {
+        override val label = "Non-resonance (6-7s)"
     }
 
     data object FastResonance : Exercise {
-        override val label = "Fast resonance"
+        override val label = "Fast resonance (4-5s)"
     }
 
     data object Sweep : Exercise {
@@ -58,8 +62,9 @@ class Exercises
 
         private fun run(exercise: Exercise) {
             when (exercise) {
+                Exercise.FastResonance -> business.setTargetCycleLengthRange(4..5)
+                Exercise.NonResonance -> business.setTargetCycleLengthRange(6..7)
                 Exercise.SlowResonance -> business.setTargetCycleLengthRange(8..12)
-                Exercise.FastResonance -> business.setTargetCycleLengthRange(4..6)
                 Exercise.Sweep -> startSweep()
             }
         }
