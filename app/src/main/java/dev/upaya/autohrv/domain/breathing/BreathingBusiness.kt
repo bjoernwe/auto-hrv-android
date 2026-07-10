@@ -45,7 +45,7 @@ class BreathingBusiness
         val targetCycleLengthRange: StateFlow<IntRange> = _targetCycleLengthRange
 
         fun setTargetCycleLengthRange(range: IntRange) {
-            _targetCycleLengthRange.value = range
+            _targetCycleLengthRange.value = range.first.coerceIn(cycleLengthAllowedRange)..range.last.coerceIn(cycleLengthAllowedRange)
         }
 
         private val rrsMsHistory: StateFlow<List<Int>> =

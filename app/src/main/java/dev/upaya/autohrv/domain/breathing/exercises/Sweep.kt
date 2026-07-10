@@ -10,9 +10,9 @@ data object Sweep : Exercise {
 
     // A full sweep (start -> fastest -> slowest -> start) always covers 2*(20-4)=32s of range,
     // so a constant speed gives even pacing on every leg regardless of the starting rate.
-    val durationMs = 90_000L
+    val durationMs = 300_000L
     val tickMs = 100L
-    val slowCap = 9
+    val slowCap = 13
 
     override suspend fun run(business: BreathingBusiness) {
         val original = business.targetCycleLengthRange.value
@@ -22,8 +22,9 @@ data object Sweep : Exercise {
                 .coerceIn(allowed.first.toFloat(), allowed.last.toFloat())
         try {
             runSweep(business, start, allowed)
-        } finally {
             business.setTargetCycleLengthRange(original)
+        } finally {
+            // just stop and keep current range
         }
     }
 
@@ -34,7 +35,7 @@ data object Sweep : Exercise {
         start: Float,
         allowed: IntRange,
     ) {
-        val fast = allowed.first.toFloat()
+        val fast = allowed.first.minus(1).toFloat()
         val slow = allowed.last.toFloat()
         val legToFast = start - fast
         val legToSlow = slow - fast
@@ -54,7 +55,8 @@ data object Sweep : Exercise {
                 }
             val centerRounded = center.roundToInt()
             business.setTargetCycleLengthRange(
-                (centerRounded - 1).coerceIn(allowed)..(centerRounded + 1).coerceIn(allowed),
+                //(centerRounded - 1..centerRounded,
+                centerRounded..centerRounded,
             )
             delay(tickMs.milliseconds)
         }
