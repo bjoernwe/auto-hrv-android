@@ -104,7 +104,7 @@ fun MainScreen(viewModel: HrvViewModel) {
                     if (acfReady) {
                         AutoCorrelationChart(
                             acf = acf,
-                            histogram = uiState.acfHistogram,
+                            backgroundBars = uiState.hrvPerPace,
                             peakLag =
                                 uiState.autoCorrelationPeak
                                     ?.coerceIn(

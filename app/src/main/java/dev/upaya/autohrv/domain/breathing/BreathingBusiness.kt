@@ -10,10 +10,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
@@ -97,6 +99,16 @@ class BreathingBusiness
 
         val currentPhaseStart: StateFlow<BreathingPhaseStart> = pacerOutput.currentPhaseStart
         val currentBreathingPattern: StateFlow<BreathingPattern> = pacerOutput.currentPattern
+
+        // Bars showing the last-known HRV (RMSSD) recorded at each integer breathing pace,
+        // normalized to [0, 1] relative to the largest recorded value. Paces not yet sampled stay 0.
+        val hrvPerPace: StateFlow<List<Float>> =
+            stats
+                .mapNotNull { it?.beatRrsStats?.rmssd }
+                .distinctUntilChanged()
+                .map { rmssd -> HrvPaceSample(currentBreathingPattern.value.cycleLengthSeconds, rmssd) }
+                .accumulatedHrvPerPace(breathingConfig.acfMaxLagSeconds + 1)
+                .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
         val isInResonance: StateFlow<Boolean> =
             combine(stats, currentBreathingPattern) { stats, breathingPattern ->

@@ -30,7 +30,7 @@ import kotlin.math.roundToInt
 fun AutoCorrelationChart(
     acf: List<Float>,
     modifier: Modifier = Modifier,
-    histogram: List<Float> = emptyList(),
+    backgroundBars: List<Float> = emptyList(),
     peakLag: Float? = null,
     bandLo: Float = 0f,
     bandHi: Float = Float.MAX_VALUE,
@@ -39,9 +39,9 @@ fun AutoCorrelationChart(
 
     val displayedAcf = animateListAsState(acf)
     // animateListAsState zips prev/current and truncates on a size mismatch, so a possibly-empty
-    // histogram is padded to the ACF length — this also gives a grow-from-zero animation.
-    val histTarget = if (histogram.size == acf.size) histogram else List(acf.size) { 0f }
-    val displayedHistogram = animateListAsState(histTarget)
+    // bar list is padded to the ACF length — this also gives a grow-from-zero animation.
+    val barsTarget = if (backgroundBars.size == acf.size) backgroundBars else List(acf.size) { 0f }
+    val displayedBars = animateListAsState(barsTarget)
 
     // The ACF curve is heart-derived → warm tone. The peak and band — which set
     // the breathing pace — use the cool breath tone. "peak → pace" made literal.
@@ -76,13 +76,13 @@ fun AutoCorrelationChart(
         val yHalf = plotH / 2f
         val ys = { v: Float -> yCenter - v.coerceIn(-1f, 1f) * yHalf }
 
-        // Accumulated-ACF histogram: gray bars behind everything, in-band bars tinted breath.
-        // Lag 0 is shaped to zero upstream (its correlation is always 1 and carries no
-        // information), so no explicit skip is needed here.
+        // Background bars behind everything, in-band bars tinted breath. Meaning is
+        // caller-defined (e.g. last-known HRV per breathing pace); index i is the x position in
+        // seconds along the same axis as the ACF curve. Zero-height bars are skipped.
         val barW = (plotW / maxLag) * 0.7f
         val plotBottom = padT + plotH
         val barCorner = CornerRadius(barW * 0.35f, barW * 0.35f)
-        displayedHistogram.forEachIndexed { i, v ->
+        displayedBars.forEachIndexed { i, v ->
             val h = v.coerceIn(0f, 1f) * plotH
             if (h <= 0f) return@forEachIndexed
             val inBand = i.toFloat() in bandLo..bandHi
@@ -161,13 +161,13 @@ private fun AutoCorrelationChartPreview() {
             }
         // Faint background stubble plus a peak near lag 10 (inside the band). Lag 0 stays zero,
         // matching the real shaping pipeline.
-        val histogram =
+        val backgroundBars =
             acf.indices.map { i ->
                 if (i == 0) 0f else (0.15 + 0.8 * exp(-((i - 10) * (i - 10)) / 18.0)).toFloat()
             }
         AutoCorrelationChart(
             acf = acf,
-            histogram = histogram,
+            backgroundBars = backgroundBars,
             peakLag = 10f,
             bandLo = 7f,
             bandHi = 13f,
