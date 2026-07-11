@@ -30,7 +30,7 @@ import dev.upaya.autohrv.ui.hr.MetricsRow
 import dev.upaya.autohrv.ui.hr.charts.AutoCorrelationChart
 
 @Composable
-fun HRScreen(viewModel: HrvViewModel) {
+fun MainScreen(viewModel: HrvViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val breathSamples by viewModel.breathSamples.collectAsStateWithLifecycle()
     val rrSamples by viewModel.rrSamples.collectAsStateWithLifecycle()
