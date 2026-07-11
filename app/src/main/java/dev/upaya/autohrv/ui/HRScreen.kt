@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.hr
+package dev.upaya.autohrv.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +18,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.upaya.autohrv.ui.hr.ACFHeader
+import dev.upaya.autohrv.ui.hr.AutoHrvTopBar
+import dev.upaya.autohrv.ui.hr.BandRangeSlider
+import dev.upaya.autohrv.ui.hr.ChartPlaceholder
+import dev.upaya.autohrv.ui.hr.CouplingHeroCard
+import dev.upaya.autohrv.ui.hr.ExerciseSplitButton
+import dev.upaya.autohrv.ui.hr.HrvCard
+import dev.upaya.autohrv.ui.hr.HrvViewModel
+import dev.upaya.autohrv.ui.hr.MetricsRow
 import dev.upaya.autohrv.ui.hr.charts.AutoCorrelationChart
 
 @Composable

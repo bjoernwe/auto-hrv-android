@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import dagger.hilt.android.AndroidEntryPoint
 import dev.upaya.autohrv.domain.bluetooth.GetBluetoothPermissionUseCase
+import dev.upaya.autohrv.ui.HRScreen
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 @AndroidEntryPoint
