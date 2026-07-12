@@ -118,7 +118,7 @@ class HrvViewModel
             }
             viewModelScope.launch {
                 breathingBusiness.hrvPerPace.collect { hrvPerPace ->
-                    _uiState.update { it.copy(hrvPerPace = hrvPerPace) }
+                    _uiState.update { it.copy(hrvPerPace = normalizeHrvPerPace(hrvPerPace)) }
                 }
             }
             viewModelScope.launch {

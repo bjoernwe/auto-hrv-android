@@ -17,6 +17,7 @@ data class BreathingConfig(
     val acfHistogramSigmoidMidpoint: Float,
     val acfHistogramHalfLifeSeconds: Float?,
     val acfHistogramIgnoredLeadingLags: Int,
+    val hrvPerPaceHalfLifeSamples: Float?,
 ) {
     init {
         require(acfMaxLagSeconds >= maxCycleLengthRange.last) {
@@ -56,6 +57,10 @@ data class BreathingConfig(
                 // breathing-range peaks. Lag 0 is always ignored on top of this. They're capped
                 // into range rather than dropped, so they still show in the histogram.
                 acfHistogramIgnoredLeadingLags = 3,
+                // Per-pace HRV samples are slow and noisy; blend in each new one rather than
+                // overwriting outright. Weight of an old reading halves every 3 further samples
+                // at the same pace. Tune on-device.
+                hrvPerPaceHalfLifeSamples = 3f,
             )
     }
 }

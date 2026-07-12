@@ -1,8 +1,8 @@
 package dev.upaya.autohrv.domain.breathing
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
+import kotlin.math.pow
 import kotlin.math.roundToInt
 
 /** A single HRV (RMSSD) measurement recorded while breathing at [paceSeconds]. */
@@ -12,35 +12,50 @@ internal data class HrvPaceSample(
 )
 
 /**
- * Records [hrv] at the bar for [paceSeconds] (rounded to the nearest integer, clamped into
- * `0 until size`), leaving every other bar untouched. A size mismatch (including an empty
- * accumulator on the first sample) restarts from `size` ones, so the accumulator always tracks
- * the current bar count.
+ * Records [hrv] at the bar for [paceSeconds] (rounded to the nearest integer, clamped into the
+ * accumulator's bounds), leaving every other bar untouched. The accumulator [acc] both carries the
+ * running values and defines the bar count; [accumulatedHrvPerPace] seeds it with the right size.
+ *
+ * A bar is `null` until it receives its first sample, which replaces the null outright. A later
+ * sample at the same pace is blended into the existing value instead, with [decay] the weight kept
+ * on the prior value — `0f` (the default) is a plain overwrite, and values closer to `1f` retain
+ * more history, smoothing out noisy single measurements. This mirrors the half-life decay
+ * [accumulateAcf] applies to the ACF histogram.
  */
 internal fun updateHrvPerPace(
-    acc: List<Float>,
-    size: Int,
+    acc: List<Float?>,
     paceSeconds: Float,
     hrv: Float,
-): List<Float> {
-    val base = if (acc.size == size) acc else List(size) { 1f }
-    val index = paceSeconds.roundToInt().coerceIn(0, size - 1)
-    return base.mapIndexed { i, v -> if (i == index) hrv else v }
-}
-
-/** Scales bars to `[0, 1]` relative to the largest recorded value. All-zero input stays all-zero. */
-internal fun normalizeHrvPerPace(raw: List<Float>): List<Float> {
-    val max = raw.maxOrNull() ?: return raw
-    if (max <= 0f) return raw
-    return raw.map { it / max }
+    decay: Float = 0f,
+): List<Float?> {
+    val index = paceSeconds.roundToInt().coerceIn(0, acc.size - 1)
+    return acc.mapIndexed { i, v ->
+        when {
+            i != index -> v
+            v == null -> hrv
+            else -> v * decay + hrv * (1f - decay)
+        }
+    }
 }
 
 /**
- * Accumulates the last-known HRV at each integer breathing pace over the lifetime of the flow,
- * producing bars sized [size] and normalized to `[0, 1]` relative to the largest recorded value.
- * A later sample at the same pace overwrites the earlier one; paces never sampled stay at the
- * unscaled baseline of `1`.
+ * Accumulates HRV at each integer breathing pace over the lifetime of the flow, producing bars
+ * sized [size]. Each bar holds the last-known (optionally smoothed) RMSSD recorded at that pace, or
+ * `null` for a pace never sampled. The values stay in raw RMSSD units; scaling them to bar heights
+ * for display is a UI concern (see the view model).
+ *
+ * A later sample at the same pace is blended into the bar with a half-life of [sampleHalfLife]
+ * *samples* — after that many further samples at the same pace, the weight of the original value
+ * has fallen to half — smoothing out noisy individual RMSSD readings. `null` disables smoothing
+ * and each sample overwrites the previous one. The half-life is counted in samples rather than
+ * wall-clock time (unlike e.g. [BreathingConfig.acfHistogramHalfLifeSeconds]) because samples for
+ * a given pace can be slow and irregular to arrive; decaying by elapsed time would fade a bar out
+ * while still waiting for its next reading.
  */
-internal fun Flow<HrvPaceSample>.accumulatedHrvPerPace(size: Int): Flow<List<Float>> =
-    scan(List(size) { 1f }) { acc, sample -> updateHrvPerPace(acc, size, sample.paceSeconds, sample.hrv) }
-        .map { normalizeHrvPerPace(it) }
+internal fun Flow<HrvPaceSample>.accumulatedHrvPerPace(
+    size: Int,
+    sampleHalfLife: Float? = null,
+): Flow<List<Float?>> {
+    val decay = if (sampleHalfLife == null) 0f else 0.5f.pow(1f / sampleHalfLife)
+    return scan(List<Float?>(size) { null }) { acc, sample -> updateHrvPerPace(acc, sample.paceSeconds, sample.hrv, decay) }
+}
