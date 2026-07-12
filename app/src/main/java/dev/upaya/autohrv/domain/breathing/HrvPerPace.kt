@@ -12,6 +12,34 @@ internal data class HrvPaceSample(
 )
 
 /**
+ * The three values [hrvPaceSampleOrNull] needs, pulled from a stats snapshot and the current
+ * breathing [pattern]: the paced target, the resonant lag from the ACF, and the HRV magnitude.
+ * `null` unless [stats] carries both an ACF peak and an RMSSD.
+ */
+internal fun hrvPaceInputsOrNull(
+    stats: TimeSeriesStats?,
+    pattern: BreathingPattern,
+): Triple<Float, Float, Float>? {
+    val acfPeak = stats?.resampledRrsStats?.autoCorrelationPeak ?: return null
+    val rmssd = stats.beatRrsStats?.rmssd ?: return null
+    return Triple(pattern.cycleLengthSeconds, acfPeak, rmssd)
+}
+
+/**
+ * A per-pace HRV sample recording [rmssd] at [paceSeconds], or `null` when it shouldn't be
+ * recorded: the paced target and the measured ACF peak ([acfPeak]) must round to the same lag,
+ * otherwise the pace isn't actually the one the HRV was measured at.
+ */
+internal fun hrvPaceSampleOrNull(
+    paceSeconds: Float,
+    acfPeak: Float,
+    rmssd: Float,
+): HrvPaceSample? {
+    if (paceSeconds.roundToInt() != acfPeak.roundToInt()) return null
+    return HrvPaceSample(paceSeconds, rmssd)
+}
+
+/**
  * Records [hrv] at the bar for [paceSeconds] (rounded to the nearest integer, clamped into the
  * accumulator's bounds), leaving every other bar untouched. The accumulator [acc] both carries the
  * running values and defines the bar count; [accumulatedHrvPerPace] seeds it with the right size.

@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.abs
-import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
@@ -105,7 +104,9 @@ class BreathingBusiness
         // `null` for a pace not yet sampled. Scaling to bar heights for display is left to the view
         // model.
         val hrvPerPace: StateFlow<List<Float?>> =
-            combine(stats, currentBreathingPattern, ::hrvPaceSampleOrNull)
+            combine(stats, currentBreathingPattern, ::hrvPaceInputsOrNull)
+                .filterNotNull()
+                .map { (pace, acfPeak, rmssd) -> hrvPaceSampleOrNull(pace, acfPeak, rmssd) }
                 .filterNotNull()
                 .distinctUntilChanged()
                 .accumulatedHrvPerPace(
@@ -139,20 +140,6 @@ class BreathingBusiness
             combine(breathHistory, rrsMsHistory) { breath, rr ->
                 computeLag(breath, rr)
             }.stateIn(scope, SharingStarted.Eagerly, null)
-
-        // A per-pace HRV sample for the current breath, or null when it shouldn't be recorded: the
-        // paced target and the measured ACF peak must round to the same lag, otherwise the displayed
-        // pace isn't actually the one the HRV was measured at.
-        private fun hrvPaceSampleOrNull(
-            stats: TimeSeriesStats?,
-            pattern: BreathingPattern,
-        ): HrvPaceSample? {
-            val acfPeak = stats?.resampledRrsStats?.autoCorrelationPeak ?: return null
-            val paceSeconds = pattern.cycleLengthSeconds
-            if (paceSeconds.roundToInt() != acfPeak.roundToInt()) return null
-            val rmssd = stats.beatRrsStats?.rmssd ?: return null
-            return HrvPaceSample(paceSeconds, rmssd)
-        }
 
         private fun computeLag(
             breath: List<Float>,

@@ -4,9 +4,46 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class HrvPerPaceTest {
+
+    // --- hrvPaceInputsOrNull ---
+
+    @Test
+    fun `hrvPaceInputsOrNull pairs the pace with the ACF peak and RMSSD`() {
+        val stats = TimeSeriesStats(ResampledRrsStats(autoCorrelation = null, autoCorrelationPeak = 6f), BeatRrsStats(sdrr = null, rmssd = 42f))
+        assertEquals(Triple(5f, 6f, 42f), hrvPaceInputsOrNull(stats, BreathingPattern(bias = 0f, cycleLengthSeconds = 5f)))
+    }
+
+    @Test
+    fun `hrvPaceInputsOrNull is null when either stats component is missing`() {
+        val pattern = BreathingPattern(bias = 0f, cycleLengthSeconds = 5f)
+
+        val noPeak = TimeSeriesStats(ResampledRrsStats(autoCorrelation = null, autoCorrelationPeak = null), BeatRrsStats(sdrr = null, rmssd = 42f))
+        assertNull(hrvPaceInputsOrNull(noPeak, pattern))
+
+        val noRmssd = TimeSeriesStats(ResampledRrsStats(autoCorrelation = null, autoCorrelationPeak = 6f), BeatRrsStats(sdrr = null, rmssd = null))
+        assertNull(hrvPaceInputsOrNull(noRmssd, pattern))
+
+        assertNull(hrvPaceInputsOrNull(null, pattern))
+    }
+
+    // --- hrvPaceSampleOrNull ---
+
+    @Test
+    fun `hrvPaceSampleOrNull records the sample when pace and peak round to the same lag`() {
+        // 5.6 and 6.4 both round to 6.
+        val out = hrvPaceSampleOrNull(paceSeconds = 5.6f, acfPeak = 6.4f, rmssd = 42f)
+        assertEquals(HrvPaceSample(paceSeconds = 5.6f, hrv = 42f), out)
+    }
+
+    @Test
+    fun `hrvPaceSampleOrNull is null when pace and peak round to different lags`() {
+        // 5.4 rounds to 5, 6.4 rounds to 6.
+        assertNull(hrvPaceSampleOrNull(paceSeconds = 5.4f, acfPeak = 6.4f, rmssd = 42f))
+    }
 
     // --- updateHrvPerPace ---
 
