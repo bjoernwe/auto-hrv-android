@@ -101,14 +101,13 @@ class BreathingBusiness
         val currentBreathingPattern: StateFlow<BreathingPattern> = pacerOutput.currentPattern
 
         // Last-known HRV (RMSSD) recorded at each integer breathing pace, in raw RMSSD units, with
-        // `null` for a pace not yet sampled. Scaling to bar heights for display is left to the view
-        // model.
+        // `null` for a pace not yet sampled.
         val hrvPerPace: StateFlow<List<Float?>> =
             combine(stats, currentBreathingPattern, ::hrvPaceInputsOrNull)
                 .filterNotNull()
-                .map { (pace, acfPeak, rmssd) -> hrvPaceSampleOrNull(pace, acfPeak, rmssd) }
-                .filterNotNull()
-                .distinctUntilChanged()
+                .filterMatchingPaceAndPeak()
+                .mapToHrvPaceSample()
+                .distinctUntilChanged() // necessary?
                 .accumulatedHrvPerPace(
                     size = breathingConfig.acfMaxLagSeconds + 1,
                     sampleHalfLife = breathingConfig.hrvPerPaceHalfLifeSamples,

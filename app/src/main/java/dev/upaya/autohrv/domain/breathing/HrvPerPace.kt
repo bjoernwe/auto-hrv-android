@@ -1,6 +1,8 @@
 package dev.upaya.autohrv.domain.breathing
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -12,7 +14,7 @@ internal data class HrvPaceSample(
 )
 
 /**
- * The three values [hrvPaceSampleOrNull] needs, pulled from a stats snapshot and the current
+ * The three values a per-pace HRV sample is built from, pulled from a stats snapshot and the current
  * breathing [pattern]: the paced target, the resonant lag from the ACF, and the HRV magnitude.
  * `null` unless [stats] carries both an ACF peak and an RMSSD.
  */
@@ -26,18 +28,16 @@ internal fun hrvPaceInputsOrNull(
 }
 
 /**
- * A per-pace HRV sample recording [rmssd] at [paceSeconds], or `null` when it shouldn't be
- * recorded: the paced target and the measured ACF peak ([acfPeak]) must round to the same lag,
- * otherwise the pace isn't actually the one the HRV was measured at.
+ * Keeps only inputs whose paced target and measured ACF peak (the first two components of the
+ * [hrvPaceInputsOrNull] triple) round to the same lag — otherwise the pace isn't actually the one
+ * the HRV was measured at.
  */
-internal fun hrvPaceSampleOrNull(
-    paceSeconds: Float,
-    acfPeak: Float,
-    rmssd: Float,
-): HrvPaceSample? {
-    if (paceSeconds.roundToInt() != acfPeak.roundToInt()) return null
-    return HrvPaceSample(paceSeconds, rmssd)
-}
+internal fun Flow<Triple<Float, Float, Float>>.filterMatchingPaceAndPeak(): Flow<Triple<Float, Float, Float>> =
+    filter { (paceSeconds, acfPeak, _) -> paceSeconds.roundToInt() == acfPeak.roundToInt() }
+
+/** Records each triple's RMSSD at its paced target, dropping the now-spent ACF peak. */
+internal fun Flow<Triple<Float, Float, Float>>.mapToHrvPaceSample(): Flow<HrvPaceSample> =
+    map { (paceSeconds, _, rmssd) -> HrvPaceSample(paceSeconds, rmssd) }
 
 /**
  * Records [hrv] at the bar for [paceSeconds] (rounded to the nearest integer, clamped into the
