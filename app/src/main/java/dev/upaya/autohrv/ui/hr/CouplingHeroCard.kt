@@ -6,6 +6,7 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -89,7 +90,6 @@ internal fun CouplingHeroCard(
         CouplingHeader(
             currentPhase = currentPhase,
             latestBreathValue = breathSamples.lastOrNull()?.value ?: 0f,
-            isInResonance = isInResonance,
             breathColor = breathColor,
         )
 
@@ -137,7 +137,6 @@ internal fun CouplingHeroCard(
 private fun CouplingHeader(
     currentPhase: BreathingPhase,
     latestBreathValue: Float,
-    isInResonance: Boolean,
     breathColor: Color,
 ) {
     // Drive label color from the live breath value (0=exhale, 1=inhale) so it brightens
@@ -156,9 +155,8 @@ private fun CouplingHeader(
                 .fillMaxWidth()
                 .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End,
     ) {
-        ResonanceChip(isInResonance = isInResonance)
-        Spacer(Modifier.weight(1f))
         Text(
             text = if (currentPhase == BreathingPhase.Inhale) "inhale" else "exhale",
             style =
