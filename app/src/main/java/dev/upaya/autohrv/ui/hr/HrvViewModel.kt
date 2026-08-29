@@ -34,6 +34,7 @@ data class HrUiState(
     val autoCorrelation: List<Float>? = null,
     val autoCorrelationPeak: Float? = null,
     val acfHistogram: List<Float> = emptyList(),
+    val acfHistorySeconds: Int = 0,
     val isInResonance: Boolean = false,
     val lagSeconds: Float? = null,
     val currentPhaseStart: BreathingPhaseStart = BreathingPhaseStart(BreathingPhase.Inhale, System.currentTimeMillis(), 4000L),
@@ -55,6 +56,7 @@ class HrvViewModel
     ) : ViewModel() {
 
         val deviceId: String = HrvRepository.DEVICE_ID
+        val acfWindowSeconds: Int = breathingBusiness.acfWindowSeconds
 
         private val _uiState = MutableStateFlow(HrUiState())
         val uiState: StateFlow<HrUiState> = _uiState.asStateFlow()
@@ -110,6 +112,11 @@ class HrvViewModel
             viewModelScope.launch {
                 breathingBusiness.acfHistogram.collect { histogram ->
                     _uiState.update { it.copy(acfHistogram = histogram) }
+                }
+            }
+            viewModelScope.launch {
+                breathingBusiness.acfHistorySeconds.collect { seconds ->
+                    _uiState.update { it.copy(acfHistorySeconds = seconds) }
                 }
             }
             viewModelScope.launch {

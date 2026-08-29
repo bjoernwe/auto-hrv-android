@@ -114,6 +114,8 @@ fun HRScreen(viewModel: HrvViewModel) {
                         )
                     } else {
                         ChartPlaceholder(
+                            elapsedSeconds = uiState.acfHistorySeconds,
+                            windowSeconds = viewModel.acfWindowSeconds,
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
