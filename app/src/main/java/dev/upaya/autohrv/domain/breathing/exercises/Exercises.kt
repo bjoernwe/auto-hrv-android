@@ -18,36 +18,28 @@ class Exercises
         @param:ApplicationScope private val scope: CoroutineScope,
         private val business: BreathingBusiness,
     ) {
-        private val _selectedExercise = MutableStateFlow<Exercise>(FreeRange)
-        val selectedExercise: StateFlow<Exercise> = _selectedExercise
-
-        private val _isRunning = MutableStateFlow(false)
-        val isRunning: StateFlow<Boolean> = _isRunning
+        private val _activeExercise = MutableStateFlow<Exercise?>(null)
+        val activeExercise: StateFlow<Exercise?> = _activeExercise
 
         private var job: Job? = null
 
         init {
-            start()
+            select(FreeRange)
         }
 
         fun select(exercise: Exercise) {
-            _selectedExercise.value = exercise
-            start()
-        }
-
-        private fun start() {
             val previous = job
             job =
                 scope.launch {
                     // Let the previous run's `finally` complete before we take ownership of
-                    // `_isRunning`, otherwise a stale cancellation cleanup can clobber it back
-                    // to false after we've set it true.
+                    // `_activeExercise`, otherwise a stale cancellation cleanup can clobber it
+                    // back to null after we've set it to the new exercise.
                     previous?.cancelAndJoin()
-                    _isRunning.value = true
+                    _activeExercise.value = exercise
                     try {
-                        _selectedExercise.value.run(business)
+                        exercise.run(business)
                     } finally {
-                        _isRunning.value = false
+                        _activeExercise.value = null
                     }
                 }
         }

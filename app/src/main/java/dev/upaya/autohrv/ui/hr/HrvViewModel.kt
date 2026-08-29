@@ -153,8 +153,7 @@ class HrvViewModel
         val targetCycleLengthRange: StateFlow<IntRange> = breathingBusiness.targetCycleLengthRange
         val cycleLengthAllowedRange: IntRange = breathingBusiness.cycleLengthAllowedRange
         val targetInOutBias: StateFlow<Float> = breathingBusiness.targetInOutBias
-        val selectedExercise: StateFlow<Exercise> = exercises.selectedExercise
-        val isExerciseRunning: StateFlow<Boolean> = exercises.isRunning
+        val activeExercise: StateFlow<Exercise?> = exercises.activeExercise
 
         fun connect() = hrvRepository.connect()
 

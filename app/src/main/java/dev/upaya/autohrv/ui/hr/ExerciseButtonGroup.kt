@@ -10,15 +10,14 @@ import dev.upaya.autohrv.domain.breathing.exercises.Exercise
 
 @Composable
 fun ExerciseButtonGroup(
-    selected: Exercise,
-    isRunning: Boolean,
+    active: Exercise?,
     onSelect: (Exercise) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val exercises = Exercise.all
     SingleChoiceSegmentedButtonRow(modifier = modifier) {
         exercises.forEachIndexed { index, exercise ->
-            val isActive = exercise == selected && isRunning
+            val isActive = exercise == active
             SegmentedButton(
                 selected = isActive,
                 onClick = { if (!isActive) onSelect(exercise) },
