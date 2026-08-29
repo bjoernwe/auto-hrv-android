@@ -26,7 +26,6 @@ fun HRScreen(viewModel: HrvViewModel) {
     val breathSamples by viewModel.breathSamples.collectAsStateWithLifecycle()
     val rrSamples by viewModel.rrSamples.collectAsStateWithLifecycle()
     val targetCycleLengthRange by viewModel.targetCycleLengthRange.collectAsStateWithLifecycle()
-    val activeExercise by viewModel.activeExercise.collectAsStateWithLifecycle()
 
     val view = LocalView.current
     DisposableEffect(Unit) {
@@ -134,8 +133,8 @@ fun HRScreen(viewModel: HrvViewModel) {
                 // Spacer(Modifier.height(20.dp))
 
                 ExerciseButtonGroup(
-                    active = activeExercise,
-                    onSelect = viewModel::selectExercise,
+                    activeRange = targetCycleLengthRange,
+                    onSelect = { exercise -> viewModel.setTargetCycleLengthRange(exercise.cycleLengthRange) },
                     modifier = Modifier.fillMaxWidth(),
                 )
             } // end padded column

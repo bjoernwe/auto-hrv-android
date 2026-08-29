@@ -41,7 +41,7 @@ class BreathingBusiness
 
         val cycleLengthAllowedRange: IntRange = breathingConfig.maxCycleLengthRange
 
-        private val _targetCycleLengthRange = MutableStateFlow(breathingConfig.initialCycleLengthRange)
+        private val _targetCycleLengthRange = MutableStateFlow(breathingConfig.maxCycleLengthRange)
         val targetCycleLengthRange: StateFlow<IntRange> = _targetCycleLengthRange
 
         fun setTargetCycleLengthRange(range: IntRange) {
