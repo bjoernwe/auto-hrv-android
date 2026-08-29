@@ -105,6 +105,7 @@ internal fun BandRangeSlider(
     onValueChange: (IntRange) -> Unit,
     valueRange: IntRange,
     allowedRange: IntRange,
+    enabled: Boolean = true,
 ) {
     val accent = MaterialTheme.colorScheme.primary
     val safeValueRange = if (valueRange.first < valueRange.last) valueRange else 0..1
@@ -131,6 +132,7 @@ internal fun BandRangeSlider(
             },
             valueRange = safeValueRange.first.toFloat()..safeValueRange.last.toFloat(),
             steps = intSteps,
+            enabled = enabled,
             modifier =
                 Modifier
                     .fillMaxWidth()
