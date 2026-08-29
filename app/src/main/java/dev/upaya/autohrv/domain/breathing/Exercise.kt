@@ -1,6 +1,4 @@
-package dev.upaya.autohrv.domain.breathing.exercises
-
-import dev.upaya.autohrv.domain.breathing.BreathingConfig
+package dev.upaya.autohrv.domain.breathing
 
 data class Exercise(
     val label: String,
