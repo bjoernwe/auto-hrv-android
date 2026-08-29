@@ -59,6 +59,7 @@ fun MetricsRow(
             unit = "bpm",
             trailingIcon = Icons.Filled.Favorite,
             iconTint = MaterialTheme.colorScheme.secondary,
+            valueColor = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.weight(1f),
         )
         Box(
@@ -73,6 +74,7 @@ fun MetricsRow(
             unit = "s",
             trailingIcon = ImageVector.vectorResource(R.drawable.ic_airwave),
             iconTint = MaterialTheme.colorScheme.primary,
+            valueColor = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f),
         )
         Box(
@@ -85,7 +87,7 @@ fun MetricsRow(
             label = "HRV",
             value = hrv ?: "—",
             unit = "ms",
-            valueColor = MaterialTheme.colorScheme.secondary,
+            trailingIcon = ImageVector.vectorResource(R.drawable.ic_balance),
             modifier = Modifier.weight(1f),
         )
     }

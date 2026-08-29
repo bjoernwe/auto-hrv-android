@@ -10,8 +10,6 @@ import dev.upaya.autohrv.domain.breathing.BreathingConfig
 import dev.upaya.autohrv.domain.breathing.BreathingPattern
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
 import dev.upaya.autohrv.domain.breathing.BreathingPhaseStart
-import dev.upaya.autohrv.domain.breathing.exercises.Exercise
-import dev.upaya.autohrv.domain.breathing.exercises.Exercises
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -36,6 +34,7 @@ data class HrUiState(
     val autoCorrelation: List<Float>? = null,
     val autoCorrelationPeak: Float? = null,
     val acfHistogram: List<Float> = emptyList(),
+    val acfHistorySeconds: Int = 0,
     val isInResonance: Boolean = false,
     val lagSeconds: Float? = null,
     val currentPhaseStart: BreathingPhaseStart = BreathingPhaseStart(BreathingPhase.Inhale, System.currentTimeMillis(), 4000L),
@@ -54,10 +53,10 @@ class HrvViewModel
     constructor(
         private val hrvRepository: HrvRepository,
         private val breathingBusiness: BreathingBusiness,
-        private val exercises: Exercises,
     ) : ViewModel() {
 
         val deviceId: String = HrvRepository.DEVICE_ID
+        val acfWindowSeconds: Int = breathingBusiness.acfWindowSeconds
 
         private val _uiState = MutableStateFlow(HrUiState())
         val uiState: StateFlow<HrUiState> = _uiState.asStateFlow()
@@ -116,6 +115,11 @@ class HrvViewModel
                 }
             }
             viewModelScope.launch {
+                breathingBusiness.acfHistorySeconds.collect { seconds ->
+                    _uiState.update { it.copy(acfHistorySeconds = seconds) }
+                }
+            }
+            viewModelScope.launch {
                 breathingBusiness.isInResonance.collect { isInResonance ->
                     _uiState.update { it.copy(isInResonance = isInResonance) }
                 }
@@ -153,8 +157,6 @@ class HrvViewModel
         val targetCycleLengthRange: StateFlow<IntRange> = breathingBusiness.targetCycleLengthRange
         val cycleLengthAllowedRange: IntRange = breathingBusiness.cycleLengthAllowedRange
         val targetInOutBias: StateFlow<Float> = breathingBusiness.targetInOutBias
-        val selectedExercise: StateFlow<Exercise> = exercises.selectedExercise
-        val isExerciseRunning: StateFlow<Boolean> = exercises.isRunning
 
         fun connect() = hrvRepository.connect()
 
@@ -163,8 +165,4 @@ class HrvViewModel
         fun setTargetCycleLengthRange(range: IntRange) = breathingBusiness.setTargetCycleLengthRange(range)
 
         fun setTargetInOutBias(bias: Float) = breathingBusiness.setTargetInOutBias(bias)
-
-        fun selectExercise(exercise: Exercise) = exercises.select(exercise)
-
-        fun toggleExercise() = exercises.toggle()
     }

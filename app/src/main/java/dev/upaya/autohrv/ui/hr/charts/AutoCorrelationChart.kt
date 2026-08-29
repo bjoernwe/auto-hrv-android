@@ -26,6 +26,12 @@ import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.roundToInt
 
+/**
+ * Horizontal inset shared with [dev.upaya.autohrv.ui.hr.ChartPlaceholder] so its progress line
+ * lands exactly under this chart's zero line once real data takes over.
+ */
+internal val AcfChartHorizontalInset = 10.dp
+
 @Composable
 fun AutoCorrelationChart(
     acf: List<Float>,
@@ -61,8 +67,8 @@ fun AutoCorrelationChart(
     Canvas(
         modifier = modifier,
     ) {
-        val padL = 10.dp.toPx()
-        val padR = 10.dp.toPx()
+        val padL = AcfChartHorizontalInset.toPx()
+        val padR = AcfChartHorizontalInset.toPx()
         val padT = 14.dp.toPx()
         val padB = 22.dp.toPx()
         val chartW = size.width

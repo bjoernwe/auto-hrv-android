@@ -41,7 +41,7 @@ class BreathingBusiness
 
         val cycleLengthAllowedRange: IntRange = breathingConfig.maxCycleLengthRange
 
-        private val _targetCycleLengthRange = MutableStateFlow(breathingConfig.initialCycleLengthRange)
+        private val _targetCycleLengthRange = MutableStateFlow(breathingConfig.maxCycleLengthRange)
         val targetCycleLengthRange: StateFlow<IntRange> = _targetCycleLengthRange
 
         fun setTargetCycleLengthRange(range: IntRange) {
@@ -52,6 +52,18 @@ class BreathingBusiness
             hrvRepository
                 .getRrsMs1HzHistory(breathingConfig.acfWindowSeconds)
                 .stateIn(scope, SharingStarted.Eagerly, emptyList())
+
+        /** Seconds of 1 Hz RR history the ACF needs before it can compute a first estimate. */
+        val acfWindowSeconds: Int = breathingConfig.acfWindowSeconds
+
+        // rrsMsHistory holds exactly one sample per second (capped at acfWindowSeconds), so its
+        // size doubles as "seconds of history collected so far" — the raw fact the ACF card's
+        // loading progress is derived from. Left as a count rather than a 0..1 fraction since the
+        // normalization is a display concern, not a domain one.
+        val acfHistorySeconds: StateFlow<Int> =
+            rrsMsHistory
+                .map { it.size }
+                .stateIn(scope, SharingStarted.Eagerly, 0)
 
         private val rrsMsBeatHistory: StateFlow<List<Int>> =
             hrvRepository

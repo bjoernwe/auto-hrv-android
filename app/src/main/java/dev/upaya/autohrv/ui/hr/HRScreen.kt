@@ -26,9 +26,6 @@ fun HRScreen(viewModel: HrvViewModel) {
     val breathSamples by viewModel.breathSamples.collectAsStateWithLifecycle()
     val rrSamples by viewModel.rrSamples.collectAsStateWithLifecycle()
     val targetCycleLengthRange by viewModel.targetCycleLengthRange.collectAsStateWithLifecycle()
-    val targetInOutBias by viewModel.targetInOutBias.collectAsStateWithLifecycle()
-    val selectedExercise by viewModel.selectedExercise.collectAsStateWithLifecycle()
-    val isExerciseRunning by viewModel.isExerciseRunning.collectAsStateWithLifecycle()
 
     val view = LocalView.current
     DisposableEffect(Unit) {
@@ -117,6 +114,8 @@ fun HRScreen(viewModel: HrvViewModel) {
                         )
                     } else {
                         ChartPlaceholder(
+                            elapsedSeconds = uiState.acfHistorySeconds,
+                            windowSeconds = viewModel.acfWindowSeconds,
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
@@ -135,11 +134,9 @@ fun HRScreen(viewModel: HrvViewModel) {
 
                 // Spacer(Modifier.height(20.dp))
 
-                ExerciseSplitButton(
-                    selected = selectedExercise,
-                    isRunning = isExerciseRunning,
-                    onSelect = viewModel::selectExercise,
-                    onToggle = viewModel::toggleExercise,
+                ExerciseButtonGroup(
+                    activeRange = targetCycleLengthRange,
+                    onSelect = { exercise -> viewModel.setTargetCycleLengthRange(exercise.cycleLengthRange) },
                     modifier = Modifier.fillMaxWidth(),
                 )
             } // end padded column
