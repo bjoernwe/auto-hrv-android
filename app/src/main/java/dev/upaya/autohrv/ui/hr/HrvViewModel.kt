@@ -165,6 +165,4 @@ class HrvViewModel
         fun setTargetInOutBias(bias: Float) = breathingBusiness.setTargetInOutBias(bias)
 
         fun selectExercise(exercise: Exercise) = exercises.select(exercise)
-
-        fun toggleExercise() = exercises.toggle()
     }

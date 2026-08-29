@@ -26,7 +26,6 @@ fun HRScreen(viewModel: HrvViewModel) {
     val breathSamples by viewModel.breathSamples.collectAsStateWithLifecycle()
     val rrSamples by viewModel.rrSamples.collectAsStateWithLifecycle()
     val targetCycleLengthRange by viewModel.targetCycleLengthRange.collectAsStateWithLifecycle()
-    val targetInOutBias by viewModel.targetInOutBias.collectAsStateWithLifecycle()
     val selectedExercise by viewModel.selectedExercise.collectAsStateWithLifecycle()
     val isExerciseRunning by viewModel.isExerciseRunning.collectAsStateWithLifecycle()
 
@@ -135,11 +134,10 @@ fun HRScreen(viewModel: HrvViewModel) {
 
                 // Spacer(Modifier.height(20.dp))
 
-                ExerciseSplitButton(
+                ExerciseButtonGroup(
                     selected = selectedExercise,
                     isRunning = isExerciseRunning,
                     onSelect = viewModel::selectExercise,
-                    onToggle = viewModel::toggleExercise,
                     modifier = Modifier.fillMaxWidth(),
                 )
             } // end padded column

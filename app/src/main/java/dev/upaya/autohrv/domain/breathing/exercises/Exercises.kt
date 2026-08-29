@@ -26,13 +26,13 @@ class Exercises
 
         private var job: Job? = null
 
-        fun select(exercise: Exercise) {
-            _selectedExercise.value = exercise
+        init {
             start()
         }
 
-        private fun stop() {
-            job?.cancel()
+        fun select(exercise: Exercise) {
+            _selectedExercise.value = exercise
+            start()
         }
 
         private fun start() {
@@ -50,13 +50,5 @@ class Exercises
                         _isRunning.value = false
                     }
                 }
-        }
-
-        fun toggle() {
-            if (job?.isActive == true) {
-                stop()
-            } else {
-                start()
-            }
         }
     }
