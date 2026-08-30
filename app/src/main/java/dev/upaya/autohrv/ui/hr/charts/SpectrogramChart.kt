@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.dp
 import dev.upaya.autohrv.domain.spectral.SpectrogramSlice
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 import kotlin.math.exp
+import kotlin.math.log10
 import kotlin.math.sin
-import kotlin.math.sqrt
 
 private const val MIN_POWER = 1e-6f
 
@@ -107,7 +107,7 @@ fun SpectrogramChart(
                 val x = padL + col * colW
                 band.freqBinsHz.indices.forEach { row ->
                     val power = slice.powerByFreqBin.getOrElse(row) { 0f }
-                    val t = sqrt((power * invMaxPower).coerceIn(0f, 1f))
+                    val t = log10(1f + 9f * (power * invMaxPower).coerceIn(0f, 1f))
                     // Row 0 is the lowest frequency, drawn at the bottom of the panel.
                     val y = panelTop + panelH - (row + 1) * rowH
                     drawRect(
