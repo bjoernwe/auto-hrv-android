@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.upaya.autohrv.ui.hr.charts.AutoCorrelationChart
+import dev.upaya.autohrv.ui.hr.charts.SpectrogramChart
 
 @Composable
 fun HRScreen(viewModel: HrvViewModel) {
@@ -26,6 +27,7 @@ fun HRScreen(viewModel: HrvViewModel) {
     val breathSamples by viewModel.breathSamples.collectAsStateWithLifecycle()
     val rrSamples by viewModel.rrSamples.collectAsStateWithLifecycle()
     val targetCycleLengthRange by viewModel.targetCycleLengthRange.collectAsStateWithLifecycle()
+    val spectrogramSlices by viewModel.spectrogramSlices.collectAsStateWithLifecycle()
 
     val view = LocalView.current
     DisposableEffect(Unit) {
@@ -126,19 +128,46 @@ fun HRScreen(viewModel: HrvViewModel) {
 
                 Spacer(Modifier.height(20.dp))
 
-                /*InOutBiasCard(
-                    bias = targetInOutBias,
-                    onBiasChange = { viewModel.setTargetInOutBias(it) },
-                    modifier = Modifier.fillMaxWidth(),
-                )*/
-
-                // Spacer(Modifier.height(20.dp))
-
                 ExerciseButtonGroup(
                     activeRange = targetCycleLengthRange,
                     onSelect = { exercise -> viewModel.setTargetCycleLengthRange(exercise.cycleLengthRange) },
                     modifier = Modifier.fillMaxWidth(),
                 )
+
+                Spacer(Modifier.height(20.dp))
+
+                HrvCard {
+                    SpectrogramHeader()
+                    Spacer(Modifier.height(6.dp))
+                    if (spectrogramSlices.isNotEmpty()) {
+                        SpectrogramChart(
+                            slices = spectrogramSlices,
+                            freqBinsHz = viewModel.spectrogramFreqBinsHz,
+                            mayerBandHz = viewModel.spectrogramMayerBandHz,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(140.dp),
+                        )
+                    } else {
+                        ChartPlaceholder(
+                            elapsedSeconds = uiState.spectrogramHistorySeconds,
+                            windowSeconds = viewModel.spectrogramWindowSeconds,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(140.dp),
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                /*InOutBiasCard(
+                    bias = targetInOutBias,
+                    onBiasChange = { viewModel.setTargetInOutBias(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                )*/
             } // end padded column
         }
     }
