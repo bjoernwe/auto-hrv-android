@@ -140,7 +140,7 @@ fun HRScreen(viewModel: HrvViewModel) {
                     }
                 }
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
 
                 ExerciseButtonGroup(
                     activeRange = targetCycleLengthRange,
@@ -148,7 +148,7 @@ fun HRScreen(viewModel: HrvViewModel) {
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
 
                 HrvCard {
                     SpectrogramHeader()
