@@ -68,7 +68,7 @@ fun SpectrogramChart(
         val padR = 32.dp.toPx()
         val padT = 6.dp.toPx()
         val padB = 6.dp.toPx()
-        val gap = 8.dp.toPx()
+        val gap = 16.dp.toPx()
         val plotW = size.width - padL - padR
         // Panels split the plot height evenly, with a gap between each.
         val totalPlotH = size.height - padT - padB - gap * (panels.size - 1)
