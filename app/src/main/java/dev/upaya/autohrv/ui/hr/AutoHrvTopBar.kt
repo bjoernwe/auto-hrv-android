@@ -5,10 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -28,8 +26,46 @@ import com.polar.sdk.api.model.PolarDeviceInfo
 import dev.upaya.autohrv.data.model.ConnectionState
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
+/** Left-hand app title (heart glyph + "Auto HRV"). Rendered as the pinned top-left overlay. */
 @Composable
-internal fun AutoHrvTopBar(
+internal fun AutoHrvTitle() {
+    val accent = MaterialTheme.colorScheme.secondary
+    val onSurface = MaterialTheme.colorScheme.onSurface
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .size(30.dp)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(accent.copy(alpha = 0.18f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Filled.Favorite,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(17.dp),
+            )
+        }
+        Text(
+            "Auto HRV",
+            style =
+                MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = onSurface,
+                    letterSpacing = (-0.01).em,
+                ),
+        )
+    }
+}
+
+/** Device connection pill (status dot + device id + battery). Scrolls away with the content. */
+@Composable
+internal fun ConnectionChip(
     deviceId: String,
     connectionState: ConnectionState,
     batteryLevel: Int?,
@@ -45,76 +81,44 @@ internal fun AutoHrvTopBar(
     Row(
         modifier =
             Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+                .clip(RoundedCornerShape(999.dp))
+                .border(1.dp, outlineStrong, RoundedCornerShape(999.dp))
+                .background(surface2)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(30.dp)
-                        .clip(RoundedCornerShape(9.dp))
-                        .background(accent.copy(alpha = 0.18f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Filled.Favorite,
-                    contentDescription = null,
-                    tint = accent,
-                    modifier = Modifier.size(17.dp),
-                )
-            }
+        Box(
+            Modifier
+                .size(8.dp)
+                .background(if (isConnected) accent else faint, CircleShape),
+        )
+        Text(
+            text = deviceId.take(8),
+            style = MaterialTheme.typography.labelLarge.copy(color = onSurface),
+        )
+        if (batteryLevel != null) {
             Text(
-                "Auto HRV",
-                style =
-                    MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = onSurface,
-                        letterSpacing = (-0.01).em,
-                    ),
+                text = "$batteryLevel%",
+                style = MaterialTheme.typography.labelMedium.copy(color = muted),
             )
-        }
-
-        Row(
-            modifier =
-                Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .border(1.dp, outlineStrong, RoundedCornerShape(999.dp))
-                    .background(surface2)
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Box(
-                Modifier
-                    .size(8.dp)
-                    .background(if (isConnected) accent else faint, CircleShape),
-            )
-            Text(
-                text = deviceId.take(8),
-                style = MaterialTheme.typography.labelLarge.copy(color = onSurface),
-            )
-            if (batteryLevel != null) {
-                Text(
-                    text = "$batteryLevel%",
-                    style = MaterialTheme.typography.labelMedium.copy(color = muted),
-                )
-            }
         }
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "TopBar — connected")
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "Title")
 @Composable
-private fun AutoHrvTopBarConnectedPreview() {
+private fun AutoHrvTitlePreview() {
     AutoHrvTheme {
-        AutoHrvTopBar(
+        AutoHrvTitle()
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "ConnectionChip — connected")
+@Composable
+private fun ConnectionChipConnectedPreview() {
+    AutoHrvTheme {
+        ConnectionChip(
             deviceId = "E7A9AB27",
             connectionState =
                 ConnectionState.Connected(
@@ -125,11 +129,11 @@ private fun AutoHrvTopBarConnectedPreview() {
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "TopBar — disconnected")
+@Preview(showBackground = true, backgroundColor = 0xFF0A0B0EL, name = "ConnectionChip — disconnected")
 @Composable
-private fun AutoHrvTopBarDisconnectedPreview() {
+private fun ConnectionChipDisconnectedPreview() {
     AutoHrvTheme {
-        AutoHrvTopBar(
+        ConnectionChip(
             deviceId = "E7A9AB27",
             connectionState = ConnectionState.Disconnected("E7A9AB27"),
             batteryLevel = null,

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -35,7 +34,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
@@ -47,12 +45,12 @@ import kotlin.math.sin
 
 @Composable
 internal fun CouplingHeroCard(
-    currentPhase: BreathingPhase,
     breathSamples: List<Sample>,
     rrSamples: List<Sample>,
     windowMs: Long,
     isInResonance: Boolean,
     modifier: Modifier = Modifier,
+    phaseChipSlot: @Composable () -> Unit = {},
 ) {
     val nowMs by produceState(System.currentTimeMillis()) {
         while (true) {
@@ -87,11 +85,7 @@ internal fun CouplingHeroCard(
     val backgroundColor = MaterialTheme.colorScheme.background
 
     Column(modifier = modifier.fillMaxWidth()) {
-        CouplingHeader(
-            currentPhase = currentPhase,
-            latestBreathValue = breathSamples.lastOrNull()?.value ?: 0f,
-            breathColor = breathColor,
-        )
+        CouplingHeader(phaseChipSlot = phaseChipSlot)
 
         Spacer(Modifier.height(10.dp))
 
@@ -134,21 +128,9 @@ internal fun CouplingHeroCard(
 }
 
 @Composable
-private fun CouplingHeader(
-    currentPhase: BreathingPhase,
-    latestBreathValue: Float,
-    breathColor: Color,
-) {
-    // Drive label color from the live breath value (0=exhale, 1=inhale) so it brightens
-    // toward teal as the user inhales and dims as they exhale — temporal anchor for the now-dot.
-    val animatedBreathValue by animateFloatAsState(
-        targetValue = latestBreathValue,
-        animationSpec = tween(durationMillis = 300, easing = LinearEasing),
-        label = "breath-value",
-    )
-    val onSurface = MaterialTheme.colorScheme.onSurface
-    val phaseLabelColor = lerp(onSurface.copy(alpha = 0.2f), breathColor, animatedBreathValue)
-
+private fun CouplingHeader(phaseChipSlot: @Composable () -> Unit) {
+    // The breathing-pace indicator is hosted by the caller as a sticky overlay chip; here we only
+    // reserve its resting slot (top-right of the hero) so the layout doesn't shift when it detaches.
     Row(
         modifier =
             Modifier
@@ -157,14 +139,7 @@ private fun CouplingHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End,
     ) {
-        Text(
-            text = if (currentPhase == BreathingPhase.Inhale) "inhale" else "exhale",
-            style =
-                MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    color = phaseLabelColor,
-                ),
-        )
+        phaseChipSlot()
     }
 }
 
@@ -457,11 +432,11 @@ private fun previewRrSamples(windowMs: Long = 22_000L): List<Sample> {
 private fun CouplingHeroTuningPreview() {
     AutoHrvTheme {
         CouplingHeroCard(
-            currentPhase = BreathingPhase.Inhale,
             breathSamples = previewBreathSamples(),
             rrSamples = previewRrSamples(),
             windowMs = 22_000L,
             isInResonance = false,
+            phaseChipSlot = { BreathingChip(phase = BreathingPhase.Inhale, latestBreathValue = 0.9f) },
         )
     }
 }
@@ -471,11 +446,11 @@ private fun CouplingHeroTuningPreview() {
 private fun CouplingHeroLockedPreview() {
     AutoHrvTheme {
         CouplingHeroCard(
-            currentPhase = BreathingPhase.Exhale,
             breathSamples = previewBreathSamples(),
             rrSamples = previewRrSamples(),
             windowMs = 22_000L,
             isInResonance = true,
+            phaseChipSlot = { BreathingChip(phase = BreathingPhase.Exhale, latestBreathValue = 0.1f) },
         )
     }
 }
