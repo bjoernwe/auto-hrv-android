@@ -51,21 +51,21 @@ data class SpectrogramConfig(
                             hopSeconds = 1,
                             // 120 slices * 1s hop = 2 min of scrolling history.
                             maxSlices = 120,
-                            freqRangeHz = 0f..0.04f,
+                            freqRangeHz = 0f..0.06f,
                         ),
                         SpectrogramBand(
-                            label = "MAYER",
+                            label = "BREATH",
                             windowSeconds = 64,
                             hopSeconds = 1,
                             maxSlices = 120,
-                            freqRangeHz = 0.04f..0.15f,
+                            freqRangeHz = 0.06f..0.25f,
                         ),
                         SpectrogramBand(
                             label = "FAST",
-                            windowSeconds = 32,
+                            windowSeconds = 16,
                             hopSeconds = 1,
                             maxSlices = 120,
-                            freqRangeHz = 0.15f..0.4f,
+                            freqRangeHz = 0.25f..2f,
                         ),
                     ),
             )
