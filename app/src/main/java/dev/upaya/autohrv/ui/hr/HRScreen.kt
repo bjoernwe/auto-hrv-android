@@ -13,12 +13,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.upaya.autohrv.ui.hr.charts.AutoCorrelationChart
+import dev.upaya.autohrv.ui.hr.charts.SpectrogramBandView
 import dev.upaya.autohrv.ui.hr.charts.SpectrogramChart
 
 @Composable
@@ -27,7 +29,19 @@ fun HRScreen(viewModel: HrvViewModel) {
     val breathSamples by viewModel.breathSamples.collectAsStateWithLifecycle()
     val rrSamples by viewModel.rrSamples.collectAsStateWithLifecycle()
     val targetCycleLengthRange by viewModel.targetCycleLengthRange.collectAsStateWithLifecycle()
-    val spectrogramSlices by viewModel.spectrogramSlices.collectAsStateWithLifecycle()
+    val spectrogramBandSlices by viewModel.spectrogramBandSlices.collectAsStateWithLifecycle()
+    // Static band info only changes identity when the slices do, so rebuild the views then — not on
+    // every unrelated recomposition (which streams several times a second).
+    val spectrogramBands =
+        remember(spectrogramBandSlices) {
+            viewModel.spectrogramBands.mapIndexed { i, info ->
+                SpectrogramBandView(
+                    label = info.label,
+                    slices = spectrogramBandSlices.getOrElse(i) { emptyList() },
+                    freqBinsHz = info.freqBinsHz,
+                )
+            }
+        }
 
     val view = LocalView.current
     DisposableEffect(Unit) {
@@ -139,15 +153,13 @@ fun HRScreen(viewModel: HrvViewModel) {
                 HrvCard {
                     SpectrogramHeader()
                     Spacer(Modifier.height(6.dp))
-                    if (spectrogramSlices.isNotEmpty()) {
+                    if (spectrogramBands.any { it.slices.isNotEmpty() }) {
                         SpectrogramChart(
-                            slices = spectrogramSlices,
-                            freqBinsHz = viewModel.spectrogramFreqBinsHz,
-                            mayerBandHz = viewModel.spectrogramMayerBandHz,
+                            bands = spectrogramBands,
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .height(140.dp),
+                                    .height(190.dp),
                         )
                     } else {
                         ChartPlaceholder(

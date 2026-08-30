@@ -10,6 +10,7 @@ import dev.upaya.autohrv.domain.breathing.BreathingConfig
 import dev.upaya.autohrv.domain.breathing.BreathingPattern
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
 import dev.upaya.autohrv.domain.breathing.BreathingPhaseStart
+import dev.upaya.autohrv.domain.spectral.SpectrogramBandInfo
 import dev.upaya.autohrv.domain.spectral.SpectrogramBusiness
 import dev.upaya.autohrv.domain.spectral.SpectrogramSlice
 import kotlinx.coroutines.delay
@@ -61,9 +62,10 @@ class HrvViewModel
 
         val deviceId: String = HrvRepository.DEVICE_ID
         val acfWindowSeconds: Int = breathingBusiness.acfWindowSeconds
-        val spectrogramWindowSeconds: Int = spectrogramBusiness.windowSeconds
-        val spectrogramFreqBinsHz: List<Float> = spectrogramBusiness.freqBinsHz
-        val spectrogramMayerBandHz: ClosedFloatingPointRange<Float> = spectrogramBusiness.mayerBandHz
+        val spectrogramBands: List<SpectrogramBandInfo> = spectrogramBusiness.bands
+
+        /** Seconds of history before the first (fastest) band appears — drives the loading placeholder. */
+        val spectrogramWindowSeconds: Int = spectrogramBusiness.firstBandWindowSeconds
 
         private val _uiState = MutableStateFlow(HrUiState())
         val uiState: StateFlow<HrUiState> = _uiState.asStateFlow()
@@ -75,8 +77,8 @@ class HrvViewModel
                 .scan(emptyList<Sample>()) { acc, s -> (acc + s).pruneOlderThan(DISPLAY_WINDOW_MS, s.tMillis) }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-        /** Rolling spectrogram slices — see [SpectrogramBusiness]. */
-        val spectrogramSlices: StateFlow<List<SpectrogramSlice>> = spectrogramBusiness.slices
+        /** Rolling spectrogram slices per band, index-aligned with [spectrogramBands]. */
+        val spectrogramBandSlices: StateFlow<List<List<SpectrogramSlice>>> = spectrogramBusiness.bandSlices
 
         init {
             viewModelScope.launch {

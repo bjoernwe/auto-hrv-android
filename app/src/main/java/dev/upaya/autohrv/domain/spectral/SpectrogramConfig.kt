@@ -1,21 +1,22 @@
 package dev.upaya.autohrv.domain.spectral
 
 /**
- * Tuning for the RR-interval spectrogram.
+ * Tuning for one band of the RR-interval spectrogram.
  *
- * [windowSeconds] is a power of two on the repository's 1 Hz grid so the FFT needs no
- * zero-padding; 128 s gives frequency resolution ~1/128 Hz ≈ 0.0078 Hz, resolving the Mayer-wave
- * / LF band (0.04-0.15 Hz) into roughly 14 bins. A new slice is computed from the trailing
- * [windowSeconds] of history every [hopSeconds] (heavy overlap, since hop << window), so slow
- * drift in the band shows up as a smoothly shifting pattern rather than jumps between disjoint
- * blocks. Only the most recent [maxSlices] are retained for display.
+ * [windowSeconds] is a power of two on the repository's 1 Hz grid so the FFT needs no zero-padding,
+ * and is chosen long enough to faithfully resolve the band's slowest frequency (its slowest
+ * resolvable oscillation is one full cycle per window, at `1/windowSeconds` Hz). A shorter window
+ * fills — and so starts updating — sooner, which is why faster bands can use a smaller one. A new
+ * slice is computed from the trailing [windowSeconds] of history every [hopSeconds] (heavy overlap,
+ * since hop << window), so drift within the band shows as a smoothly shifting pattern rather than
+ * jumps between disjoint blocks. Only the most recent [maxSlices] are retained for display.
  */
-data class SpectrogramConfig(
+data class SpectrogramBand(
+    val label: String,
     val windowSeconds: Int,
     val hopSeconds: Int,
     val maxSlices: Int,
-    val displayFreqRangeHz: ClosedFloatingPointRange<Float>,
-    val mayerBandHz: ClosedFloatingPointRange<Float>,
+    val freqRangeHz: ClosedFloatingPointRange<Float>,
 ) {
     init {
         require(windowSeconds > 0 && (windowSeconds and (windowSeconds - 1)) == 0) {
@@ -24,17 +25,49 @@ data class SpectrogramConfig(
         require(hopSeconds > 0) { "hopSeconds must be positive" }
         require(maxSlices > 0) { "maxSlices must be positive" }
     }
+}
+
+/**
+ * The set of frequency bands the spectrogram computes independently over the same RR signal. Each
+ * band has its own window, hop and color normalization (the latter a display concern, applied in
+ * the chart), so faster oscillations update sooner and stay visible instead of being drowned out by
+ * the dominant low-frequency power.
+ */
+data class SpectrogramConfig(
+    val bands: List<SpectrogramBand>,
+) {
+    init {
+        require(bands.isNotEmpty()) { "at least one band is required" }
+    }
 
     companion object {
         val DEFAULT =
             SpectrogramConfig(
-                windowSeconds = 128,
-                hopSeconds = 5,
-                // 120 slices * 5s hop = 10 min of scrolling history.
-                maxSlices = 120,
-                // Mayer band with a little context on either side.
-                displayFreqRangeHz = 0f..0.2f,
-                mayerBandHz = 0.04f..0.15f,
+                bands =
+                    listOf(
+                        SpectrogramBand(
+                            label = "SLOW",
+                            windowSeconds = 128,
+                            hopSeconds = 1,
+                            // 120 slices * 1s hop = 2 min of scrolling history.
+                            maxSlices = 120,
+                            freqRangeHz = 0f..0.04f,
+                        ),
+                        SpectrogramBand(
+                            label = "MAYER",
+                            windowSeconds = 64,
+                            hopSeconds = 1,
+                            maxSlices = 120,
+                            freqRangeHz = 0.04f..0.15f,
+                        ),
+                        SpectrogramBand(
+                            label = "FAST",
+                            windowSeconds = 32,
+                            hopSeconds = 1,
+                            maxSlices = 120,
+                            freqRangeHz = 0.15f..0.4f,
+                        ),
+                    ),
             )
     }
 }

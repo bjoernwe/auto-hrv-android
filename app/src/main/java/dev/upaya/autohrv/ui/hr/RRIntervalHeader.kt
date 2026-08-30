@@ -86,7 +86,7 @@ internal fun RRIntervalHeader(swing: Int?) {
 internal fun ACFHeader() = ChartSectionHeader(label = "AUTOCORRELATION", subtitle = "peak ➔ pace")
 
 @Composable
-internal fun SpectrogramHeader() = ChartSectionHeader(label = "SPECTROGRAM", subtitle = "Mayer-wave trend")
+internal fun SpectrogramHeader() = ChartSectionHeader(label = "SPECTROGRAM", subtitle = "fast · mayer · slow")
 
 @Composable
 private fun ChartSectionHeader(
