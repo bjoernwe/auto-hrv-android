@@ -3,6 +3,7 @@ package dev.upaya.autohrv.domain.spectral
 import org.apache.commons.math3.transform.DftNormalization
 import org.apache.commons.math3.transform.FastFourierTransformer
 import org.apache.commons.math3.transform.TransformType
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.PI
 import kotlin.math.cos
 
@@ -13,18 +14,15 @@ internal fun hannWindow(size: Int): DoubleArray = DoubleArray(size) { i -> 0.5 *
 
 // powerSpectrum() is called once per hop on a window size that never changes at runtime, so the
 // Hann window and its energy (both a function of size alone) are cached rather than rebuilt every
-// call.
-private var cachedWindowSize = -1
-private var cachedWindow = DoubleArray(0)
-private var cachedWindowEnergy = 0.0
+// call. Since multiple bands can be active concurrently, the cache must be thread-safe and
+// accommodate multiple sizes.
+private val windowCache = ConcurrentHashMap<Int, Pair<DoubleArray, Double>>()
 
 private fun hannWindowAndEnergy(size: Int): Pair<DoubleArray, Double> {
-    if (size != cachedWindowSize) {
-        cachedWindow = hannWindow(size)
-        cachedWindowEnergy = cachedWindow.sumOf { it * it }
-        cachedWindowSize = size
+    return windowCache.computeIfAbsent(size) { s ->
+        val window = hannWindow(s)
+        window to window.sumOf { it * it }
     }
-    return cachedWindow to cachedWindowEnergy
 }
 
 /**
@@ -39,7 +37,6 @@ private fun hannWindowAndEnergy(size: Int): Pair<DoubleArray, Double> {
  */
 internal fun powerSpectrum(
     samples: List<Int>,
-    sampleRateHz: Double,
 ): List<Float> {
     val n = samples.size
     val (window, windowEnergy) = hannWindowAndEnergy(n)
