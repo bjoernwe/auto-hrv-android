@@ -83,16 +83,25 @@ internal fun RRIntervalHeader(swing: Int?) {
 }
 
 @Composable
-internal fun ACFHeader() {
+internal fun ACFHeader() = ChartSectionHeader(label = "AUTOCORRELATION", subtitle = "peak ➔ pace")
+
+@Composable
+internal fun SpectrogramHeader() = ChartSectionHeader(label = "SPECTROGRAM", subtitle = "fast · mayer · slow")
+
+@Composable
+private fun ChartSectionHeader(
+    label: String,
+    subtitle: String,
+) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SectionLabel(text = "AUTOCORRELATION")
+        SectionLabel(text = label)
         Text(
-            text = "peak ➔ pace",
+            text = subtitle,
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp, color = muted),
         )
     }
