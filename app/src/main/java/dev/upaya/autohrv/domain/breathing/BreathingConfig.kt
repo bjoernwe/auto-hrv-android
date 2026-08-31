@@ -32,7 +32,7 @@ data class BreathingConfig(
             BreathingConfig(
                 // 1 Hz history length; recency half-life ~12 s keeps the ACF as responsive as the
                 // rest of the main screen while retaining enough support for the longest lag.
-                acfWindowSeconds = 24,
+                acfWindowSeconds = 30,
                 acfMaxLagSeconds = 16,
                 acfHalfLifeSeconds = 12f,
                 inOutBias = 0f,
