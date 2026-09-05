@@ -12,15 +12,12 @@ import dev.upaya.autohrv.domain.breathing.usecase.ComputeBreathRrLagUseCase
 import dev.upaya.autohrv.domain.breathing.usecase.DetectResonanceUseCase
 import dev.upaya.autohrv.domain.breathing.usecase.RunBreathingPacerUseCase
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
@@ -34,7 +31,7 @@ class BreathingService
     @Inject
     internal constructor(
         @param:ApplicationScope private val scope: CoroutineScope,
-        computeAutoCorrelationUseCase: ComputeAutoCorrelationUseCase,
+        private val computeAutoCorrelationUseCase: ComputeAutoCorrelationUseCase,
         accumulateAcfUseCase: AccumulateAcfUseCase,
         runBreathingPacerUseCase: RunBreathingPacerUseCase,
         detectResonanceUseCase: DetectResonanceUseCase,
@@ -52,21 +49,27 @@ class BreathingService
         /** Seconds of 1 Hz RR history the ACF needs before it can compute a first estimate. */
         val acfWindowSeconds: Int = breathingConfig.acfWindowSeconds
 
-        // rrsMsHistory holds exactly one sample per second (capped at acfWindowSeconds), so its
-        // size doubles as "seconds of history collected so far" — the raw fact the ACF card's
-        // loading progress is derived from. Left as a count rather than a 0..1 fraction since the
-        // normalization is a display concern, not a domain one.
-        val acfHistorySeconds: Flow<Int> = rrsMsHistory.map { it.size }.distinctUntilChanged()
+        val acfHistorySeconds: Flow<Int> = hrvRepository.getRrsMs1HzHistorySeconds(breathingConfig.acfWindowSeconds)
 
-        @OptIn(ExperimentalCoroutinesApi::class)
-        val autoCorrelation: StateFlow<AutoCorrelationBO?> =
-            settings.targetCycleLengthRange
-                .flatMapLatest { range -> computeAutoCorrelationUseCase(rrsMsHistory, range, breathingConfig) }
+        // The curve depends only on the RR window, so it is computed once per window and reused for
+        // both the accumulated sums and the range-dependent peak search below.
+        private val acfValues: StateFlow<List<Float>?> =
+            computeAutoCorrelationUseCase(rrsMsHistory, breathingConfig)
                 .stateIn(scope, SharingStarted.Eagerly, null)
+
+        val autoCorrelation: StateFlow<AutoCorrelationBO?> =
+            combine(acfValues, settings.targetCycleLengthRange) { values, range ->
+                values?.let {
+                    AutoCorrelationBO(
+                        values = it,
+                        peakLagSeconds = computeAutoCorrelationUseCase.findBreathingCycleLength(it, range),
+                    )
+                }
+            }.stateIn(scope, SharingStarted.Eagerly, null)
 
         // Session-accumulated per-lag ACF sums, raw — shaping into [0, 1] chart heights is a UI concern.
         val acfSums: StateFlow<List<Float>> =
-            accumulateAcfUseCase(autoCorrelation.map { it?.values }, breathingConfig)
+            accumulateAcfUseCase(acfValues, breathingConfig)
                 .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
         private val initialBreathingPattern = breathingConfig.defaultPattern()

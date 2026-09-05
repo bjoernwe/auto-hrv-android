@@ -62,7 +62,6 @@ fun MainScreen(viewModel: MainViewModel) {
         remember(spectrogramBandSlices) {
             viewModel.spectrogramBands.mapIndexed { i, info ->
                 SpectrogramBandView(
-                    label = info.label,
                     slices = spectrogramBandSlices.getOrElse(i) { emptyList() },
                     freqBinsHz = info.freqBinsHz,
                 )
@@ -207,7 +206,8 @@ fun MainScreen(viewModel: MainViewModel) {
 
                     ExerciseButtonGroup(
                         activeRange = targetCycleLengthRange,
-                        onSelect = { exercise -> viewModel.setTargetCycleLengthRange(exercise.cycleLengthRange) },
+                        allowedRange = viewModel.cycleLengthAllowedRange,
+                        onSelect = { range -> viewModel.setTargetCycleLengthRange(range) },
                         modifier = Modifier.fillMaxWidth(),
                     )
 

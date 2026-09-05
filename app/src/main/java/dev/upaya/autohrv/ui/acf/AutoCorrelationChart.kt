@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -18,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import dev.upaya.autohrv.ui.commons.ChartHorizontalInset
 import dev.upaya.autohrv.ui.commons.animateListAsState
 import dev.upaya.autohrv.ui.commons.smoothPath
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
@@ -25,12 +27,6 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.roundToInt
-
-/**
- * Horizontal inset shared with [dev.upaya.autohrv.ui.commons.ChartPlaceholder] so its progress line
- * lands exactly under this chart's zero line once real data takes over.
- */
-internal val AcfChartHorizontalInset = 10.dp
 
 @Composable
 fun AutoCorrelationChart(
@@ -46,7 +42,10 @@ fun AutoCorrelationChart(
     val displayedAcf = animateListAsState(acf)
     // animateListAsState zips prev/current and truncates on a size mismatch, so a possibly-empty
     // histogram is padded to the ACF length — this also gives a grow-from-zero animation.
-    val histTarget = if (histogram.size == acf.size) histogram else List(acf.size) { 0f }
+    // remembered so the padding list keeps its identity across recompositions — it is the animation
+    // target, and a fresh instance each time would restart the tween on every recomposition.
+    val emptyHistogram = remember(acf.size) { List(acf.size) { 0f } }
+    val histTarget = if (histogram.size == acf.size) histogram else emptyHistogram
     val displayedHistogram = animateListAsState(histTarget)
 
     // The ACF curve is heart-derived → warm tone. The peak and band — which set
@@ -67,17 +66,16 @@ fun AutoCorrelationChart(
     Canvas(
         modifier = modifier,
     ) {
-        val padL = AcfChartHorizontalInset.toPx()
-        val padR = AcfChartHorizontalInset.toPx()
+        val pad = ChartHorizontalInset.toPx()
         val padT = 14.dp.toPx()
         val padB = 22.dp.toPx()
         val chartW = size.width
         val chartH = size.height
-        val plotW = chartW - padL - padR
+        val plotW = chartW - pad - pad
         val plotH = chartH - padT - padB
 
         val maxLag = (displayedAcf.size - 1).toFloat()
-        val xs = { t: Float -> padL + (t / maxLag).coerceIn(0f, 1f) * plotW }
+        val xs = { t: Float -> pad + (t / maxLag).coerceIn(0f, 1f) * plotW }
         val yCenter = padT + plotH / 2f
         val yHalf = plotH / 2f
         val ys = { v: Float -> yCenter - v.coerceIn(-1f, 1f) * yHalf }
@@ -103,8 +101,8 @@ fun AutoCorrelationChart(
         // Zero line
         drawLine(
             color = outlineColor,
-            start = Offset(padL, yCenter),
-            end = Offset(chartW - padR, yCenter),
+            start = Offset(pad, yCenter),
+            end = Offset(chartW - pad, yCenter),
             strokeWidth = 1.dp.toPx(),
         )
 
@@ -149,7 +147,7 @@ fun AutoCorrelationChart(
                 measured,
                 topLeft =
                     Offset(
-                        (peakX - measured.size.width / 2f).coerceIn(padL, chartW - padR - measured.size.width),
+                        (peakX - measured.size.width / 2f).coerceIn(pad, chartW - pad - measured.size.width),
                         padT + 2.dp.toPx(),
                     ),
             )

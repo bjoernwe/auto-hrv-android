@@ -33,8 +33,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
-import dev.upaya.autohrv.ui.acf.ACFHeader
-import dev.upaya.autohrv.ui.acf.AcfChartHorizontalInset
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 @Composable
@@ -106,24 +104,23 @@ internal fun ChartPlaceholder(
                         .fillMaxWidth()
                         .height(14.dp),
             ) {
-                val padL = AcfChartHorizontalInset.toPx()
-                val padR = AcfChartHorizontalInset.toPx()
-                val trackWidth = size.width - padL - padR
+                val pad = ChartHorizontalInset.toPx()
+                val trackWidth = size.width - 2 * pad
                 val y = size.height / 2f
 
                 drawLine(
                     color = track,
-                    start = Offset(padL, y),
-                    end = Offset(size.width - padR, y),
+                    start = Offset(pad, y),
+                    end = Offset(size.width - pad, y),
                     strokeWidth = 2.dp.toPx(),
                     cap = StrokeCap.Round,
                 )
 
                 if (animatedProgress > 0f) {
-                    val fillEnd = padL + trackWidth * animatedProgress
+                    val fillEnd = pad + trackWidth * animatedProgress
                     drawLine(
                         color = heart,
-                        start = Offset(padL, y),
+                        start = Offset(pad, y),
                         end = Offset(fillEnd, y),
                         strokeWidth = 2.dp.toPx(),
                         cap = StrokeCap.Round,
@@ -163,7 +160,7 @@ internal fun ChartPlaceholder(
 private fun ChartPlaceholderPreview() {
     AutoHrvTheme {
         HrvCard {
-            ACFHeader()
+            ChartSectionHeader(label = "AUTOCORRELATION", subtitle = "peak ➔ pace")
             Spacer(Modifier.height(6.dp))
             ChartPlaceholder(
                 elapsedSeconds = 12,

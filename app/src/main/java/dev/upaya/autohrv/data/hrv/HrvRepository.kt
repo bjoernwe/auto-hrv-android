@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -109,7 +110,7 @@ class HrvRepository
         /** Rolling buffer of the last [MAX_HISTORY_SECONDS] of [rrMsResampled1Hz], shared by every caller of [getRrsMs1HzHistory]. */
         private val rrMs1HzBuffer: StateFlow<List<Int>> =
             rrMsResampled1Hz
-                .scan(emptyList<Int>()) { acc, value -> (acc + value).takeLast(MAX_HISTORY_SECONDS) }
+                .windowedTo(MAX_HISTORY_SECONDS * SAMPLES_PER_SECOND)
                 .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
         private val api: PolarBleApi by lazy {
@@ -191,11 +192,16 @@ class HrvRepository
             }
         }
 
-        /** HR history on the uniform 1 Hz grid, covering the last [seconds] of real time. */
-        fun getHrHistory(seconds: Int): Flow<List<Int>> = hrResampled1Hz.windowedTo(seconds * SAMPLES_PER_SECOND)
-
         /** RR-interval history on the uniform 1 Hz grid, covering the last [seconds] of real time. */
         fun getRrsMs1HzHistory(seconds: Int): Flow<List<Int>> = rrMs1HzBuffer.map { it.takeLast(seconds * SAMPLES_PER_SECOND) }
+
+        /**
+         * Seconds of 1 Hz RR history collected so far, capped at [seconds]. The buffer holds exactly
+         * one sample per second, so its size *is* the coverage — the raw fact a card's loading
+         * progress is derived from. Left as a count rather than a 0..1 fraction, since turning it
+         * into one is a display concern.
+         */
+        fun getRrsMs1HzHistorySeconds(seconds: Int): Flow<Int> = getRrsMs1HzHistory(seconds).map { it.size }.distinctUntilChanged()
 
         /**
          * Beat-indexed RR-interval history (true NN intervals) covering roughly the last [seconds] of

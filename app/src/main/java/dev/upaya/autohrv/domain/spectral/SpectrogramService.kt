@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
@@ -36,7 +35,6 @@ class SpectrogramService
         val bands: List<SpectrogramBandInfoBO> =
             config.bands.map { band ->
                 SpectrogramBandInfoBO(
-                    label = band.label,
                     freqBinsHz = frequencyBinsHzIn(band.windowSeconds, sampleRateHz = 1.0, band.freqRangeHz),
                 )
             }
@@ -46,9 +44,7 @@ class SpectrogramService
                 .getRrsMs1HzHistory(maxWindowSeconds)
                 .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
-        // rrsMsHistory holds one sample per second (capped at maxWindowSeconds), so its size doubles
-        // as "seconds of history collected so far" — the loading-progress signal for the card.
-        val historySeconds: Flow<Int> = rrsMsHistory.map { it.size }.distinctUntilChanged()
+        val historySeconds: Flow<Int> = hrvRepository.getRrsMs1HzHistorySeconds(maxWindowSeconds)
 
         /** Rolling slices per band, index-aligned with [bands]. */
         val bandSlices: StateFlow<List<List<SpectrogramSliceBO>>> =

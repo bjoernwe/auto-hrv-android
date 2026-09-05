@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -26,9 +27,8 @@ private const val MIN_POWER = 1e-6f
 // reads more intuitively here than a Hz value.
 private fun cycleLengthLabel(hz: Float) = "%.0fs".format(1f / hz)
 
-/** One band's data to draw: a label, its rolling slices, and the Hz of each frequency bin. */
+/** One band's data to draw: its rolling slices and the Hz of each frequency bin. */
 data class SpectrogramBandView(
-    val label: String,
     val slices: List<SpectrogramSliceBO>,
     val freqBinsHz: List<Float>,
 )
@@ -59,7 +59,7 @@ fun SpectrogramChart(
     // Highest frequency on top, derived from the data rather than the caller's order. Each panel is
     // normalized against its own loudest bin (a display decision — see the class doc); computed here
     // in the composition, not in the draw lambda, so it re-runs on data change rather than per frame.
-    val panels = bands.sortedByDescending { it.freqBinsHz.firstOrNull() ?: 0f }
+    val panels = remember(bands) { bands.sortedByDescending { it.freqBinsHz.firstOrNull() ?: 0f } }
     val maxPowers =
         panels.map { band ->
             (band.slices.maxOfOrNull { it.powerByFreqBin.maxOrNull() ?: 0f } ?: 0f).coerceAtLeast(MIN_POWER)
@@ -69,8 +69,10 @@ fun SpectrogramChart(
     // lambda — freqBinsHz is static once a band activates, so this only redoes work on data change,
     // not on every draw.
     val tickLayouts =
-        panels.map { band ->
-            band.freqBinsHz.map { hz -> textMeasurer.measure(cycleLengthLabel(hz), style = axisLabelStyle) }
+        remember(panels, axisLabelStyle, textMeasurer) {
+            panels.map { band ->
+                band.freqBinsHz.map { hz -> textMeasurer.measure(cycleLengthLabel(hz), style = axisLabelStyle) }
+            }
         }
 
     Canvas(modifier = modifier) {
@@ -148,12 +150,10 @@ private fun SpectrogramChartPreview() {
         val now = System.currentTimeMillis()
 
         fun band(
-            label: String,
             bins: List<Float>,
             peakHz: Float,
             count: Int,
         ) = SpectrogramBandView(
-            label = label,
             freqBinsHz = bins,
             slices =
                 (0 until count).map { i ->
@@ -172,9 +172,9 @@ private fun SpectrogramChartPreview() {
         SpectrogramChart(
             bands =
                 listOf(
-                    band("SLOW", (1..5).map { it * 0.008f }, peakHz = 0.02f, count = 40),
-                    band("MAYER", (3..9).map { it / 64f }, peakHz = 0.09f, count = 60),
-                    band("FAST", (5..12).map { it / 32f }, peakHz = 0.25f, count = 90),
+                    band((1..5).map { it * 0.008f }, peakHz = 0.02f, count = 40),
+                    band((3..9).map { it / 64f }, peakHz = 0.09f, count = 60),
+                    band((5..12).map { it / 32f }, peakHz = 0.25f, count = 90),
                 ),
             modifier =
                 Modifier

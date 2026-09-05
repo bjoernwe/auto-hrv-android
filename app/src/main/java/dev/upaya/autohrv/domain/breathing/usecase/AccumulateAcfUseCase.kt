@@ -12,9 +12,9 @@ import kotlin.math.pow
  * Session-accumulated ACF sums: every emitted ACF summed element-wise (see [accumulate]), decaying
  * older emissions per [BreathingConfig.acfHistogramHalfLifeSeconds] so the sums track the recent
  * session rather than accumulating indefinitely. `null` values (no ACF yet) are ignored, and
- * consecutive identical ACFs are deduplicated so slider-driven recomputations of the same window
- * are not double-counted. Emissions arrive roughly once per second (after dedup), so the half-life
- * in seconds roughly matches the half-life in emissions.
+ * consecutive identical ACFs are deduplicated so an unchanged RR window is not double-counted.
+ * Emissions arrive roughly once per second (after dedup), so the half-life in seconds roughly
+ * matches the half-life in emissions.
  */
 internal class AccumulateAcfUseCase
     @Inject

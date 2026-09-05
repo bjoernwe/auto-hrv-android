@@ -17,7 +17,7 @@ private const val IGNORED_LEADING_LAGS = 3
 
 /**
  * Shapes accumulated per-lag ACF sums into display heights in `[0, 1]`:
- * `cap → exp(expGain · x) → normalize → sigmoid(sigmoidSteepness · (x − sigmoidMidpoint))`.
+ * `cap → exp(EXP_GAIN · x) → normalize → sigmoid(SIGMOID_STEEPNESS · (x − SIGMOID_MIDPOINT))`.
  *
  * Lag 0 is always excluded — its correlation is fixed at 1.0 and carries no information — and its
  * output is always `0f`. [ignoredLeadingLags] reads as "ignore up to this lag": lags
@@ -34,9 +34,6 @@ private const val IGNORED_LEADING_LAGS = 3
  */
 internal fun shapeAcfHistogram(
     sums: List<Float>,
-    expGain: Float = EXP_GAIN,
-    sigmoidSteepness: Float = SIGMOID_STEEPNESS,
-    sigmoidMidpoint: Float = SIGMOID_MIDPOINT,
     ignoredLeadingLags: Int = IGNORED_LEADING_LAGS,
 ): List<Float> {
     if (sums.isEmpty()) return sums
@@ -50,9 +47,9 @@ internal fun shapeAcfHistogram(
 
     val shaped =
         capped
-            .map { exp(expGain * it) }
+            .map { exp(EXP_GAIN * it) }
             .normalizeMinMax()
-            .map { sigmoid(sigmoidSteepness * (it - sigmoidMidpoint)) }
+            .map { sigmoid(SIGMOID_STEEPNESS * (it - SIGMOID_MIDPOINT)) }
     return listOf(0f) + shaped
 }
 

@@ -2,6 +2,13 @@ package dev.upaya.autohrv.ui.commons
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.unit.dp
+
+/**
+ * Horizontal inset shared by the line charts and [ChartPlaceholder], so a placeholder's progress
+ * line lands exactly under the zero line of the chart it stands in for.
+ */
+internal val ChartHorizontalInset = 10.dp
 
 internal fun smoothPath(points: List<Offset>): Path {
     val path = Path()

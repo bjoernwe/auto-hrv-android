@@ -6,17 +6,34 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import dev.upaya.autohrv.domain.breathing.model.ExerciseBO
+
+/** A target cycle-length preset paired with the caption its button shows. */
+private data class ExercisePreset(
+    val label: String,
+    val cycleLengthRange: IntRange,
+)
 
 @Composable
 fun ExerciseButtonGroup(
     activeRange: IntRange,
-    onSelect: (ExerciseBO) -> Unit,
+    allowedRange: IntRange,
+    onSelect: (IntRange) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val exercises = ExerciseBO.all
+    // Captions are presentation, so the presets live here rather than in the domain layer; "Free"
+    // is the full range the settings repository allows.
+    val exercises =
+        remember(allowedRange) {
+            listOf(
+                ExercisePreset("Fast", 4..5),
+                ExercisePreset("Med.", 6..7),
+                ExercisePreset("Slow", 9..12),
+                ExercisePreset("Free", allowedRange),
+            )
+        }
     // These segments set the same target cycle-length range as the BandRangeSlider above, so they
     // share its breath-side identity: a quiet teal-tinted fill with full-strength teal content,
     // matching the ResonanceChip "locked" idiom rather than Material's default secondaryContainer
@@ -36,7 +53,7 @@ fun ExerciseButtonGroup(
             val isActive = exercise.cycleLengthRange == activeRange
             SegmentedButton(
                 selected = isActive,
-                onClick = { if (!isActive) onSelect(exercise) },
+                onClick = { if (!isActive) onSelect(exercise.cycleLengthRange) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = exercises.size),
                 colors = colors,
                 icon = { SegmentedButtonDefaults.Icon(active = isActive) },

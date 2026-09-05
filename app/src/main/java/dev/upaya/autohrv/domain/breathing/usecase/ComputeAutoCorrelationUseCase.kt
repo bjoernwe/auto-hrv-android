@@ -1,7 +1,6 @@
 package dev.upaya.autohrv.domain.breathing.usecase
 
 import dev.upaya.autohrv.domain.breathing.BreathingConfig
-import dev.upaya.autohrv.domain.breathing.model.AutoCorrelationBO
 import dev.upaya.autohrv.domain.signal.weightedAutoCorrelation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -12,25 +11,21 @@ internal class ComputeAutoCorrelationUseCase
     constructor() {
 
         /**
+         * The autocorrelation curve alone. It does not depend on the user's target cycle-length
+         * range — only the peak search does — so it is computed once per RR window and the range is
+         * combined in downstream (see [findBreathingCycleLength]).
+         *
          * @param resampledRrsMs RR intervals on a uniform 1 Hz grid.
-         * @param cycleLengthRange the lag range (seconds) searched for the breathing-cycle peak.
          * @param config supplies [BreathingConfig.acfMaxLagSeconds] (highest lag computed for the
          *   autocorrelation curve) and [BreathingConfig.acfHalfLifeSeconds] (recency half-life;
          *   `null` = uniform weights).
          */
         operator fun invoke(
             resampledRrsMs: Flow<List<Int>>,
-            cycleLengthRange: IntRange,
             config: BreathingConfig,
-        ): Flow<AutoCorrelationBO?> =
+        ): Flow<List<Float>?> =
             resampledRrsMs.map { ts ->
-                val acf = weightedAutoCorrelation(ts.map { it.toFloat() }, config.acfMaxLagSeconds, config.acfHalfLifeSeconds)
-                acf?.let {
-                    AutoCorrelationBO(
-                        values = it,
-                        peakLagSeconds = findBreathingCycleLength(it, cycleLengthRange),
-                    )
-                }
+                weightedAutoCorrelation(ts.map { it.toFloat() }, config.acfMaxLagSeconds, config.acfHalfLifeSeconds)
             }
 
         // Searches for the highest ACF peak within the allowed cycle-length range.
