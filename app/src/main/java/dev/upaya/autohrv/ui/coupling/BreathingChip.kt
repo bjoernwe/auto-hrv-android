@@ -23,7 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.upaya.autohrv.domain.breathing.BreathingPhase
+import dev.upaya.autohrv.domain.breathing.model.BreathingPhaseBO
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 /**
@@ -37,7 +37,7 @@ import dev.upaya.autohrv.ui.theme.AutoHrvTheme
  */
 @Composable
 internal fun BreathingChip(
-    phase: BreathingPhase,
+    phase: BreathingPhaseBO,
     latestBreathValue: Float,
     modifier: Modifier = Modifier,
 ) {
@@ -64,7 +64,7 @@ internal fun BreathingChip(
         horizontalArrangement = Arrangement.spacedBy(7.dp),
     ) {
         Text(
-            text = if (phase == BreathingPhase.Inhale) "INHALE" else "EXHALE",
+            text = if (phase == BreathingPhaseBO.Inhale) "INHALE" else "EXHALE",
             style =
                 MaterialTheme.typography.labelLarge.copy(
                     fontWeight = FontWeight.SemiBold,
@@ -89,7 +89,7 @@ internal fun BreathingChip(
 @Composable
 private fun BreathingChipInhalePreview() {
     AutoHrvTheme {
-        BreathingChip(phase = BreathingPhase.Inhale, latestBreathValue = 0.9f)
+        BreathingChip(phase = BreathingPhaseBO.Inhale, latestBreathValue = 0.9f)
     }
 }
 
@@ -97,6 +97,6 @@ private fun BreathingChipInhalePreview() {
 @Composable
 private fun BreathingChipExhalePreview() {
     AutoHrvTheme {
-        BreathingChip(phase = BreathingPhase.Exhale, latestBreathValue = 0.1f)
+        BreathingChip(phase = BreathingPhaseBO.Exhale, latestBreathValue = 0.1f)
     }
 }

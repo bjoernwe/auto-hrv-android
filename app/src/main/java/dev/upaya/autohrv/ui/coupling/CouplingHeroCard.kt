@@ -36,7 +36,7 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import dev.upaya.autohrv.domain.breathing.BreathingPhase
+import dev.upaya.autohrv.domain.breathing.model.BreathingPhaseBO
 import dev.upaya.autohrv.ui.commons.Sample
 import dev.upaya.autohrv.ui.commons.smoothPath
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
@@ -437,7 +437,7 @@ private fun CouplingHeroTuningPreview() {
             rrSamples = previewRrSamples(),
             windowMs = 22_000L,
             isInResonance = false,
-            phaseChipSlot = { BreathingChip(phase = BreathingPhase.Inhale, latestBreathValue = 0.9f) },
+            phaseChipSlot = { BreathingChip(phase = BreathingPhaseBO.Inhale, latestBreathValue = 0.9f) },
         )
     }
 }
@@ -451,7 +451,7 @@ private fun CouplingHeroLockedPreview() {
             rrSamples = previewRrSamples(),
             windowMs = 22_000L,
             isInResonance = true,
-            phaseChipSlot = { BreathingChip(phase = BreathingPhase.Exhale, latestBreathValue = 0.1f) },
+            phaseChipSlot = { BreathingChip(phase = BreathingPhaseBO.Exhale, latestBreathValue = 0.1f) },
         )
     }
 }

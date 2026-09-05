@@ -14,7 +14,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import dev.upaya.autohrv.domain.spectral.SpectrogramSlice
+import dev.upaya.autohrv.domain.spectral.model.SpectrogramSliceBO
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 import kotlin.math.exp
 import kotlin.math.log10
@@ -29,7 +29,7 @@ private fun cycleLengthLabel(hz: Float) = "%.0fs".format(1f / hz)
 /** One band's data to draw: a label, its rolling slices, and the Hz of each frequency bin. */
 data class SpectrogramBandView(
     val label: String,
-    val slices: List<SpectrogramSlice>,
+    val slices: List<SpectrogramSliceBO>,
     val freqBinsHz: List<Float>,
 )
 
@@ -157,7 +157,7 @@ private fun SpectrogramChartPreview() {
             freqBinsHz = bins,
             slices =
                 (0 until count).map { i ->
-                    SpectrogramSlice(
+                    SpectrogramSliceBO(
                         timestampMillis = now - (count - 1 - i) * 10_000L,
                         powerByFreqBin =
                             bins.map { hz ->

@@ -25,13 +25,13 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
-import dev.upaya.autohrv.domain.breathing.BreathingPhase
-import dev.upaya.autohrv.domain.breathing.BreathingPhaseStart
+import dev.upaya.autohrv.domain.breathing.model.BreathingPhaseBO
+import dev.upaya.autohrv.domain.breathing.model.BreathingPhaseStartBO
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 @Composable
 fun BreathingPacerOrb(
-    phaseStart: BreathingPhaseStart,
+    phaseStart: BreathingPhaseStartBO,
     modifier: Modifier = Modifier,
     inResonance: Boolean = false,
 ) {
@@ -55,8 +55,8 @@ fun BreathingPacerOrb(
 
     val label =
         when (phaseStart.phase) {
-            BreathingPhase.Inhale -> "inhale"
-            BreathingPhase.Exhale -> "exhale"
+            BreathingPhaseBO.Inhale -> "inhale"
+            BreathingPhaseBO.Exhale -> "exhale"
         }
 
     val labelStyle =
@@ -127,7 +127,7 @@ fun BreathingPacerOrb(
 private fun BreathingPacerOrbPreview() {
     AutoHrvTheme {
         BreathingPacerOrb(
-            phaseStart = BreathingPhaseStart(BreathingPhase.Inhale, System.currentTimeMillis() - 3000L, 5400L),
+            phaseStart = BreathingPhaseStartBO(BreathingPhaseBO.Inhale, System.currentTimeMillis() - 3000L, 5400L),
             modifier = Modifier.size(188.dp),
         )
     }
@@ -138,7 +138,7 @@ private fun BreathingPacerOrbPreview() {
 private fun BreathingPacerOrbResonancePreview() {
     AutoHrvTheme {
         BreathingPacerOrb(
-            phaseStart = BreathingPhaseStart(BreathingPhase.Inhale, System.currentTimeMillis() - 3000L, 5400L),
+            phaseStart = BreathingPhaseStartBO(BreathingPhaseBO.Inhale, System.currentTimeMillis() - 3000L, 5400L),
             modifier = Modifier.size(188.dp),
             inResonance = true,
         )

@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.domain
+package dev.upaya.autohrv.ui.commons
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

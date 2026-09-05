@@ -5,14 +5,17 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.upaya.autohrv.data.hrv.ConnectionState
 import dev.upaya.autohrv.data.hrv.HrvRepository
+import dev.upaya.autohrv.data.settings.BreathingSettingsRepository
 import dev.upaya.autohrv.domain.breathing.BreathingBusiness
 import dev.upaya.autohrv.domain.breathing.BreathingConfig
-import dev.upaya.autohrv.domain.breathing.BreathingPattern
-import dev.upaya.autohrv.domain.breathing.BreathingPhase
-import dev.upaya.autohrv.domain.breathing.BreathingPhaseStart
-import dev.upaya.autohrv.domain.spectral.SpectrogramBandInfo
+import dev.upaya.autohrv.domain.breathing.model.BreathingPatternBO
+import dev.upaya.autohrv.domain.breathing.model.BreathingPhaseBO
+import dev.upaya.autohrv.domain.breathing.model.BreathingPhaseStartBO
+import dev.upaya.autohrv.domain.metrics.MetricsBusiness
 import dev.upaya.autohrv.domain.spectral.SpectrogramBusiness
-import dev.upaya.autohrv.domain.spectral.SpectrogramSlice
+import dev.upaya.autohrv.domain.spectral.model.SpectrogramBandInfoBO
+import dev.upaya.autohrv.domain.spectral.model.SpectrogramSliceBO
+import dev.upaya.autohrv.ui.acf.shapeAcfHistogram
 import dev.upaya.autohrv.ui.commons.Sample
 import dev.upaya.autohrv.ui.commons.pruneOlderThan
 import kotlinx.coroutines.delay
@@ -43,15 +46,18 @@ data class MainUiState(
     val isInResonance: Boolean = false,
     val lagSeconds: Float? = null,
     val spectrogramHistorySeconds: Int = 0,
-    val currentPhaseStart: BreathingPhaseStart = BreathingPhaseStart(BreathingPhase.Inhale, System.currentTimeMillis(), 4000L),
-    val currentPattern: BreathingPattern = BreathingPattern(0f, 8f),
+    val currentPhaseStart: BreathingPhaseStartBO = BreathingPhaseStartBO(BreathingPhaseBO.Inhale, System.currentTimeMillis(), 4000L),
+    val currentPattern: BreathingPatternBO = BreathingPatternBO(0f, 8f),
 )
 
 // The direct ACF returns lags 0..acfMaxLagSeconds, so the chart shows the full searchable range.
 private val AUTO_CORRELATION_SIZE = BreathingConfig.DEFAULT.acfMaxLagSeconds + 1
 
 private const val BREATH_SAMPLE_RATE_HZ = 20
-private val DISPLAY_WINDOW_MS = BreathingConfig.DEFAULT.windowLength * 1000L
+
+// Chart display window, independent of any domain window (outlier filtering, HRV metrics, ACF).
+private const val DISPLAY_WINDOW_SECONDS = 20
+private val DISPLAY_WINDOW_MS = DISPLAY_WINDOW_SECONDS * 1000L
 
 @HiltViewModel
 class MainViewModel
@@ -60,11 +66,13 @@ class MainViewModel
         private val hrvRepository: HrvRepository,
         private val breathingBusiness: BreathingBusiness,
         private val spectrogramBusiness: SpectrogramBusiness,
+        private val metricsBusiness: MetricsBusiness,
+        private val breathingSettingsRepository: BreathingSettingsRepository,
     ) : ViewModel() {
 
         val deviceId: String = HrvRepository.DEVICE_ID
         val acfWindowSeconds: Int = breathingBusiness.acfWindowSeconds
-        val spectrogramBands: List<SpectrogramBandInfo> = spectrogramBusiness.bands
+        val spectrogramBands: List<SpectrogramBandInfoBO> = spectrogramBusiness.bands
 
         /** Seconds of history before the first (fastest) band appears — drives the loading placeholder. */
         val spectrogramWindowSeconds: Int = spectrogramBusiness.firstBandWindowSeconds
@@ -80,7 +88,7 @@ class MainViewModel
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
         /** Rolling spectrogram slices per band, index-aligned with [spectrogramBands]. */
-        val spectrogramBandSlices: StateFlow<List<List<SpectrogramSlice>>> = spectrogramBusiness.bandSlices
+        val spectrogramBandSlices: StateFlow<List<List<SpectrogramSliceBO>>> = spectrogramBusiness.bandSlices
 
         init {
             viewModelScope.launch {
@@ -106,26 +114,27 @@ class MainViewModel
                 }
             }
             viewModelScope.launch {
-                breathingBusiness.stats.collect { stats ->
-                    val peak = stats?.resampledRrsStats?.autoCorrelationPeak
+                metricsBusiness.hrvMetrics.collect { metrics ->
+                    _uiState.update { it.copy(rmssd = metrics.rmssd) }
+                }
+            }
+            viewModelScope.launch {
+                breathingBusiness.autoCorrelation.collect { acf ->
                     _uiState.update { uiState ->
                         uiState.copy(
-                            rmssd = stats?.beatRrsStats?.rmssd,
                             autoCorrelation =
-                                stats
-                                    ?.resampledRrsStats
-                                    ?.autoCorrelation
-                                    ?.takeIf { ac ->
-                                        ac.size >= AUTO_CORRELATION_SIZE
-                                    }?.take(AUTO_CORRELATION_SIZE),
-                            autoCorrelationPeak = peak,
+                                acf
+                                    ?.values
+                                    ?.takeIf { it.size >= AUTO_CORRELATION_SIZE }
+                                    ?.take(AUTO_CORRELATION_SIZE),
+                            autoCorrelationPeak = acf?.peakLagSeconds,
                         )
                     }
                 }
             }
             viewModelScope.launch {
-                breathingBusiness.acfHistogram.collect { histogram ->
-                    _uiState.update { it.copy(acfHistogram = histogram) }
+                breathingBusiness.acfSums.collect { sums ->
+                    _uiState.update { it.copy(acfHistogram = shapeAcfHistogram(sums)) }
                 }
             }
             viewModelScope.launch {
@@ -173,15 +182,15 @@ class MainViewModel
 
         val displayWindowMs: Long = DISPLAY_WINDOW_MS
 
-        val targetCycleLengthRange: StateFlow<IntRange> = breathingBusiness.targetCycleLengthRange
-        val cycleLengthAllowedRange: IntRange = breathingBusiness.cycleLengthAllowedRange
-        val targetInOutBias: StateFlow<Float> = breathingBusiness.targetInOutBias
+        val targetCycleLengthRange: StateFlow<IntRange> = breathingSettingsRepository.targetCycleLengthRange
+        val cycleLengthAllowedRange: IntRange = breathingSettingsRepository.cycleLengthAllowedRange
+        val targetInOutBias: StateFlow<Float> = breathingSettingsRepository.targetInOutBias
 
         fun connect() = hrvRepository.connect()
 
         fun disconnect() = hrvRepository.disconnect()
 
-        fun setTargetCycleLengthRange(range: IntRange) = breathingBusiness.setTargetCycleLengthRange(range)
+        fun setTargetCycleLengthRange(range: IntRange) = breathingSettingsRepository.setTargetCycleLengthRange(range)
 
-        fun setTargetInOutBias(bias: Float) = breathingBusiness.setTargetInOutBias(bias)
+        fun setTargetInOutBias(bias: Float) = breathingSettingsRepository.setTargetInOutBias(bias)
     }

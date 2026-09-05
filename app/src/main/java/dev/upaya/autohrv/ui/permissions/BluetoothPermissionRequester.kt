@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.domain.bluetooth
+package dev.upaya.autohrv.ui.permissions
 
 import android.Manifest
 import android.app.Activity
@@ -12,7 +12,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 
-class GetBluetoothPermissionUseCase(
+class BluetoothPermissionRequester(
     private val activity: ComponentActivity,
     private val onGranted: () -> Unit,
     private val onDenied: () -> Unit,

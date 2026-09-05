@@ -6,7 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import dagger.hilt.android.AndroidEntryPoint
-import dev.upaya.autohrv.domain.bluetooth.GetBluetoothPermissionUseCase
+import dev.upaya.autohrv.ui.permissions.BluetoothPermissionRequester
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 @AndroidEntryPoint
@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     private val getBluetoothPermissions =
-        GetBluetoothPermissionUseCase(
+        BluetoothPermissionRequester(
             activity = this,
             onGranted = { viewModel.connect() },
             onDenied = {

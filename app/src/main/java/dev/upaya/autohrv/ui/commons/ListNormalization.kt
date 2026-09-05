@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.domain
+package dev.upaya.autohrv.ui.commons
 
 /** Values whose spread is below this are treated as constant (degenerate). */
 private const val RANGE_EPSILON = 1e-12f

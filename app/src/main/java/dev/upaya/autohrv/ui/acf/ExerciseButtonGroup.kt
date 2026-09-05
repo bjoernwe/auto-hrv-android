@@ -8,15 +8,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import dev.upaya.autohrv.domain.breathing.Exercise
+import dev.upaya.autohrv.domain.breathing.model.ExerciseBO
 
 @Composable
 fun ExerciseButtonGroup(
     activeRange: IntRange,
-    onSelect: (Exercise) -> Unit,
+    onSelect: (ExerciseBO) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val exercises = Exercise.all
+    val exercises = ExerciseBO.all
     // These segments set the same target cycle-length range as the BandRangeSlider above, so they
     // share its breath-side identity: a quiet teal-tinted fill with full-strength teal content,
     // matching the ResonanceChip "locked" idiom rather than Material's default secondaryContainer
