@@ -18,12 +18,11 @@ internal fun hannWindow(size: Int): DoubleArray = DoubleArray(size) { i -> 0.5 *
 // accommodate multiple sizes.
 private val windowCache = ConcurrentHashMap<Int, Pair<DoubleArray, Double>>()
 
-private fun hannWindowAndEnergy(size: Int): Pair<DoubleArray, Double> {
-    return windowCache.computeIfAbsent(size) { s ->
+private fun hannWindowAndEnergy(size: Int): Pair<DoubleArray, Double> =
+    windowCache.computeIfAbsent(size) { s ->
         val window = hannWindow(s)
         window to window.sumOf { it * it }
     }
-}
 
 /**
  * One-sided power spectrum of [samples] (uniformly sampled at [sampleRateHz]). The mean is
@@ -35,9 +34,7 @@ private fun hannWindowAndEnergy(size: Int): Pair<DoubleArray, Double> {
  *   frequency returned by [frequencyBinsHz] at the same index. Normalized by the window's own
  *   energy so power stays comparable across slices regardless of the window shape.
  */
-internal fun powerSpectrum(
-    samples: List<Int>,
-): List<Float> {
+internal fun powerSpectrum(samples: List<Int>): List<Float> {
     val n = samples.size
     val (window, windowEnergy) = hannWindowAndEnergy(n)
     val mean = samples.average()
