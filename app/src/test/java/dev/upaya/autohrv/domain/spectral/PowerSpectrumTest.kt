@@ -19,7 +19,7 @@ class PowerSpectrumTest {
     @Test
     fun `peak lands at the sine frequency`() {
         val samples = sine(count = 128, freqHz = 0.1)
-        val power = powerSpectrum(samples, sampleRateHz = 1.0)
+        val power = powerSpectrum(samples)
         val bins = frequencyBinsHz(windowSize = 128, sampleRateHz = 1.0)
 
         val peakIndex = power.indices.maxByOrNull { power[it] }!!
@@ -29,7 +29,7 @@ class PowerSpectrumTest {
     @Test
     fun `dc offset does not dominate the spectrum`() {
         val samples = sine(count = 128, freqHz = 0.1, offsetMs = 5000.0)
-        val power = powerSpectrum(samples, sampleRateHz = 1.0)
+        val power = powerSpectrum(samples)
 
         assertTrue("DC bin should not dominate: power[0]=${power[0]}, max=${power.max()}", power[0] < power.max())
     }

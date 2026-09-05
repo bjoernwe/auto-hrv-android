@@ -35,7 +35,7 @@ internal class SpectrogramUseCase
                 // Slice to this band's window only at the hop rate, not on every 1 Hz tick upstream.
                 .sample(band.hopSeconds * 1000L)
                 .map { history ->
-                    val power = powerSpectrum(history.takeLast(band.windowSeconds), SAMPLE_RATE_HZ)
+                    val power = powerSpectrum(history.takeLast(band.windowSeconds))
                     SpectrogramSlice(
                         timestampMillis = System.currentTimeMillis(),
                         powerByFreqBin = displayedIndices.map { power[it] },
