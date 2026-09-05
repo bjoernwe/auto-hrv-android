@@ -1,12 +1,20 @@
 package dev.upaya.autohrv.domain.breathing
 
 import dev.upaya.autohrv.data.hrv.HrvRepository
+import dev.upaya.autohrv.data.settings.BreathingSettingsRepository
 import dev.upaya.autohrv.di.ApplicationScope
+import dev.upaya.autohrv.domain.breathing.model.AutoCorrelationBO
+import dev.upaya.autohrv.domain.breathing.model.BreathingPatternBO
+import dev.upaya.autohrv.domain.breathing.model.BreathingPhaseStartBO
+import dev.upaya.autohrv.domain.breathing.usecase.AccumulateAcfUseCase
+import dev.upaya.autohrv.domain.breathing.usecase.ComputeAutoCorrelationUseCase
+import dev.upaya.autohrv.domain.breathing.usecase.ComputeBreathRrLagUseCase
+import dev.upaya.autohrv.domain.breathing.usecase.DetectResonanceUseCase
+import dev.upaya.autohrv.domain.breathing.usecase.RunBreathingPacerUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -18,7 +26,6 @@ import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
@@ -26,27 +33,15 @@ class BreathingBusiness
     @Inject
     internal constructor(
         @param:ApplicationScope private val scope: CoroutineScope,
-        breathingPacerUseCase: BreathingPacerUseCase,
-        timeSeriesStatsUseCase: TimeSeriesStatsUseCase,
+        computeAutoCorrelationUseCase: ComputeAutoCorrelationUseCase,
+        accumulateAcfUseCase: AccumulateAcfUseCase,
+        runBreathingPacerUseCase: RunBreathingPacerUseCase,
+        detectResonanceUseCase: DetectResonanceUseCase,
+        computeBreathRrLagUseCase: ComputeBreathRrLagUseCase,
         hrvRepository: HrvRepository,
+        settings: BreathingSettingsRepository,
     ) {
         private val breathingConfig = BreathingConfig.DEFAULT
-
-        private val _targetInOutBias = MutableStateFlow(breathingConfig.inOutBias)
-        val targetInOutBias: StateFlow<Float> = _targetInOutBias
-
-        fun setTargetInOutBias(bias: Float) {
-            _targetInOutBias.value = bias
-        }
-
-        val cycleLengthAllowedRange: IntRange = breathingConfig.maxCycleLengthRange
-
-        private val _targetCycleLengthRange = MutableStateFlow(breathingConfig.maxCycleLengthRange)
-        val targetCycleLengthRange: StateFlow<IntRange> = _targetCycleLengthRange
-
-        fun setTargetCycleLengthRange(range: IntRange) {
-            _targetCycleLengthRange.value = range.first.coerceIn(cycleLengthAllowedRange)..range.last.coerceIn(cycleLengthAllowedRange)
-        }
 
         private val rrsMsHistory: StateFlow<List<Int>> =
             hrvRepository
@@ -65,59 +60,40 @@ class BreathingBusiness
                 .map { it.size }
                 .stateIn(scope, SharingStarted.Eagerly, 0)
 
-        private val rrsMsBeatHistory: StateFlow<List<Int>> =
-            hrvRepository
-                .getRrsMsBeatHistory(breathingConfig.windowLength)
-                .stateIn(scope, SharingStarted.Eagerly, emptyList())
-
         @OptIn(ExperimentalCoroutinesApi::class)
-        val stats: StateFlow<TimeSeriesStats?> =
-            _targetCycleLengthRange
-                .flatMapLatest { range ->
-                    timeSeriesStatsUseCase(
-                        rrsMsHistory,
-                        rrsMsBeatHistory,
-                        range,
-                        breathingConfig,
-                    )
-                }.stateIn(scope, SharingStarted.Eagerly, null)
+        val autoCorrelation: StateFlow<AutoCorrelationBO?> =
+            settings.targetCycleLengthRange
+                .flatMapLatest { range -> computeAutoCorrelationUseCase(rrsMsHistory, range, breathingConfig) }
+                .stateIn(scope, SharingStarted.Eagerly, null)
 
-        // Session-accumulated ACF "histogram": every emitted ACF summed element-wise and shaped
-        // into per-lag heights in [0, 1] for the chart background.
-        val acfHistogram: StateFlow<List<Float>> =
-            stats
-                .map { it?.resampledRrsStats?.autoCorrelation }
-                .accumulatedAcfHistogram(breathingConfig)
+        // Session-accumulated per-lag ACF sums, raw — shaping into [0, 1] chart heights is a UI concern.
+        val acfSums: StateFlow<List<Float>> =
+            accumulateAcfUseCase(autoCorrelation.map { it?.values }, breathingConfig)
                 .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
         private val initialBreathingPattern = breathingConfig.defaultPattern()
 
         private val smoothedTargetCycleLength: Flow<Float> =
-            combine(stats, _targetCycleLengthRange) { s, range ->
-                (s?.resampledRrsStats?.autoCorrelationPeak ?: breathingConfig.initialCycleLength)
+            combine(autoCorrelation, settings.targetCycleLengthRange) { acf, range ->
+                (acf?.peakLagSeconds ?: breathingConfig.initialCycleLength)
                     .coerceIn(range.first.toFloat(), range.last.toFloat())
             }.scan(emptyList<Float>()) { window, cl -> (window + cl).takeLast(breathingConfig.targetCycleLengthSmoothingWindow) }
                 .filter { it.isNotEmpty() }
                 .map { window -> window.reduce { a, b -> a + b } / window.size.toFloat() }
 
-        private val targetBreathingPattern: StateFlow<BreathingPattern> =
-            combine(smoothedTargetCycleLength, targetInOutBias) { cl, bias ->
-                BreathingPattern(bias, cl)
+        private val targetBreathingPattern: StateFlow<BreathingPatternBO> =
+            combine(smoothedTargetCycleLength, settings.targetInOutBias) { cl, bias ->
+                BreathingPatternBO(bias, cl)
             }.stateIn(scope, SharingStarted.Eagerly, initialBreathingPattern)
 
-        private val pacerOutput = breathingPacerUseCase(scope, targetBreathingPattern)
+        private val pacerOutput = runBreathingPacerUseCase(targetBreathingPattern)
 
-        val currentPhaseStart: StateFlow<BreathingPhaseStart> = pacerOutput.currentPhaseStart
-        val currentBreathingPattern: StateFlow<BreathingPattern> = pacerOutput.currentPattern
+        val currentPhaseStart: StateFlow<BreathingPhaseStartBO> = pacerOutput.currentPhaseStart
+        val currentBreathingPattern: StateFlow<BreathingPatternBO> = pacerOutput.currentPattern
 
         val isInResonance: StateFlow<Boolean> =
-            combine(stats, currentBreathingPattern) { stats, breathingPattern ->
-                val rrsStats = stats?.resampledRrsStats ?: return@combine false
-                val peak = rrsStats.autoCorrelationPeak ?: return@combine false
-                val peakValue = rrsStats.autoCorrelation?.getOrNull(peak.toInt()) ?: return@combine false
-                abs(peak - breathingPattern.cycleLengthSeconds) <= breathingConfig.resonancePeakToleranceSeconds &&
-                    peakValue > breathingConfig.resonanceMinPeakValue
-            }.stateIn(scope, SharingStarted.Eagerly, false)
+            detectResonanceUseCase(autoCorrelation, currentBreathingPattern, breathingConfig)
+                .stateIn(scope, SharingStarted.Eagerly, false)
 
         // Breath signal sampled at 1 Hz to match the RR history grid.
         private val breathHistory: StateFlow<List<Float>> =
@@ -132,28 +108,6 @@ class BreathingBusiness
 
         // Seconds by which the RR response lags behind the breath signal (positive = heart follows breath).
         val lagSeconds: StateFlow<Float?> =
-            combine(breathHistory, rrsMsHistory) { breath, rr ->
-                computeLag(breath, rr)
-            }.stateIn(scope, SharingStarted.Eagerly, null)
-
-        private fun computeLag(
-            breath: List<Float>,
-            rr: List<Int>,
-        ): Float? {
-            val n = minOf(breath.size, rr.size)
-            if (n < 4) return null
-            val b = breath.takeLast(n)
-            val r = rr.takeLast(n)
-            val bMean = b.average().toFloat()
-            val rMean = r.average().toFloat()
-            val bNorm = b.map { it - bMean }
-            val rNorm = r.map { it.toFloat() - rMean }
-            // RR is anti-phase to breath (HR rises on inhale → RR drops), so correlate breath vs –RR.
-            // Peak at lag τ means the heart responds τ seconds after the breath signal.
-            val maxLag = breathingConfig.maxCycleLengthRange.last.coerceAtMost(n / 2)
-            return (0..maxLag)
-                .maxByOrNull { lag ->
-                    (0 until n - lag).sumOf { t -> (bNorm[t] * (-rNorm[t + lag])).toDouble() }
-                }?.toFloat()
-        }
+            computeBreathRrLagUseCase(breathHistory, rrsMsHistory, breathingConfig)
+                .stateIn(scope, SharingStarted.Eagerly, null)
     }

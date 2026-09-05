@@ -1,5 +1,9 @@
-package dev.upaya.autohrv.domain.breathing
+package dev.upaya.autohrv.domain.breathing.usecase
 
+import dev.upaya.autohrv.di.ApplicationScope
+import dev.upaya.autohrv.domain.breathing.model.BreathingPatternBO
+import dev.upaya.autohrv.domain.breathing.model.BreathingPhaseBO
+import dev.upaya.autohrv.domain.breathing.model.BreathingPhaseStartBO
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,52 +13,20 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
-import kotlin.math.PI
-import kotlin.math.cos
 import kotlin.math.pow
 
-enum class BreathingPhase { Inhale, Exhale }
-
-data class BreathingPattern(
-    val bias: Float,
-    val cycleLengthSeconds: Float,
-) {
-    operator fun plus(other: BreathingPattern) =
-        BreathingPattern(
-            bias + other.bias,
-            cycleLengthSeconds + other.cycleLengthSeconds,
-        )
-
-    operator fun div(x: Float) = BreathingPattern(bias / x, cycleLengthSeconds / x)
-}
-
-data class BreathingPhaseStart(
-    val phase: BreathingPhase,
-    val startTimeMs: Long,
-    val durationMs: Long,
-) {
-    fun valueAt(nowMs: Long): Float {
-        val progress = ((nowMs - startTimeMs).toFloat() / durationMs).coerceIn(0f, 1f)
-        return when (phase) {
-            BreathingPhase.Inhale -> 0.5f - 0.5f * cos(PI.toFloat() * progress)
-            BreathingPhase.Exhale -> 0.5f + 0.5f * cos(PI.toFloat() * progress)
-        }
-    }
-}
-
 class PacerOutput(
-    val currentPhaseStart: StateFlow<BreathingPhaseStart>,
-    val currentPattern: StateFlow<BreathingPattern>,
+    val currentPhaseStart: StateFlow<BreathingPhaseStartBO>,
+    val currentPattern: StateFlow<BreathingPatternBO>,
 )
 
-class BreathingPacerUseCase
+class RunBreathingPacerUseCase
     @Inject
-    constructor() {
+    constructor(
+        @param:ApplicationScope private val scope: CoroutineScope,
+    ) {
 
-        operator fun invoke(
-            scope: CoroutineScope,
-            targetPattern: StateFlow<BreathingPattern>,
-        ): PacerOutput {
+        operator fun invoke(targetPattern: StateFlow<BreathingPatternBO>): PacerOutput {
             val currentBreathingPattern = MutableStateFlow(targetPattern.value)
 
             val currentPhaseStart =
@@ -63,21 +35,21 @@ class BreathingPacerUseCase
                         val inhalePattern = targetPattern.value
                         currentBreathingPattern.value = inhalePattern
                         val inhaleMs = inhalePattern.inhaleMs()
-                        emit(BreathingPhaseStart(BreathingPhase.Inhale, System.currentTimeMillis(), inhaleMs))
+                        emit(BreathingPhaseStartBO(BreathingPhaseBO.Inhale, System.currentTimeMillis(), inhaleMs))
                         delay(inhaleMs)
 
                         val exhalePattern = targetPattern.value
                         currentBreathingPattern.value = exhalePattern
                         val exhaleMs = exhalePattern.exhaleMs()
-                        emit(BreathingPhaseStart(BreathingPhase.Exhale, System.currentTimeMillis(), exhaleMs))
+                        emit(BreathingPhaseStartBO(BreathingPhaseBO.Exhale, System.currentTimeMillis(), exhaleMs))
                         delay(exhaleMs)
                     }
                 }.stateIn(
                     scope = scope,
                     started = SharingStarted.WhileSubscribed(5_000),
                     initialValue =
-                        BreathingPhaseStart(
-                            BreathingPhase.Inhale,
+                        BreathingPhaseStartBO(
+                            BreathingPhaseBO.Inhale,
                             System.currentTimeMillis(),
                             targetPattern.value.inhaleMs(),
                         ),
@@ -87,14 +59,14 @@ class BreathingPacerUseCase
         }
     }
 
-private fun BreathingPattern.outToInRatio(): Float = 2f.pow(bias.coerceIn(-1f, 1f))
+private fun BreathingPatternBO.outToInRatio(): Float = 2f.pow(bias.coerceIn(-1f, 1f))
 
-private fun BreathingPattern.inhaleMs(): Long {
+private fun BreathingPatternBO.inhaleMs(): Long {
     val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
     return (cycleMs / (1.0 + outToInRatio())).toLong().coerceAtLeast(200L)
 }
 
-private fun BreathingPattern.exhaleMs(): Long {
+private fun BreathingPatternBO.exhaleMs(): Long {
     val cycleMs = (cycleLengthSeconds * 1000.0).toLong()
     return (cycleMs - inhaleMs()).coerceAtLeast(200L)
 }

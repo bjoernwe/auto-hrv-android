@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.domain.breathing
+package dev.upaya.autohrv.domain.signal
 
 import kotlin.math.pow
 import kotlin.math.sqrt

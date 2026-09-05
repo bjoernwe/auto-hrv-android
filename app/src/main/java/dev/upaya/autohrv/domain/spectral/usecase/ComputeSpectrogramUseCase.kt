@@ -1,5 +1,9 @@
-package dev.upaya.autohrv.domain.spectral
+package dev.upaya.autohrv.domain.spectral.usecase
 
+import dev.upaya.autohrv.domain.signal.frequencyBinIndicesIn
+import dev.upaya.autohrv.domain.signal.powerSpectrum
+import dev.upaya.autohrv.domain.spectral.SpectrogramBand
+import dev.upaya.autohrv.domain.spectral.model.SpectrogramSliceBO
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
@@ -11,15 +15,15 @@ import javax.inject.Inject
 /** Sample rate of the RR history this use case consumes — the repository's uniform 1 Hz grid. */
 private const val SAMPLE_RATE_HZ = 1.0
 
-internal class SpectrogramUseCase
+internal class ComputeSpectrogramUseCase
     @Inject
     constructor() {
 
         /**
          * @param rrHistory1Hz RR intervals on the uniform 1 Hz grid, holding at least
          *   [SpectrogramBand.windowSeconds] samples once filled (a shared buffer windowed to the
-         *   largest band, see [SpectrogramBusiness]); the trailing [SpectrogramBand.windowSeconds]
-         *   are taken per slice.
+         *   largest band, see [dev.upaya.autohrv.domain.spectral.SpectrogramBusiness]); the trailing
+         *   [SpectrogramBand.windowSeconds] are taken per slice.
          * @param band supplies the window/hop/display-range tuning for this band.
          * @return a rolling list of the most recent [SpectrogramBand.maxSlices] slices, one new
          *   slice appended every [SpectrogramBand.hopSeconds] once the window has filled.
@@ -28,7 +32,7 @@ internal class SpectrogramUseCase
         operator fun invoke(
             rrHistory1Hz: Flow<List<Int>>,
             band: SpectrogramBand,
-        ): Flow<List<SpectrogramSlice>> {
+        ): Flow<List<SpectrogramSliceBO>> {
             val displayedIndices = frequencyBinIndicesIn(band.windowSeconds, SAMPLE_RATE_HZ, band.freqRangeHz)
             return rrHistory1Hz
                 .filter { it.size >= band.windowSeconds }
@@ -36,10 +40,10 @@ internal class SpectrogramUseCase
                 .sample(band.hopSeconds * 1000L)
                 .map { history ->
                     val power = powerSpectrum(history.takeLast(band.windowSeconds))
-                    SpectrogramSlice(
+                    SpectrogramSliceBO(
                         timestampMillis = System.currentTimeMillis(),
                         powerByFreqBin = displayedIndices.map { power[it] },
                     )
-                }.scan(emptyList<SpectrogramSlice>()) { acc, slice -> (acc + slice).takeLast(band.maxSlices) }
+                }.scan(emptyList<SpectrogramSliceBO>()) { acc, slice -> (acc + slice).takeLast(band.maxSlices) }
         }
     }

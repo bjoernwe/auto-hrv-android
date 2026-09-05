@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.domain.spectral
+package dev.upaya.autohrv.domain.signal
 
 import org.apache.commons.math3.transform.DftNormalization
 import org.apache.commons.math3.transform.FastFourierTransformer

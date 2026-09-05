@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.domain.spectral
+package dev.upaya.autohrv.domain.signal
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

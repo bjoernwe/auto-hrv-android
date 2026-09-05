@@ -1,5 +1,6 @@
 package dev.upaya.autohrv.domain.spectral
 
+import dev.upaya.autohrv.domain.signal.frequencyBinsHzIn
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test

@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.domain.breathing
+package dev.upaya.autohrv.domain.signal
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -9,7 +9,7 @@ import kotlin.math.PI
 import kotlin.math.sin
 import kotlin.random.Random
 
-class WeightedAutoCorrelationTest {
+class AutoCorrelationTest {
 
     /** Sine on a 1 Hz grid with a constant offset to mimic RR intervals in ms. */
     private fun sine(
