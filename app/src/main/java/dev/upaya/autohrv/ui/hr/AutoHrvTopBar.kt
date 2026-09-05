@@ -23,7 +23,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import com.polar.sdk.api.model.PolarDeviceInfo
-import dev.upaya.autohrv.data.model.ConnectionState
+import dev.upaya.autohrv.data.hrv.ConnectionState
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 /** Left-hand app title (heart glyph + "Auto HRV"). Rendered as the pinned top-left overlay. */

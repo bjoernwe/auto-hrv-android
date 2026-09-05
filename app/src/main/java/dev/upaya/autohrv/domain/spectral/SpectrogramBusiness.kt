@@ -1,6 +1,6 @@
 package dev.upaya.autohrv.domain.spectral
 
-import dev.upaya.autohrv.data.repository.HrvRepository
+import dev.upaya.autohrv.data.hrv.HrvRepository
 import dev.upaya.autohrv.di.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted

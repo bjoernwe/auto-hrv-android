@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.data.model
+package dev.upaya.autohrv.data.hrv
 
 import com.polar.sdk.api.model.PolarDeviceInfo
 

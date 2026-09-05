@@ -3,8 +3,8 @@ package dev.upaya.autohrv.ui.hr
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.upaya.autohrv.data.model.ConnectionState
-import dev.upaya.autohrv.data.repository.HrvRepository
+import dev.upaya.autohrv.data.hrv.ConnectionState
+import dev.upaya.autohrv.data.hrv.HrvRepository
 import dev.upaya.autohrv.domain.breathing.BreathingBusiness
 import dev.upaya.autohrv.domain.breathing.BreathingConfig
 import dev.upaya.autohrv.domain.breathing.BreathingPattern

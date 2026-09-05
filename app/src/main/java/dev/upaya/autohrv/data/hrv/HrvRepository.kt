@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.data.repository
+package dev.upaya.autohrv.data.hrv
 
 import android.content.Context
 import android.util.Log
@@ -8,7 +8,6 @@ import com.polar.sdk.api.PolarBleApiDefaultImpl
 import com.polar.sdk.api.model.PolarDeviceInfo
 import com.polar.sdk.api.model.PolarHrData
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dev.upaya.autohrv.data.model.ConnectionState
 import dev.upaya.autohrv.domain.breathing.BreathingConfig
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
