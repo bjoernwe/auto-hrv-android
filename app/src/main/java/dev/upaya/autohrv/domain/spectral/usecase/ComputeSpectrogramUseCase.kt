@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.scan
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 /** Sample rate of the RR history this use case consumes — the repository's uniform 1 Hz grid. */
 private const val SAMPLE_RATE_HZ = 1.0
@@ -22,7 +23,7 @@ internal class ComputeSpectrogramUseCase
         /**
          * @param rrHistory1Hz RR intervals on the uniform 1 Hz grid, holding at least
          *   [SpectrogramBand.windowSeconds] samples once filled (a shared buffer windowed to the
-         *   largest band, see [dev.upaya.autohrv.domain.spectral.SpectrogramBusiness]); the trailing
+         *   largest band, see [dev.upaya.autohrv.domain.spectral.SpectrogramService]); the trailing
          *   [SpectrogramBand.windowSeconds] are taken per slice.
          * @param band supplies the window/hop/display-range tuning for this band.
          * @return a rolling list of the most recent [SpectrogramBand.maxSlices] slices, one new
@@ -37,7 +38,7 @@ internal class ComputeSpectrogramUseCase
             return rrHistory1Hz
                 .filter { it.size >= band.windowSeconds }
                 // Slice to this band's window only at the hop rate, not on every 1 Hz tick upstream.
-                .sample(band.hopSeconds * 1000L)
+                .sample(band.hopSeconds.seconds)
                 .map { history ->
                     val power = powerSpectrum(history.takeLast(band.windowSeconds))
                     SpectrogramSliceBO(

@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -29,7 +30,7 @@ import javax.inject.Singleton
 import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
-class BreathingBusiness
+class BreathingService
     @Inject
     internal constructor(
         @param:ApplicationScope private val scope: CoroutineScope,
@@ -55,10 +56,7 @@ class BreathingBusiness
         // size doubles as "seconds of history collected so far" — the raw fact the ACF card's
         // loading progress is derived from. Left as a count rather than a 0..1 fraction since the
         // normalization is a display concern, not a domain one.
-        val acfHistorySeconds: StateFlow<Int> =
-            rrsMsHistory
-                .map { it.size }
-                .stateIn(scope, SharingStarted.Eagerly, 0)
+        val acfHistorySeconds: Flow<Int> = rrsMsHistory.map { it.size }.distinctUntilChanged()
 
         @OptIn(ExperimentalCoroutinesApi::class)
         val autoCorrelation: StateFlow<AutoCorrelationBO?> =

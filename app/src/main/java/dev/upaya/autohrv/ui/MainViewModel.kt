@@ -6,13 +6,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.upaya.autohrv.data.hrv.ConnectionState
 import dev.upaya.autohrv.data.hrv.HrvRepository
 import dev.upaya.autohrv.data.settings.BreathingSettingsRepository
-import dev.upaya.autohrv.domain.breathing.BreathingBusiness
 import dev.upaya.autohrv.domain.breathing.BreathingConfig
+import dev.upaya.autohrv.domain.breathing.BreathingService
 import dev.upaya.autohrv.domain.breathing.model.BreathingPatternBO
 import dev.upaya.autohrv.domain.breathing.model.BreathingPhaseBO
 import dev.upaya.autohrv.domain.breathing.model.BreathingPhaseStartBO
-import dev.upaya.autohrv.domain.metrics.MetricsBusiness
-import dev.upaya.autohrv.domain.spectral.SpectrogramBusiness
+import dev.upaya.autohrv.domain.metrics.MetricsService
+import dev.upaya.autohrv.domain.spectral.SpectrogramService
 import dev.upaya.autohrv.domain.spectral.model.SpectrogramBandInfoBO
 import dev.upaya.autohrv.domain.spectral.model.SpectrogramSliceBO
 import dev.upaya.autohrv.ui.acf.shapeAcfHistogram
@@ -64,18 +64,18 @@ class MainViewModel
     @Inject
     constructor(
         private val hrvRepository: HrvRepository,
-        private val breathingBusiness: BreathingBusiness,
-        private val spectrogramBusiness: SpectrogramBusiness,
-        private val metricsBusiness: MetricsBusiness,
+        private val breathingService: BreathingService,
+        private val spectrogramService: SpectrogramService,
+        private val metricsService: MetricsService,
         private val breathingSettingsRepository: BreathingSettingsRepository,
     ) : ViewModel() {
 
         val deviceId: String = HrvRepository.DEVICE_ID
-        val acfWindowSeconds: Int = breathingBusiness.acfWindowSeconds
-        val spectrogramBands: List<SpectrogramBandInfoBO> = spectrogramBusiness.bands
+        val acfWindowSeconds: Int = breathingService.acfWindowSeconds
+        val spectrogramBands: List<SpectrogramBandInfoBO> = spectrogramService.bands
 
         /** Seconds of history before the first (fastest) band appears — drives the loading placeholder. */
-        val spectrogramWindowSeconds: Int = spectrogramBusiness.firstBandWindowSeconds
+        val spectrogramWindowSeconds: Int = spectrogramService.firstBandWindowSeconds
 
         private val _uiState = MutableStateFlow(MainUiState())
         val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -88,7 +88,7 @@ class MainViewModel
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
         /** Rolling spectrogram slices per band, index-aligned with [spectrogramBands]. */
-        val spectrogramBandSlices: StateFlow<List<List<SpectrogramSliceBO>>> = spectrogramBusiness.bandSlices
+        val spectrogramBandSlices: StateFlow<List<List<SpectrogramSliceBO>>> = spectrogramService.bandSlices
 
         init {
             viewModelScope.launch {
@@ -114,12 +114,12 @@ class MainViewModel
                 }
             }
             viewModelScope.launch {
-                metricsBusiness.hrvMetrics.collect { metrics ->
+                metricsService.hrvMetrics.collect { metrics ->
                     _uiState.update { it.copy(rmssd = metrics.rmssd) }
                 }
             }
             viewModelScope.launch {
-                breathingBusiness.autoCorrelation.collect { acf ->
+                breathingService.autoCorrelation.collect { acf ->
                     _uiState.update { uiState ->
                         uiState.copy(
                             autoCorrelation =
@@ -133,37 +133,37 @@ class MainViewModel
                 }
             }
             viewModelScope.launch {
-                breathingBusiness.acfSums.collect { sums ->
+                breathingService.acfSums.collect { sums ->
                     _uiState.update { it.copy(acfHistogram = shapeAcfHistogram(sums)) }
                 }
             }
             viewModelScope.launch {
-                breathingBusiness.acfHistorySeconds.collect { seconds ->
+                breathingService.acfHistorySeconds.collect { seconds ->
                     _uiState.update { it.copy(acfHistorySeconds = seconds) }
                 }
             }
             viewModelScope.launch {
-                breathingBusiness.isInResonance.collect { isInResonance ->
+                breathingService.isInResonance.collect { isInResonance ->
                     _uiState.update { it.copy(isInResonance = isInResonance) }
                 }
             }
             viewModelScope.launch {
-                breathingBusiness.lagSeconds.collect { lag ->
+                breathingService.lagSeconds.collect { lag ->
                     _uiState.update { it.copy(lagSeconds = lag) }
                 }
             }
             viewModelScope.launch {
-                spectrogramBusiness.historySeconds.collect { seconds ->
+                spectrogramService.historySeconds.collect { seconds ->
                     _uiState.update { it.copy(spectrogramHistorySeconds = seconds) }
                 }
             }
             viewModelScope.launch {
-                breathingBusiness.currentPhaseStart.collect { phaseStart ->
+                breathingService.currentPhaseStart.collect { phaseStart ->
                     _uiState.update { it.copy(currentPhaseStart = phaseStart) }
                 }
             }
             viewModelScope.launch {
-                breathingBusiness.currentBreathingPattern.collect { pattern ->
+                breathingService.currentBreathingPattern.collect { pattern ->
                     _uiState.update { it.copy(currentPattern = pattern) }
                 }
             }

@@ -12,7 +12,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class MetricsBusiness
+class MetricsService
     @Inject
     internal constructor(
         @param:ApplicationScope private val scope: CoroutineScope,
