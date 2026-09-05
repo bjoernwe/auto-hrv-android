@@ -8,13 +8,15 @@ import com.polar.sdk.api.PolarBleApiDefaultImpl
 import com.polar.sdk.api.model.PolarDeviceInfo
 import com.polar.sdk.api.model.PolarHrData
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dev.upaya.autohrv.domain.breathing.BreathingConfig
+import dev.upaya.autohrv.di.ApplicationScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
@@ -25,6 +27,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -41,12 +45,19 @@ class HrvRepository
     @Inject
     constructor(
         @param:ApplicationContext private val context: Context,
+        @param:ApplicationScope private val scope: CoroutineScope,
     ) {
 
         companion object {
             private const val TAG = "HrvRepository"
             const val DEVICE_ID = "E7A9AB27"
             const val SAMPLES_PER_SECOND = 1
+
+            /** Outlier filter's rolling window, in beats. */
+            private const val OUTLIER_WINDOW_BEATS = 20
+
+            /** Longest window any consumer asks for (spectrogram's BREATH band = 64 s), with headroom. */
+            private const val MAX_HISTORY_SECONDS = 300
         }
 
         private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Idle)
@@ -66,15 +77,16 @@ class HrvRepository
 
         @OptIn(ExperimentalCoroutinesApi::class)
         private val hrFlow: Flow<PolarHrData.PolarHrSample> =
-            readyFeatures.flatMapLatest { features ->
-                if (features.contains(PolarBleApi.PolarBleSdkFeature.FEATURE_POLAR_ONLINE_STREAMING)) {
-                    _isStreaming.value = true
-                    createHrStream()
-                } else {
-                    _isStreaming.value = false
-                    flowOf()
-                }
-            }
+            readyFeatures
+                .flatMapLatest { features ->
+                    if (features.contains(PolarBleApi.PolarBleSdkFeature.FEATURE_POLAR_ONLINE_STREAMING)) {
+                        _isStreaming.value = true
+                        createHrStream()
+                    } else {
+                        _isStreaming.value = false
+                        flowOf()
+                    }
+                }.shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
         /** Beat-indexed HR: one value per sample, exactly as delivered by the sensor. */
         private val hrBeatFlow: Flow<Int> = hrFlow.map { it.hr }
@@ -84,14 +96,21 @@ class HrvRepository
         val rrMsBeatFlow: Flow<Int> =
             hrFlow
                 .transform { sample -> sample.rrsMs.forEach { emit(it) } }
-                .filterOutliers(windowSize = BreathingConfig.DEFAULT.windowLength)
+                .filterOutliers(windowSize = OUTLIER_WINDOW_BEATS)
                 .debounce { 100.milliseconds }
+                .shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
         /** HR resampled onto a uniform 1 Hz grid (zero-order hold). */
-        val hrResampled1Hz: Flow<Int> = hrBeatFlow.resampledTo1Hz()
+        val hrResampled1Hz: Flow<Int> = hrBeatFlow.resampledTo1Hz().shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
         /** RR intervals resampled onto a uniform 1 Hz grid (zero-order hold). */
-        val rrMsResampled1Hz: Flow<Int> = rrMsBeatFlow.resampledTo1Hz()
+        val rrMsResampled1Hz: Flow<Int> = rrMsBeatFlow.resampledTo1Hz().shareIn(scope, SharingStarted.Eagerly, replay = 1)
+
+        /** Rolling buffer of the last [MAX_HISTORY_SECONDS] of [rrMsResampled1Hz], shared by every caller of [getRrsMs1HzHistory]. */
+        private val rrMs1HzBuffer: StateFlow<List<Int>> =
+            rrMsResampled1Hz
+                .scan(emptyList<Int>()) { acc, value -> (acc + value).takeLast(MAX_HISTORY_SECONDS) }
+                .stateIn(scope, SharingStarted.Eagerly, emptyList())
 
         private val api: PolarBleApi by lazy {
             PolarBleApiDefaultImpl
@@ -176,7 +195,7 @@ class HrvRepository
         fun getHrHistory(seconds: Int): Flow<List<Int>> = hrResampled1Hz.windowedTo(seconds * SAMPLES_PER_SECOND)
 
         /** RR-interval history on the uniform 1 Hz grid, covering the last [seconds] of real time. */
-        fun getRrsMs1HzHistory(seconds: Int): Flow<List<Int>> = rrMsResampled1Hz.windowedTo(seconds * SAMPLES_PER_SECOND)
+        fun getRrsMs1HzHistory(seconds: Int): Flow<List<Int>> = rrMs1HzBuffer.map { it.takeLast(seconds * SAMPLES_PER_SECOND) }
 
         /**
          * Beat-indexed RR-interval history (true NN intervals) covering roughly the last [seconds] of
