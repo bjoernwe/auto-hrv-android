@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.hr
+package dev.upaya.autohrv.ui.metrics
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

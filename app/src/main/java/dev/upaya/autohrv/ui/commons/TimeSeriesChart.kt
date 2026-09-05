@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.hr.charts
+package dev.upaya.autohrv.ui.commons
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import dev.upaya.autohrv.ui.hr.Sample
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 import kotlin.math.sin
 

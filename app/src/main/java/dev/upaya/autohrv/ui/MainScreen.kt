@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.hr
+package dev.upaya.autohrv.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,15 +31,26 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.upaya.autohrv.ui.hr.charts.AutoCorrelationChart
-import dev.upaya.autohrv.ui.hr.charts.SpectrogramBandView
-import dev.upaya.autohrv.ui.hr.charts.SpectrogramChart
+import dev.upaya.autohrv.ui.acf.ACFHeader
+import dev.upaya.autohrv.ui.acf.AutoCorrelationChart
+import dev.upaya.autohrv.ui.acf.BandRangeSlider
+import dev.upaya.autohrv.ui.acf.ExerciseButtonGroup
+import dev.upaya.autohrv.ui.commons.ChartPlaceholder
+import dev.upaya.autohrv.ui.commons.HrvCard
+import dev.upaya.autohrv.ui.coupling.BreathingChip
+import dev.upaya.autohrv.ui.coupling.CouplingHeroCard
+import dev.upaya.autohrv.ui.metrics.MetricsRow
+import dev.upaya.autohrv.ui.spectrogram.SpectrogramBandView
+import dev.upaya.autohrv.ui.spectrogram.SpectrogramChart
+import dev.upaya.autohrv.ui.spectrogram.SpectrogramHeader
+import dev.upaya.autohrv.ui.topbar.AutoHrvTitle
+import dev.upaya.autohrv.ui.topbar.ConnectionChip
 
 // Top padding of the pinned title row / scrolling connection-chip row, below the status bar.
 private val TOP_BAR_TOP_PADDING = 10.dp
 
 @Composable
-fun HRScreen(viewModel: HrvViewModel) {
+fun MainScreen(viewModel: MainViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val breathSamples by viewModel.breathSamples.collectAsStateWithLifecycle()
     val rrSamples by viewModel.rrSamples.collectAsStateWithLifecycle()

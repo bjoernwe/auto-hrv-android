@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.hr
+package dev.upaya.autohrv.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,6 +13,8 @@ import dev.upaya.autohrv.domain.breathing.BreathingPhaseStart
 import dev.upaya.autohrv.domain.spectral.SpectrogramBandInfo
 import dev.upaya.autohrv.domain.spectral.SpectrogramBusiness
 import dev.upaya.autohrv.domain.spectral.SpectrogramSlice
+import dev.upaya.autohrv.ui.commons.Sample
+import dev.upaya.autohrv.ui.commons.pruneOlderThan
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,7 +29,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
-data class HrUiState(
+data class MainUiState(
     val connectionState: ConnectionState = ConnectionState.Idle,
     val hr: Int? = null,
     val currentRr: Int? = null,
@@ -52,7 +54,7 @@ private const val BREATH_SAMPLE_RATE_HZ = 20
 private val DISPLAY_WINDOW_MS = BreathingConfig.DEFAULT.windowLength * 1000L
 
 @HiltViewModel
-class HrvViewModel
+class MainViewModel
     @Inject
     constructor(
         private val hrvRepository: HrvRepository,
@@ -67,8 +69,8 @@ class HrvViewModel
         /** Seconds of history before the first (fastest) band appears — drives the loading placeholder. */
         val spectrogramWindowSeconds: Int = spectrogramBusiness.firstBandWindowSeconds
 
-        private val _uiState = MutableStateFlow(HrUiState())
-        val uiState: StateFlow<HrUiState> = _uiState.asStateFlow()
+        private val _uiState = MutableStateFlow(MainUiState())
+        val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
         /** Raw beats from the sensor, each stamped with wall-clock arrival time. */
         val rrSamples: StateFlow<List<Sample>> =

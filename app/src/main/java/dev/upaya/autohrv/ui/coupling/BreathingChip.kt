@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.hr
+package dev.upaya.autohrv.ui.coupling
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState

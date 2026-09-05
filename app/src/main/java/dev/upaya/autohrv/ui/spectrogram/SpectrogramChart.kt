@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.hr.charts
+package dev.upaya.autohrv.ui.spectrogram
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth

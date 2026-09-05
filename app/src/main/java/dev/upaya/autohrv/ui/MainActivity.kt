@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.hr
+package dev.upaya.autohrv.ui
 
 import android.os.Bundle
 import android.widget.Toast
@@ -10,14 +10,14 @@ import dev.upaya.autohrv.domain.bluetooth.GetBluetoothPermissionUseCase
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 @AndroidEntryPoint
-class HRActivity : ComponentActivity() {
+class MainActivity : ComponentActivity() {
 
-    private val hrViewModel: HrvViewModel by viewModels()
+    private val viewModel: MainViewModel by viewModels()
 
     private val getBluetoothPermissions =
         GetBluetoothPermissionUseCase(
             activity = this,
-            onGranted = { hrViewModel.connect() },
+            onGranted = { viewModel.connect() },
             onDenied = {
                 Toast.makeText(applicationContext, "Needed Bluetooth permissions are missing", Toast.LENGTH_LONG).show()
             },
@@ -27,7 +27,7 @@ class HRActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AutoHrvTheme {
-                HRScreen(viewModel = hrViewModel)
+                MainScreen(viewModel = viewModel)
             }
         }
         getBluetoothPermissions()

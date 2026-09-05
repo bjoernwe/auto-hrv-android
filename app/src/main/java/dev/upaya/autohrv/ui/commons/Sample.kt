@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.hr
+package dev.upaya.autohrv.ui.commons
 
 data class Sample(
     val tMillis: Long,

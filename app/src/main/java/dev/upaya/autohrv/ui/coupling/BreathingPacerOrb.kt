@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.breathing
+package dev.upaya.autohrv.ui.coupling
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState

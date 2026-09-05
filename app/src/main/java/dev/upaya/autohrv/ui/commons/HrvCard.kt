@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.hr
+package dev.upaya.autohrv.ui.commons
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -33,7 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
-import dev.upaya.autohrv.ui.hr.charts.AcfChartHorizontalInset
+import dev.upaya.autohrv.ui.acf.ACFHeader
+import dev.upaya.autohrv.ui.acf.AcfChartHorizontalInset
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 @Composable
@@ -55,7 +56,7 @@ internal fun HrvCard(
 }
 
 /**
- * Stands in for [dev.upaya.autohrv.ui.hr.charts.AutoCorrelationChart] until [elapsedSeconds] of R–R
+ * Stands in for [dev.upaya.autohrv.ui.acf.AutoCorrelationChart] until [elapsedSeconds] of R–R
  * history reaches [windowSeconds] and a first estimate can be computed. The fill tracks that
  * progress along the same horizontal inset the real chart's zero line sits on, so the bar reads as
  * a preview of that line rather than a generic loader.

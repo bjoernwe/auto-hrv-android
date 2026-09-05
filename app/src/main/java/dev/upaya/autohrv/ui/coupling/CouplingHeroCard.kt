@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.hr
+package dev.upaya.autohrv.ui.coupling
 
 import android.graphics.RuntimeShader
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -37,7 +37,8 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.upaya.autohrv.domain.breathing.BreathingPhase
-import dev.upaya.autohrv.ui.hr.charts.smoothPath
+import dev.upaya.autohrv.ui.commons.Sample
+import dev.upaya.autohrv.ui.commons.smoothPath
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 import kotlin.math.PI
 import kotlin.math.cos

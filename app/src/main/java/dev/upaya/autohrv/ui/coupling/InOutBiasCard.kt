@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.hr
+package dev.upaya.autohrv.ui.coupling
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +28,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.upaya.autohrv.ui.commons.HrvCard
+import dev.upaya.autohrv.ui.commons.SectionLabel
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 
 @Composable

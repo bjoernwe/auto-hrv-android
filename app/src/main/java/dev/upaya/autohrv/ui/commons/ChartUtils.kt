@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.hr.charts
+package dev.upaya.autohrv.ui.commons
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path

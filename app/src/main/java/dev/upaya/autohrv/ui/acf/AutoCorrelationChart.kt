@@ -1,4 +1,4 @@
-package dev.upaya.autohrv.ui.hr.charts
+package dev.upaya.autohrv.ui.acf
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,8 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import dev.upaya.autohrv.ui.hr.acfInRangeColor
-import dev.upaya.autohrv.ui.hr.acfOutRangeColor
+import dev.upaya.autohrv.ui.commons.animateListAsState
+import dev.upaya.autohrv.ui.commons.smoothPath
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 import kotlin.math.PI
 import kotlin.math.cos
@@ -27,7 +27,7 @@ import kotlin.math.exp
 import kotlin.math.roundToInt
 
 /**
- * Horizontal inset shared with [dev.upaya.autohrv.ui.hr.ChartPlaceholder] so its progress line
+ * Horizontal inset shared with [dev.upaya.autohrv.ui.commons.ChartPlaceholder] so its progress line
  * lands exactly under this chart's zero line once real data takes over.
  */
 internal val AcfChartHorizontalInset = 10.dp
