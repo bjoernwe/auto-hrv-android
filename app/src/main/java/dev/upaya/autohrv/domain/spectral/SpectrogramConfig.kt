@@ -45,28 +45,28 @@ data class SpectrogramConfig(
             SpectrogramConfig(
                 bands =
                     listOf(
-                        SpectrogramBand(
+                        /*SpectrogramBand(
                             label = "SLOW",
                             windowSeconds = 128,
                             hopSeconds = 1,
                             // 120 slices * 1s hop = 2 min of scrolling history.
                             maxSlices = 120,
                             freqRangeHz = 0f..0.06f,
-                        ),
+                        ),*/
                         SpectrogramBand(
                             label = "BREATH",
                             windowSeconds = 64,
                             hopSeconds = 1,
                             maxSlices = 120,
-                            freqRangeHz = 0.06f..0.25f,
+                            freqRangeHz = 0f..0.25f,
                         ),
-                        SpectrogramBand(
+                        /*SpectrogramBand(
                             label = "FAST",
                             windowSeconds = 16,
                             hopSeconds = 1,
                             maxSlices = 120,
                             freqRangeHz = 0.25f..2f,
-                        ),
+                        ),*/
                     ),
             )
     }

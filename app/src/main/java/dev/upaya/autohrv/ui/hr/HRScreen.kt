@@ -211,7 +211,7 @@ fun HRScreen(viewModel: HrvViewModel) {
                                 modifier =
                                     Modifier
                                         .fillMaxWidth()
-                                        .height(190.dp),
+                                        .height(140.dp),
                             )
                         } else {
                             ChartPlaceholder(

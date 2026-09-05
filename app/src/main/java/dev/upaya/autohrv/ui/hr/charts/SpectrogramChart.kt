@@ -11,7 +11,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -51,7 +50,6 @@ fun SpectrogramChart(
     val accent = MaterialTheme.colorScheme.secondary
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val textMeasurer = rememberTextMeasurer()
-    val labelStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, color = muted)
     val axisLabelStyle = MaterialTheme.typography.labelSmall.copy(color = muted.copy(alpha = 0.55f))
 
     // Highest frequency on top, derived from the data rather than the caller's order. Each panel is
@@ -65,10 +63,10 @@ fun SpectrogramChart(
 
     Canvas(modifier = modifier) {
         val padL = 30.dp.toPx()
-        val padR = 32.dp.toPx()
+        val padR = 6.dp.toPx()
         val padT = 6.dp.toPx()
         val padB = 6.dp.toPx()
-        val gap = 16.dp.toPx()
+        val gap = 8.dp.toPx()
         val plotW = size.width - padL - padR
         // Panels split the plot height evenly, with a gap between each.
         val totalPlotH = size.height - padT - padB - gap * (panels.size - 1)
@@ -82,19 +80,19 @@ fun SpectrogramChart(
             text: String,
             centerY: Float,
             style: TextStyle,
-            alignRight: Boolean,
         ) {
             val measured = textMeasurer.measure(text, style = style)
-            val x = if (alignRight) size.width - padR + 4.dp.toPx() else padL - 4.dp.toPx() - measured.size.width
+            val x = padL - 4.dp.toPx() - measured.size.width
             drawText(measured, topLeft = Offset(x, centerY - measured.size.height / 2f))
         }
+
+        // Minimum vertical spacing between tick labels so they never overlap.
+        val minTickSpacing = 16.dp.toPx()
 
         panels.forEachIndexed { panelIndex, band ->
             val panelTop = padT + panelIndex * (panelH + gap)
             if (band.slices.isEmpty() || band.freqBinsHz.isEmpty()) {
-                // Band not yet activated (its window is still filling): leave the panel as a gap,
-                // but still label it so the reader knows what will appear there.
-                drawLabel(band.label, panelTop + panelH / 2f, axisLabelStyle, alignRight = false)
+                // Band not yet activated (its window is still filling): leave the panel empty.
                 return@forEachIndexed
             }
 
@@ -118,13 +116,20 @@ fun SpectrogramChart(
                 }
             }
 
-            // Cycle-length ticks at the slowest (bottom) and fastest (top) bins of this band, plus
-            // the band label on the right edge.
-            val minFreq = band.freqBinsHz.first()
-            val maxFreq = band.freqBinsHz.last()
-            drawLabel(cycleLengthLabel(minFreq), panelTop + panelH, axisLabelStyle, alignRight = false)
-            drawLabel(cycleLengthLabel(maxFreq), panelTop, axisLabelStyle, alignRight = false)
-            drawLabel(band.label, panelTop + panelH / 2f, labelStyle, alignRight = true)
+            // Cycle-length ticks from the slowest (bottom) to the fastest (top) bin of this band.
+            // As many intermediate ticks as fit without crowding, evenly spaced by row index —
+            // row index maps linearly to y, so this keeps labels aligned with the rows they name.
+            val lastRow = band.freqBinsHz.size - 1
+            if (lastRow == 0) {
+                drawLabel(cycleLengthLabel(band.freqBinsHz[0]), panelTop + panelH / 2f, axisLabelStyle)
+            } else {
+                val tickCount = (panelH / minTickSpacing).toInt().coerceIn(1, lastRow)
+                (0..tickCount).forEach { i ->
+                    val row = i * lastRow / tickCount
+                    val y = panelTop + panelH * (1f - row.toFloat() / lastRow)
+                    drawLabel(cycleLengthLabel(band.freqBinsHz[row]), y, axisLabelStyle)
+                }
+            }
         }
     }
 }
@@ -167,7 +172,7 @@ private fun SpectrogramChartPreview() {
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .height(190.dp),
+                    .height(140.dp),
         )
     }
 }
