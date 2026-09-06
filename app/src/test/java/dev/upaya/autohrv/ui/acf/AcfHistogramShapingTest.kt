@@ -84,4 +84,45 @@ class AcfHistogramShapingTest {
         assertTrue("secondary should exceed the low bins", secondary > out[2] && secondary > out[4])
         assertTrue("primary should still be the tallest", primary > secondary)
     }
+
+    // --- shapeAcfLoadings ---
+
+    @Test
+    fun `loadings land on their lag and leave the rest at zero`() {
+        // Loadings for lags 1..3, drawn into a 6-wide lag space.
+        val bars = shapeAcfLoadings(listOf(0.5f, -0.25f, 0.1f), firstLag = 1, size = 6)
+
+        assertEquals(6, bars.size)
+        assertEquals(0f, bars[0], 1e-6f) // lag 0 is outside the analysis
+        assertEquals(1f, bars[1], 1e-6f) // the largest magnitude scales to full height
+        assertEquals(-0.5f, bars[2], 1e-6f)
+        assertEquals(0.2f, bars[3], 1e-6f)
+        assertEquals(0f, bars[4], 1e-6f) // beyond the loadings
+        assertEquals(0f, bars[5], 1e-6f)
+    }
+
+    @Test
+    fun `the largest magnitude reaches full height whatever the sign`() {
+        val bars = shapeAcfLoadings(listOf(0.01f, -0.04f), firstLag = 1, size = 3)
+        assertEquals(-1f, bars[2], 1e-6f)
+        assertEquals(0.25f, bars[1], 1e-6f)
+    }
+
+    @Test
+    fun `all outputs stay within minus one and one`() {
+        shapeAcfLoadings(listOf(3f, -7f, 0f, 2f), firstLag = 1, size = 5).forEach {
+            assertTrue("out of bounds: $it", it in -1f..1f)
+        }
+    }
+
+    @Test
+    fun `a component with no shape stays flat`() {
+        assertTrue(shapeAcfLoadings(listOf(0f, 0f, 0f), firstLag = 1, size = 4).all { it == 0f })
+        assertTrue(shapeAcfLoadings(emptyList(), firstLag = 1, size = 4).all { it == 0f })
+    }
+
+    @Test
+    fun `a non-positive size yields no bars`() {
+        assertTrue(shapeAcfLoadings(listOf(1f), firstLag = 1, size = 0).isEmpty())
+    }
 }

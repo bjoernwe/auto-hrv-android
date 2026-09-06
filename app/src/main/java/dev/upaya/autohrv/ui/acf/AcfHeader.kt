@@ -25,8 +25,36 @@ import androidx.compose.ui.unit.sp
 import dev.upaya.autohrv.ui.commons.ChartSectionHeader
 import kotlin.math.roundToInt
 
+/**
+ * Header of the ACF card. The section label doubles as the readout for a selected principal
+ * component, naming it and the share of the ACF's variance it accounts for.
+ */
 @Composable
-internal fun ACFHeader() = ChartSectionHeader(label = "AUTOCORRELATION", subtitle = "peak ➔ pace")
+internal fun ACFHeader(
+    selectedComponent: Int?,
+    standardizedScores: List<Float>,
+    varianceRatios: List<Float>,
+    componentCount: Int,
+    enabled: Boolean,
+    onSelect: (Int?) -> Unit,
+) {
+    val varianceRatio = selectedComponent?.let { varianceRatios.getOrNull(it) }
+    val label =
+        if (selectedComponent != null && varianceRatio != null) {
+            "PC${selectedComponent + 1} · ${(varianceRatio * 100).roundToInt()}% VAR"
+        } else {
+            "AUTOCORRELATION"
+        }
+    ChartSectionHeader(label = label) {
+        PrincipalComponentButtons(
+            selected = selectedComponent,
+            standardizedScores = standardizedScores,
+            count = componentCount,
+            enabled = enabled,
+            onSelect = onSelect,
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

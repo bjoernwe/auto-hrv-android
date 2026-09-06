@@ -3,10 +3,13 @@ package dev.upaya.autohrv.domain.breathing
 import dev.upaya.autohrv.data.hrv.HrvRepository
 import dev.upaya.autohrv.data.settings.BreathingSettingsRepository
 import dev.upaya.autohrv.di.ApplicationScope
+import dev.upaya.autohrv.domain.breathing.model.AcfPcaBO
 import dev.upaya.autohrv.domain.breathing.model.AutoCorrelationBO
 import dev.upaya.autohrv.domain.breathing.model.BreathingPatternBO
 import dev.upaya.autohrv.domain.breathing.model.BreathingPhaseStartBO
+import dev.upaya.autohrv.domain.breathing.usecase.AccumulateAcfMomentsUseCase
 import dev.upaya.autohrv.domain.breathing.usecase.AccumulateAcfUseCase
+import dev.upaya.autohrv.domain.breathing.usecase.ComputeAcfPcaUseCase
 import dev.upaya.autohrv.domain.breathing.usecase.ComputeAutoCorrelationUseCase
 import dev.upaya.autohrv.domain.breathing.usecase.ComputeBreathRrLagUseCase
 import dev.upaya.autohrv.domain.breathing.usecase.DetectResonanceUseCase
@@ -33,6 +36,8 @@ class BreathingService
         @param:ApplicationScope private val scope: CoroutineScope,
         private val computeAutoCorrelationUseCase: ComputeAutoCorrelationUseCase,
         accumulateAcfUseCase: AccumulateAcfUseCase,
+        accumulateAcfMomentsUseCase: AccumulateAcfMomentsUseCase,
+        computeAcfPcaUseCase: ComputeAcfPcaUseCase,
         runBreathingPacerUseCase: RunBreathingPacerUseCase,
         detectResonanceUseCase: DetectResonanceUseCase,
         computeBreathRrLagUseCase: ComputeBreathRrLagUseCase,
@@ -71,6 +76,17 @@ class BreathingService
         val acfSums: StateFlow<List<Float>> =
             accumulateAcfUseCase(acfValues, breathingConfig)
                 .stateIn(scope, SharingStarted.Eagerly, emptyList())
+
+        /**
+         * Principal components of the session's ACF curves, and where the current curve sits on
+         * them. `null` until enough curves have accumulated.
+         */
+        val acfPca: StateFlow<AcfPcaBO?> =
+            computeAcfPcaUseCase(accumulateAcfMomentsUseCase(acfValues, breathingConfig), breathingConfig)
+                .stateIn(scope, SharingStarted.Eagerly, null)
+
+        /** How many principal components [acfPca] reports at most, once it has any. */
+        val acfPcaComponentCount: Int = breathingConfig.acfPcaComponentCount
 
         private val initialBreathingPattern = breathingConfig.defaultPattern()
 

@@ -14,17 +14,29 @@ import androidx.compose.ui.unit.sp
 internal fun ChartSectionHeader(
     label: String,
     subtitle: String,
+) = ChartSectionHeader(label = label) {
+    Text(
+        text = subtitle,
+        style =
+            MaterialTheme.typography.labelSmall.copy(
+                fontSize = 11.5.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            ),
+    )
+}
+
+/** [ChartSectionHeader] with an arbitrary [trailing] element in place of the subtitle text. */
+@Composable
+internal fun ChartSectionHeader(
+    label: String,
+    trailing: @Composable () -> Unit,
 ) {
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         SectionLabel(text = label)
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp, color = muted),
-        )
+        trailing()
     }
 }

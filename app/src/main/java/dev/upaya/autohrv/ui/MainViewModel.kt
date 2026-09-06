@@ -15,7 +15,9 @@ import dev.upaya.autohrv.domain.metrics.MetricsService
 import dev.upaya.autohrv.domain.spectral.SpectrogramService
 import dev.upaya.autohrv.domain.spectral.model.SpectrogramBandInfoBO
 import dev.upaya.autohrv.domain.spectral.model.SpectrogramSliceBO
+import dev.upaya.autohrv.ui.acf.AcfBarStyle
 import dev.upaya.autohrv.ui.acf.shapeAcfHistogram
+import dev.upaya.autohrv.ui.acf.shapeAcfLoadings
 import dev.upaya.autohrv.ui.commons.Sample
 import dev.upaya.autohrv.ui.commons.pruneOlderThan
 import kotlinx.coroutines.delay
@@ -23,6 +25,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
@@ -42,13 +46,29 @@ data class MainUiState(
     val autoCorrelation: List<Float>? = null,
     val autoCorrelationPeak: Float? = null,
     val acfHistogram: List<Float> = emptyList(),
+    /** Signed bar values for [selectedPrincipalComponent]'s loadings, aligned with the ACF's lags. */
+    val acfLoadingBars: List<Float> = emptyList(),
+    /** Per-component projection of the current curve, in units of that component's own std dev. */
+    val acfComponentScores: List<Float> = emptyList(),
+    val acfComponentVarianceRatios: List<Float> = emptyList(),
+    val selectedPrincipalComponent: Int? = null,
     val acfHistorySeconds: Int = 0,
     val isInResonance: Boolean = false,
     val lagSeconds: Float? = null,
     val spectrogramHistorySeconds: Int = 0,
     val currentPhaseStart: BreathingPhaseStartBO = BreathingPhaseStartBO(BreathingPhaseBO.Inhale, System.currentTimeMillis(), 4000L),
     val currentPattern: BreathingPatternBO = BreathingPatternBO(0f, 8f),
-)
+) {
+    /** Whether a principal component is available to select and score. */
+    val acfPcaReady: Boolean get() = acfComponentScores.isNotEmpty()
+
+    /** The bars behind the ACF curve: a selected component's loadings, else the session histogram. */
+    val acfChartBars: List<Float> get() = if (selectedPrincipalComponent != null) acfLoadingBars else acfHistogram
+
+    /** How [acfChartBars] is drawn — loadings are signed and grow out of the zero line. */
+    val acfChartBarStyle: AcfBarStyle
+        get() = if (selectedPrincipalComponent != null) AcfBarStyle.FromZeroLine else AcfBarStyle.FromBottom
+}
 
 // The direct ACF returns lags 0..acfMaxLagSeconds, so the chart shows the full searchable range.
 private val AUTO_CORRELATION_SIZE = BreathingConfig.DEFAULT.acfMaxLagSeconds + 1
@@ -72,6 +92,9 @@ class MainViewModel
 
         val deviceId: String = HrvRepository.DEVICE_ID
         val acfWindowSeconds: Int = breathingService.acfWindowSeconds
+
+        /** How many principal-component toggles the ACF header offers. */
+        val acfPcaComponentCount: Int = breathingService.acfPcaComponentCount
         val spectrogramBands: List<SpectrogramBandInfoBO> = spectrogramService.bands
 
         /** Seconds of history before the first (fastest) band appears — drives the loading placeholder. */
@@ -79,6 +102,13 @@ class MainViewModel
 
         private val _uiState = MutableStateFlow(MainUiState())
         val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
+
+        /**
+         * Which principal component the ACF chart draws, or `null` for the accumulated histogram.
+         * Pure view state — no domain derivation reads it — so it lives here rather than in a
+         * settings repository.
+         */
+        private val selectedPrincipalComponentSelection = MutableStateFlow<Int?>(null)
 
         /** Raw beats from the sensor, each stamped with wall-clock arrival time. */
         val rrSamples: StateFlow<List<Sample>> =
@@ -138,6 +168,31 @@ class MainViewModel
                 }
             }
             viewModelScope.launch {
+                combine(breathingService.acfPca, selectedPrincipalComponentSelection) { pca, selection ->
+                    val components = pca?.components.orEmpty()
+                    val selected = selection?.takeIf { it in components.indices }
+                    val loadings = selected?.let { components[it].loadings }
+                    _uiState.update { state ->
+                        state.copy(
+                            acfLoadingBars =
+                                if (pca != null && loadings != null) {
+                                    shapeAcfLoadings(loadings, pca.firstLag, AUTO_CORRELATION_SIZE)
+                                } else {
+                                    emptyList()
+                                },
+                            // Standardized so PC1 and PC3 read on the same scale despite their very
+                            // different magnitudes; a component with no spread has no meaningful score.
+                            acfComponentScores =
+                                components.map { component ->
+                                    if (component.standardDeviation > 0f) component.score / component.standardDeviation else 0f
+                                },
+                            acfComponentVarianceRatios = components.map { it.explainedVarianceRatio },
+                            selectedPrincipalComponent = selected,
+                        )
+                    }
+                }.collect()
+            }
+            viewModelScope.launch {
                 breathingService.acfHistorySeconds.collect { seconds ->
                     _uiState.update { it.copy(acfHistorySeconds = seconds) }
                 }
@@ -191,6 +246,10 @@ class MainViewModel
         fun disconnect() = hrvRepository.disconnect()
 
         fun setTargetCycleLengthRange(range: IntRange) = breathingSettingsRepository.setTargetCycleLengthRange(range)
+
+        fun selectPrincipalComponent(index: Int?) {
+            selectedPrincipalComponentSelection.value = index
+        }
 
         fun setTargetInOutBias(bias: Float) = breathingSettingsRepository.setTargetInOutBias(bias)
     }

@@ -165,12 +165,20 @@ fun MainScreen(viewModel: MainViewModel) {
                     val acf = uiState.autoCorrelation
                     val acfReady = acf != null && acf.size >= 2
                     HrvCard {
-                        ACFHeader()
+                        ACFHeader(
+                            selectedComponent = uiState.selectedPrincipalComponent,
+                            standardizedScores = uiState.acfComponentScores,
+                            varianceRatios = uiState.acfComponentVarianceRatios,
+                            componentCount = viewModel.acfPcaComponentCount,
+                            enabled = uiState.acfPcaReady,
+                            onSelect = { viewModel.selectPrincipalComponent(it) },
+                        )
                         Spacer(Modifier.height(6.dp))
                         if (acfReady) {
                             AutoCorrelationChart(
                                 acf = acf,
-                                histogram = uiState.acfHistogram,
+                                histogram = uiState.acfChartBars,
+                                histogramStyle = uiState.acfChartBarStyle,
                                 peakLag =
                                     uiState.autoCorrelationPeak
                                         ?.coerceIn(

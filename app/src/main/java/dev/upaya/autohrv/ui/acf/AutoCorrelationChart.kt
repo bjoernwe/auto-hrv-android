@@ -24,15 +24,26 @@ import dev.upaya.autohrv.ui.commons.animateListAsState
 import dev.upaya.autohrv.ui.commons.smoothPath
 import dev.upaya.autohrv.ui.theme.AutoHrvTheme
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.roundToInt
+
+/** How the bars behind the ACF curve are drawn. */
+enum class AcfBarStyle {
+    /** Non-negative magnitudes growing up from the bottom axis — the accumulated-ACF histogram. */
+    FromBottom,
+
+    /** Signed values growing out of the center zero line, up for positive — component loadings. */
+    FromZeroLine,
+}
 
 @Composable
 fun AutoCorrelationChart(
     acf: List<Float>,
     modifier: Modifier = Modifier,
     histogram: List<Float> = emptyList(),
+    histogramStyle: AcfBarStyle = AcfBarStyle.FromBottom,
     peakLag: Float? = null,
     bandLo: Float = 0f,
     bandHi: Float = Float.MAX_VALUE,
@@ -56,6 +67,7 @@ fun AutoCorrelationChart(
     val outlineColor = MaterialTheme.colorScheme.outlineVariant
     val inRangeColor = acfInRangeColor()
     val outRangeColor = acfOutRangeColor()
+    val negativeLoadingColor = acfNegativeLoadingColor()
     val textMeasurer = rememberTextMeasurer()
 
     val labelStyle =
@@ -80,19 +92,32 @@ fun AutoCorrelationChart(
         val yHalf = plotH / 2f
         val ys = { v: Float -> yCenter - v.coerceIn(-1f, 1f) * yHalf }
 
-        // Accumulated-ACF histogram: gray bars behind everything, in-band bars tinted breath.
-        // Lag 0 is shaped to zero upstream (its correlation is always 1 and carries no
-        // information), so no explicit skip is needed here.
+        // Bars behind everything: either the accumulated-ACF histogram growing from the bottom
+        // (in-band bars tinted breath), or a component's signed loadings growing out of the zero
+        // line (positive breath, negative heart). Lag 0 is shaped to zero upstream in both cases
+        // (its correlation is always 1 and carries no information), so no explicit skip is needed.
         val barW = (plotW / maxLag) * 0.7f
         val plotBottom = padT + plotH
         val barCorner = CornerRadius(barW * 0.35f, barW * 0.35f)
         displayedHistogram.forEachIndexed { i, v ->
-            val h = v.coerceIn(0f, 1f) * plotH
+            val signed = histogramStyle == AcfBarStyle.FromZeroLine
+            val h = (if (signed) abs(v).coerceIn(0f, 1f) * yHalf else v.coerceIn(0f, 1f) * plotH)
             if (h <= 0f) return@forEachIndexed
-            val inBand = i.toFloat() in bandLo..bandHi
+            val color =
+                when {
+                    signed -> if (v >= 0f) inRangeColor else negativeLoadingColor
+                    i.toFloat() in bandLo..bandHi -> inRangeColor
+                    else -> outRangeColor
+                }
+            val top =
+                when {
+                    !signed -> plotBottom - h
+                    v < 0f -> yCenter
+                    else -> yCenter - h
+                }
             drawRoundRect(
-                color = if (inBand) inRangeColor else outRangeColor,
-                topLeft = Offset(xs(i.toFloat()) - barW / 2f, plotBottom - h),
+                color = color,
+                topLeft = Offset(xs(i.toFloat()) - barW / 2f, top),
                 size = Size(barW, h),
                 cornerRadius = barCorner,
             )

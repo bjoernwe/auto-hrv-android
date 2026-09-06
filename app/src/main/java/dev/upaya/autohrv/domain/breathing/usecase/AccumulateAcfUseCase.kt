@@ -1,12 +1,12 @@
 package dev.upaya.autohrv.domain.breathing.usecase
 
 import dev.upaya.autohrv.domain.breathing.BreathingConfig
+import dev.upaya.autohrv.domain.signal.decayPerEmission
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.scan
 import javax.inject.Inject
-import kotlin.math.pow
 
 /**
  * Session-accumulated ACF sums: every emitted ACF summed element-wise (see [accumulate]), decaying
@@ -24,8 +24,7 @@ internal class AccumulateAcfUseCase
             acf: Flow<List<Float>?>,
             config: BreathingConfig,
         ): Flow<List<Float>> {
-            val halfLifeSeconds = config.acfHistogramHalfLifeSeconds
-            val decay = if (halfLifeSeconds == null) 1f else 0.5f.pow(1f / halfLifeSeconds)
+            val decay = decayPerEmission(config.acfHistogramHalfLifeSeconds)
             return acf
                 .mapNotNull { it }
                 .distinctUntilChanged()

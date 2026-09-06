@@ -1,6 +1,7 @@
 package dev.upaya.autohrv.ui.acf
 
 import dev.upaya.autohrv.ui.commons.normalizeMinMax
+import kotlin.math.abs
 import kotlin.math.exp
 
 // Shaping of the accumulated ACF histogram: exp sharpens the dominant lags, the closing sigmoid
@@ -14,6 +15,9 @@ private const val SIGMOID_MIDPOINT = 0.2f
 // always ignored on top of this. They're capped into range rather than dropped, so they still show
 // in the histogram.
 private const val IGNORED_LEADING_LAGS = 3
+
+// A component whose largest loading is below this carries no shape worth drawing.
+private const val LOADING_EPSILON = 1e-6f
 
 /**
  * Shapes accumulated per-lag ACF sums into display heights in `[0, 1]`:
@@ -54,3 +58,24 @@ internal fun shapeAcfHistogram(
 }
 
 private fun sigmoid(x: Float): Float = 1f / (1f + exp(-x))
+
+/**
+ * Shapes one principal component's [loadings] into signed bar values in `[-1, 1]`, aligned with the
+ * ACF's lag index space: index `i` holds the loading for lag `i`, and lags outside
+ * `firstLag until firstLag + loadings.size` — lag 0 in particular — are `0f`.
+ *
+ * Scaled by the largest absolute loading so the dominant lag reaches full height whatever the
+ * component's absolute magnitude; the sign is kept, since which lags move *against* each other is
+ * the point of looking at a component at all.
+ */
+internal fun shapeAcfLoadings(
+    loadings: List<Float>,
+    firstLag: Int,
+    size: Int,
+): List<Float> {
+    if (size <= 0) return emptyList()
+    val peak = loadings.maxOfOrNull { abs(it) } ?: 0f
+    if (peak < LOADING_EPSILON) return List(size) { 0f }
+    // Dividing by the largest magnitude already bounds the result to [-1, 1].
+    return List(size) { lag -> (loadings.getOrNull(lag - firstLag) ?: 0f) / peak }
+}

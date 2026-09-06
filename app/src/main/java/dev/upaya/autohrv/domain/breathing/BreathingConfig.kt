@@ -13,6 +13,9 @@ data class BreathingConfig(
     val resonancePeakToleranceSeconds: Float,
     val resonanceMinPeakValue: Float,
     val acfHistogramHalfLifeSeconds: Float?,
+    val acfPcaHalfLifeSeconds: Float?,
+    val acfPcaComponentCount: Int,
+    val acfPcaMinObservations: Int,
 ) {
     init {
         require(acfMaxLagSeconds >= maxCycleLengthRange.last) {
@@ -21,6 +24,11 @@ data class BreathingConfig(
         // Needs headroom above the longest lag so the shortest-overlap estimate stays reliable.
         require(acfWindowSeconds >= acfMaxLagSeconds + 8) {
             "acfWindowSeconds must exceed acfMaxLagSeconds by the minimum overlap"
+        }
+        // The PCA runs on lags 1..acfMaxLagSeconds, so fewer curves than dimensions leaves the
+        // covariance rank-deficient and its trailing components pure noise.
+        require(acfPcaMinObservations > acfMaxLagSeconds) {
+            "acfPcaMinObservations must exceed the number of lags entering the PCA"
         }
     }
 
@@ -40,6 +48,12 @@ data class BreathingConfig(
                 resonanceMinPeakValue = 0.35f,
                 // Old peaks fade over ~1.5 min so the histogram tracks the recent session.
                 acfHistogramHalfLifeSeconds = 90f,
+                // The components describe the session rather than the moment, so they decay far
+                // more slowly than the histogram — ~10 min keeps them stable while still letting
+                // them follow a genuine change of state.
+                acfPcaHalfLifeSeconds = 600f,
+                acfPcaComponentCount = 3,
+                acfPcaMinObservations = 60,
             )
     }
 }
