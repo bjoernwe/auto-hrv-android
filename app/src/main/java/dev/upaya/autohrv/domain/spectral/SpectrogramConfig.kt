@@ -12,7 +12,6 @@ package dev.upaya.autohrv.domain.spectral
  * jumps between disjoint blocks. Only the most recent [maxSlices] are retained for display.
  */
 data class SpectrogramBand(
-    val label: String,
     val windowSeconds: Int,
     val hopSeconds: Int,
     val maxSlices: Int,
@@ -46,7 +45,6 @@ data class SpectrogramConfig(
                 bands =
                     listOf(
                         SpectrogramBand(
-                            label = "BREATH",
                             windowSeconds = 64,
                             hopSeconds = 1,
                             maxSlices = 120,
